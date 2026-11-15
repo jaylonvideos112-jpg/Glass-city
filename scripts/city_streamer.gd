@@ -25,6 +25,9 @@ const AERIAL_LAYERS := {"lot": true, "grass": true, "parking": true, "industrial
 	"roof": true, "shingle": true, "shingle_red": true, "copper_green": true}
 var _aerial_shader: Shader = preload("res://shaders/aerial.gdshader")
 var _detail_tex: Texture2D = preload("res://textures/parking.png")
+## ground layers drawn from the aerial photo, and how much photo to keep (the rest is a clean tiled texture)
+const PHOTO_MIX := {"lot": [0.35, "concrete", 0.2], "parking": [0.45, "asphalt", 0.15], "industrial": [0.4, "concrete", 0.2],
+	"grass": [0.55, "grass", 0.15], "forest_floor": [0.6, "forest_floor", 0.15]}
 var label_font_size := 96
 var lamp_bulb_mat: StandardMaterial3D = null
 var bars: Node = null   # bars.gd: builds bar exteriors and handles enter/exit
@@ -249,6 +252,7 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 	var mesh := ArrayMesh.new()
 	var nsurf := 0
 	var aerial_mat: ShaderMaterial = null
+	var _ground_mats := {}
 	if d.has("aerial_img"):
 		aerial_mat = ShaderMaterial.new()
 		aerial_mat.shader = _aerial_shader
@@ -271,6 +275,16 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		var m: Material = materials.get(layer["mat"], materials["concrete"])
 		if aerial_mat != null and AERIAL_LAYERS.has(layer["mat"]):
 			m = aerial_mat
+			if PHOTO_MIX.has(layer["mat"]):
+				var pm: Array = PHOTO_MIX[layer["mat"]]
+				var key2: String = pm[1]
+				if not _ground_mats.has(key2):
+					var gm := aerial_mat.duplicate() as ShaderMaterial
+					gm.set_shader_parameter("photo_mix", pm[0])
+					gm.set_shader_parameter("clean", load("res://textures/%s.png" % pm[1]))
+					gm.set_shader_parameter("clean_scale", pm[2])
+					_ground_mats[key2] = gm
+				m = _ground_mats[key2]
 		mesh.surface_set_material(nsurf, m)
 		nsurf += 1
 	if nsurf > 0:

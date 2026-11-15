@@ -33,10 +33,7 @@ func _ready() -> void:
 	for m in V["models"]: roster[m["id"]] = m
 	dealers = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/dealers.json"))["dealers"]
 	rng.seed = 808
-	_cat_label = Label.new(); _cat_label.position = Vector2(30, 160); _cat_label.visible = false
-	_cat_label.add_theme_font_size_override("font_size", 20)
-	_cat_label.add_theme_color_override("font_outline_color", Color.BLACK); _cat_label.add_theme_constant_override("outline_size", 6)
-	if main.hud: main.hud.add_child(_cat_label)
+	_cat_label = main.hud.overlay_label()
 
 func spec(id: String) -> Dictionary:
 	return roster.get(id, roster.values()[0])
@@ -46,7 +43,7 @@ func make_car(id: String, color: Color, health := 1000.0, upgrades := {}) -> Nod
 	var c := Car.new()
 	c.spec = spec(id); c.spec_id = id; c.body_color = color; c.health = health
 	if not upgrades.is_empty(): c.upgrades = upgrades.duplicate()
-	if main.traffic: c.body_mesh = main.traffic.vehicle_mesh(main.traffic._type(id), color)
+	if main.traffic: c.body_mesh = main.traffic.vehicle_mesh(main.traffic._type(id), color, false)   # the car's own wheels turn
 	return c
 
 func spawn_car(id: String, color: Color, world_pos: Vector3, yaw: float, health := 1000.0, upgrades := {}) -> Node:
@@ -239,7 +236,7 @@ func repaint(c: Node) -> bool:
 	var col := Color(cols[rng.randi() % cols.size()])
 	c.body_color = col
 	var body: MeshInstance3D = c.get_node_or_null("Body")
-	if body and main.traffic: body.mesh = main.traffic.vehicle_mesh(main.traffic._type(c.spec_id), col)
+	if body and main.traffic: body.mesh = main.traffic.vehicle_mesh(main.traffic._type(c.spec_id), col, false)
 	c.stolen = false if c.owned_index >= 0 else c.stolen
 	main.hud.flash("Resprayed - $%d" % cost)
 	return true

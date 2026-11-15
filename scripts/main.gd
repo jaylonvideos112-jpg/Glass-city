@@ -52,6 +52,9 @@ var peds: Node = null
 var input_enabled := true
 var env: Environment
 var cam_override := false
+var mouse_sens := 0.0035      # menu.gd settings
+var base_fov := 70.0
+var menu: Node = null
 var focus_override = null   # world-space Vector3 when the demo camera drives streaming
 
 func _ready() -> void:
@@ -139,12 +142,13 @@ func _ready() -> void:
 	world_state.register("activities", activities)
 	phone = load("res://scripts/phone.gd").new(); phone.name = "Phone"; phone.main = self; add_child(phone)
 	world_state.register("phone", phone)
-	if OS.get_cmdline_user_args().has("--load-world") or (world_state.enabled and not OS.get_cmdline_user_args().has("--new-game")):
-		world_state.load_file()
+	if OS.get_cmdline_user_args().has("--load-world"):
+		world_state.load_file()          # otherwise the title screen's Continue loads the save
 	player.collision_mask |= 2      # bump into traffic
 	for c in cars: c.collision_mask |= 2
 	tod.apply_now()
 	perf = Perf.new(); perf.main = self; add_child(perf)
+	menu = load("res://scripts/menu.gd").new(); menu.name = "Menu"; menu.main = self; add_child(menu)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--test"):
 			var tr = load("res://tests/test_runner.gd").new(); tr.main = self; add_child(tr)
@@ -236,11 +240,9 @@ func _unhandled_input(e: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 		if e.button_index == MOUSE_BUTTON_WHEEL_UP: cam_dist = max(2.5, cam_dist - 0.5)
 		if e.button_index == MOUSE_BUTTON_WHEEL_DOWN: cam_dist = min(14.0, cam_dist + 0.5)
-	if e is InputEventKey and e.pressed and e.keycode == KEY_ESCAPE:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	if e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		cam_yaw -= e.relative.x * 0.0035
-		cam_pitch = clamp(cam_pitch - e.relative.y * 0.0035, -1.2, 0.5)
+		cam_yaw -= e.relative.x * mouse_sens
+		cam_pitch = clamp(cam_pitch - e.relative.y * mouse_sens, -1.2, 0.5)
 	if e.is_action_pressed("enter"):
 		if current_car == null and jobs and jobs.try_interact(player.global_position):
 			return
@@ -421,7 +423,7 @@ func _update_camera(dt: float) -> void:
 			desired = ch["position"] + (target - desired).normalized() * 0.4
 		camera.global_position = desired if blocked else camera.global_position.lerp(desired, 1.0 - exp(-10.0 * dt))
 		camera.look_at(target, Vector3.UP)
-		camera.fov = lerp(camera.fov, 70.0 + clamp(spd * 0.35, 0.0, 14.0), 0.05)
+		camera.fov = lerp(camera.fov, base_fov + clamp(spd * 0.35, 0.0, 14.0), 0.05)
 	else:
 		var target := player.global_position + Vector3(0, 1.6, 0)
 		var dir := Vector3(sin(cam_yaw) * cos(cam_pitch), -sin(cam_pitch), cos(cam_yaw) * cos(cam_pitch))
@@ -434,7 +436,7 @@ func _update_camera(dt: float) -> void:
 			desired = hit["position"] - dir * 0.3
 		camera.global_position = desired
 		camera.look_at(target, Vector3.UP)
-		camera.fov = lerp(camera.fov, 70.0, 0.1)
+		camera.fov = lerp(camera.fov, base_fov, 0.1)
 
 # ------------------------------------------------------------------ environment
 func _setup_environment() -> void:
@@ -457,8 +459,15 @@ func _setup_environment() -> void:
 	env.fog_density = 0.00022
 	env.fog_sky_affect = 0.15
 	env.ssao_enabled = true
+	env.ssao_radius = 1.2; env.ssao_intensity = 1.6
 	env.glow_enabled = true
-	env.glow_intensity = 0.3
+	env.glow_intensity = 0.35
+	env.glow_bloom = 0.05
+	env.glow_hdr_threshold = 1.1
+	# colour grade: a touch more contrast and saturation (the photo-based ground reads flat otherwise)
+	env.adjustment_enabled = true
+	env.adjustment_contrast = 1.06
+	env.adjustment_saturation = 1.08
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"

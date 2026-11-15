@@ -29,10 +29,7 @@ func _ready() -> void:
 	places = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/activities.json"))["places"]
 	L["sports"]["game_days"] = L["sports"]["game_days"].map(func(x): return int(x))   # JSON numbers are floats
 	rng.seed = 2468
-	_overlay = Label.new(); _overlay.position = Vector2(30, 160); _overlay.visible = false
-	_overlay.add_theme_font_size_override("font_size", 24)
-	_overlay.add_theme_color_override("font_outline_color", Color.BLACK); _overlay.add_theme_constant_override("outline_size", 7)
-	if main.hud: main.hud.add_child(_overlay)
+	_overlay = main.hud.overlay_label()
 
 func pass_time(hours: float) -> void:
 	main.tod.total_hours += hours

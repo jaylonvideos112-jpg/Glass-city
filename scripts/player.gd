@@ -39,20 +39,19 @@ func _part(mesh: Mesh, color: Color, pos: Vector3, parent: Node3D = null) -> Mes
 func _box(s: Vector3) -> BoxMesh:
 	var b := BoxMesh.new(); b.size = s; return b
 
+const Humans := preload("res://scripts/humans.gd")
+var _body: MeshInstance3D
+
+## the protagonist: dark bomber jacket over a grey tee, dark jeans, white sneakers, short hair and a beard
 func _build_model() -> void:
-	# low-poly guy: hoodie, jeans, sneakers
-	_part(_box(Vector3(0.5, 0.62, 0.28)), Color(0.15, 0.2, 0.32), Vector3(0, 1.22, 0))   # torso
-	var head := SphereMesh.new(); head.radius = 0.15; head.height = 0.32; head.radial_segments = 8; head.rings = 4
-	_part(head, Color(0.45, 0.32, 0.24), Vector3(0, 1.7, 0))
-	_part(_box(Vector3(0.33, 0.12, 0.33)), Color(0.1, 0.1, 0.1), Vector3(0, 1.84, -0.02))  # cap
-	for side in [-1, 1]:
-		var leg_pivot := Node3D.new(); leg_pivot.position = Vector3(0.12 * side, 0.92, 0); leg_pivot.name = "leg%d" % side
-		model.add_child(leg_pivot)
-		_part(_box(Vector3(0.18, 0.8, 0.2)), Color(0.2, 0.25, 0.4), Vector3(0, -0.42, 0), leg_pivot)
-		_part(_box(Vector3(0.2, 0.1, 0.32)), Color(0.9, 0.9, 0.9), Vector3(0, -0.85, -0.05), leg_pivot)
-		var arm_pivot := Node3D.new(); arm_pivot.position = Vector3(0.33 * side, 1.5, 0); arm_pivot.name = "arm%d" % side
-		model.add_child(arm_pivot)
-		_part(_box(Vector3(0.14, 0.62, 0.16)), Color(0.15, 0.2, 0.32), Vector3(0, -0.3, 0), arm_pivot)
+	var look := {"h": 1.04, "w": 1.08, "skin": Color(0.42, 0.29, 0.21), "hair": Color(0.08, 0.06, 0.05),
+		"top": Color(0.55, 0.56, 0.58), "top2": Color(0.12, 0.15, 0.22), "bottom": Color(0.14, 0.18, 0.28),
+		"shoe": Color(0.93, 0.93, 0.92), "sleeves": 2, "legs": 0, "hair_style": 0, "beard": true}
+	var mesh := Humans.build(look)
+	var mat := ShaderMaterial.new(); mat.shader = load("res://shaders/pedestrian.gdshader")
+	mesh.surface_set_material(0, mat)
+	_body = MeshInstance3D.new(); _body.mesh = mesh; _body.name = "Body"
+	model.add_child(_body)
 
 func _physics_process(dt: float) -> void:
 	if not is_physics_processing():
@@ -83,7 +82,5 @@ func _physics_process(dt: float) -> void:
 		anim_t += dt * hv.length() * 1.6
 	else:
 		anim_t = lerp(anim_t, round(anim_t / PI) * PI, 0.2)
-	var sw := sin(anim_t) * 0.6
-	for side in [-1, 1]:
-		model.get_node("leg%d" % side).rotation.x = sw * side
-		model.get_node("arm%d" % side).rotation.x = -sw * side * 0.8
+	_body.set_instance_shader_parameter("phase", anim_t)
+	_body.set_instance_shader_parameter("swing", clampf(hv.length() / 4.0, 0.0, 1.3))

@@ -49,6 +49,7 @@ func _ready() -> void:
 	main.streamer.chunk_loaded.connect(func(_k): _dirty = true)
 	_body_mat = StandardMaterial3D.new()
 	_body_mat.vertex_color_use_as_albedo = true
+	_body_mat.vertex_color_is_srgb = true
 	_body_mat.roughness = 0.45
 	_body_mat.metallic = 0.25
 	_head_mat = StandardMaterial3D.new(); _head_mat.albedo_color = Color(1.0, 0.96, 0.85)
@@ -177,55 +178,152 @@ func _box(st: SurfaceTool, size: Vector3, pos: Vector3, col: Color) -> void:
 	for i in idx:
 		st.set_color(col); st.set_normal(n[i]); st.add_vertex(v[i] + pos)
 
-## One mesh per (type, paint): body surface (vertex colours) + lights surface (emissive at night).
-func vehicle_mesh(v: Dictionary, paint: Color) -> ArrayMesh:
-	var key := "%s|%s" % [v["id"], paint.to_html()]
+## low-level helpers for car shapes: a convex "slab" from 8 corner points (bottom 4, top 4), flat shaded
+func _hexa(st: SurfaceTool, b: Array, t: Array, cols: Dictionary) -> void:
+	# b, t: [front-left, front-right, rear-right, rear-left] (front is -Z); cols: side/top/front/rear/bottom colours
+	var faces := [[b[0], b[1], t[1], t[0], "front"], [b[2], b[3], t[3], t[2], "rear"], [b[1], b[2], t[2], t[1], "side"],
+		[b[3], b[0], t[0], t[3], "side"], [t[0], t[1], t[2], t[3], "top"], [b[3], b[2], b[1], b[0], "bottom"]]
+	for f in faces:
+		var col: Color = cols.get(f[4], cols["side"])
+		var a: Vector3 = f[0]; var bb: Vector3 = f[1]; var c: Vector3 = f[2]; var d: Vector3 = f[3]
+		var n := (bb - a).cross(c - a).normalized()
+		if n == Vector3.ZERO: n = (c - a).cross(d - a).normalized()
+		for v in [a, bb, c, a, c, d]:
+			st.set_color(col); st.set_normal(-n); st.add_vertex(v)
+
+func _corners(x: float, y: float, zf: float, zr: float) -> Array:
+	return [Vector3(-x, y, zf), Vector3(x, y, zf), Vector3(x, y, zr), Vector3(-x, y, zr)]
+
+func _wheel(st: SurfaceTool, c: Vector3, r: float, w: float, tire: Color, hub: Color) -> void:
+	var n := 10
+	var side := 1.0 if c.x > 0 else -1.0
+	for i in n:
+		var a0 := TAU * i / n; var a1 := TAU * (i + 1) / n
+		var p0 := Vector3(0, sin(a0) * r, cos(a0) * r); var p1 := Vector3(0, sin(a1) * r, cos(a1) * r)
+		var o := Vector3(w * 0.5, 0, 0); var nrm := Vector3(0, sin((a0 + a1) * 0.5), cos((a0 + a1) * 0.5))
+		for v in [c - o + p0, c + o + p0, c + o + p1, c - o + p0, c + o + p1, c - o + p1]:
+			st.set_color(tire); st.set_normal(nrm); st.add_vertex(v)
+		# outer face: hub (inner 60%) + tyre wall
+		var oc := c + Vector3(side * w * 0.5, 0, 0)
+		for v in [oc, oc + p0 * 0.6, oc + p1 * 0.6]:
+			st.set_color(hub); st.set_normal(Vector3(side, 0, 0)); st.add_vertex(v)
+		for v in [oc + p0 * 0.6, oc + p0, oc + p1, oc + p0 * 0.6, oc + p1, oc + p1 * 0.6]:
+			st.set_color(tire); st.set_normal(Vector3(side, 0, 0)); st.add_vertex(v)
+
+## One mesh per (type, paint): body surface (vertex colours) + headlight and taillight surfaces (emissive at night).
+## Shapes by body type: a lower body with a sloped nose and tail and chamfered shoulders, a glasshouse with raked
+## windscreen and tumblehome, wheels with hubs, bumpers, grille, mirrors, plate, lights.
+func vehicle_mesh(v: Dictionary, paint: Color, with_wheels := true) -> ArrayMesh:
+	var key := "%s|%s|%s" % [v["id"], paint.to_html(), with_wheels]
 	if _mesh_cache.has(key): return _mesh_cache[key]
 	var L: float = v["size"][0]; var W: float = v["size"][1]; var H: float = v["size"][2]
-	var cab: Array = v["cabin"]
-	var glass := Color(0.08, 0.1, 0.13); var dark := Color(0.06, 0.06, 0.06); var tire := Color(0.04, 0.04, 0.04)
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var body: String = v["body"]
-	var floor_y := 0.32
-	var low_h: float = H * (0.45 if body in ["sedan", "hatch", "suv", "pickup", "wagon"] else (0.5 if body in ["coupe", "sports"] else 0.92))
-	_box(st, Vector3(W, low_h - floor_y, L), Vector3(0, (low_h + floor_y) * 0.5, 0), paint)
+	var glass := Color(0.07, 0.09, 0.12); var dark := Color(0.06, 0.06, 0.07); var tire := Color(0.05, 0.05, 0.05)
+	var trim := Color(0.12, 0.12, 0.13); var chrome := Color(0.62, 0.64, 0.66); var hub := Color(0.55, 0.57, 0.6)
+	var paint_dark := paint.darkened(0.18)
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var hw := W * 0.5
+	var zf := -L * 0.5; var zr := L * 0.5
+	var floor_y := 0.3
+	var tall := body in ["van", "box", "bus"]
+	var belt: float = H * (0.56 if body in ["suv", "pickup"] else (0.5 if body in ["coupe", "sports"] else 0.52))
+	if tall: belt = H * 0.5
+	var nose := 0.12 if not tall else 0.04          # how far the nose/tail fall below the belt line
+	var wr := 0.34 if H < 1.6 else 0.4
+	if tall: wr = 0.46 if body == "bus" or body == "box" else 0.4
+	var cols := {"side": paint, "top": paint, "front": paint_dark, "rear": paint_dark, "bottom": dark}
+	# --- lower body: sill -> belt, with a sloped bonnet and boot and slightly narrower shoulders
+	var sill := floor_y
+	var nl := L * (0.12 if not tall else 0.03)      # nose length that slopes
+	_hexa(st, _corners(hw, sill, zf + nl, zr - nl), _corners(hw * 0.97, belt, zf + nl, zr - nl), cols)
+	_hexa(st, _corners(hw * 0.96, sill + 0.06, zf, zf + nl), _corners(hw * 0.94, belt - nose * H * 0.5, zf + 0.06, zf + nl), cols)   # nose
+	_hexa(st, _corners(hw * 0.96, sill + 0.06, zr - nl, zr), _corners(hw * 0.94, belt - nose * H * 0.3, zr - nl, zr - 0.06), cols)   # tail
+	# --- glasshouse / cargo box
+	var roof_col := {"side": glass, "top": paint, "front": glass, "rear": glass, "bottom": paint}
 	match body:
-		"sedan", "hatch", "suv", "wagon", "coupe", "sports":
-			var cl: float = L * cab[1]; var cz: float = L * (cab[0] - 0.5) + cl * 0.5 - L * 0.08
-			_box(st, Vector3(W * 0.88, H - low_h, cl), Vector3(0, (H + low_h) * 0.5, cz + (0.15 if body == "hatch" else 0.0)), glass)
-			_box(st, Vector3(W * 0.9, 0.07, cl * 0.92), Vector3(0, H, cz), paint)
+		"sedan", "coupe", "sports", "hatch", "suv", "wagon":
+			var cab: Array = v["cabin"]
+			var cl: float = L * cab[1]
+			var c0: float = zf + L * cab[0] + (0.0 if body != "hatch" else 0.1)
+			var c1: float = c0 + cl
+			if body in ["hatch", "suv", "wagon"]: c1 = minf(zr - 0.25, c0 + cl)
+			var rake_f: float = cl * (0.26 if body in ["coupe", "sports"] else 0.2)
+			var rake_r: float = cl * (0.24 if body in ["sedan", "coupe", "sports"] else 0.06)
+			_hexa(st, _corners(hw * 0.92, belt, c0, c1), _corners(hw * 0.74, H, c0 + rake_f, c1 - rake_r), roof_col)
+			# pillars between the side windows (B pillar)
+			var bz := c0 + cl * 0.48
+			for sx in [-1, 1]:
+				var x0: float = sx * hw * 0.83
+				_hexa(st, [Vector3(x0 - 0.04 * sx, belt, bz - 0.05), Vector3(x0 + 0.06 * sx, belt, bz - 0.05), Vector3(x0 + 0.06 * sx, belt, bz + 0.05), Vector3(x0 - 0.04 * sx, belt, bz + 0.05)],
+					[Vector3(x0 * 0.82 - 0.03 * sx, H - 0.02, bz - 0.05), Vector3(x0 * 0.82 + 0.05 * sx, H - 0.02, bz - 0.05), Vector3(x0 * 0.82 + 0.05 * sx, H - 0.02, bz + 0.05), Vector3(x0 * 0.82 - 0.03 * sx, H - 0.02, bz + 0.05)], {"side": trim})
 		"pickup":
-			var cl2: float = L * 0.32
-			_box(st, Vector3(W * 0.9, H - low_h, cl2), Vector3(0, (H + low_h) * 0.5, -L * 0.12), glass)
-			_box(st, Vector3(W * 0.92, 0.07, cl2), Vector3(0, H, -L * 0.12), paint)
-			_box(st, Vector3(W, 0.45, L * 0.38), Vector3(0, low_h + 0.2, L * 0.29), paint)   # bed walls
-			_box(st, Vector3(W * 0.84, 0.4, L * 0.36), Vector3(0, low_h + 0.24, L * 0.29), dark)
+			var c0p: float = zf + L * 0.2; var c1p: float = zf + L * 0.48
+			_hexa(st, _corners(hw * 0.94, belt, c0p, c1p), _corners(hw * 0.8, H, c0p + 0.32, c1p - 0.05), roof_col)
+			_hexa(st, _corners(hw, belt, c1p + 0.08, zr - 0.05), _corners(hw, belt + 0.38, c1p + 0.08, zr - 0.05), {"side": paint, "top": dark, "front": paint_dark, "rear": paint_dark, "bottom": dark})   # bed
 		"van", "box", "bus":
-			_box(st, Vector3(W * 0.96, H * 0.22, 0.05), Vector3(0, H * 0.72, -L * 0.5 - 0.01), glass)   # windscreen
-			if body == "bus":
-				for sgn in [-1, 1]: _box(st, Vector3(0.04, H * 0.28, L * 0.8), Vector3(sgn * W * 0.5, H * 0.66, 0.4), glass)
-			if body == "box": _box(st, Vector3(W * 1.02, H * 0.02, L * 0.7), Vector3(0, H * 0.94, L * 0.13), Color(0.9, 0.9, 0.88))
-	if v.get("livery", "") == "police":
-		_box(st, Vector3(W * 0.94, 0.12, L * 0.24), Vector3(0, low_h * 0.7, -L * 0.05), Color(0.95, 0.95, 0.95))
-		_box(st, Vector3(1.0, 0.12, 0.25), Vector3(0, H + 0.1, -L * 0.05), Color(0.1, 0.1, 0.12))
-	if v.get("livery", "") == "ambulance":
-		for sgn in [-1, 1]: _box(st, Vector3(0.03, 0.3, L * 0.9), Vector3(sgn * (W * 0.5 + 0.01), H * 0.55, 0), Color(0.8, 0.1, 0.08))
-		_box(st, Vector3(W * 0.96, H * 0.22, 0.05), Vector3(0, H * 0.72, -L * 0.5 - 0.01), glass)
-	if v.get("livery", "") == "fire":
-		for sgn in [-1, 1]: _box(st, Vector3(0.03, 0.18, L * 0.95), Vector3(sgn * (W * 0.5 + 0.01), H * 0.4, 0), Color(0.95, 0.85, 0.2))
-		_box(st, Vector3(W * 0.7, 0.2, L * 0.55), Vector3(0, H + 0.1, L * 0.12), Color(0.75, 0.75, 0.78))   # ladder
-	_box(st, Vector3(W + 0.02, 0.2, 0.25), Vector3(0, 0.42, -L * 0.5), dark)
-	_box(st, Vector3(W + 0.02, 0.2, 0.25), Vector3(0, 0.42, L * 0.5), dark)
-	for sx in [-1, 1]:
-		for sz in [-1, 1]:
-			_box(st, Vector3(0.24, 0.66, 0.66), Vector3(sx * (W * 0.5 - 0.1), 0.33, sz * L * 0.33), tire)
+			var cabz: float = zf + (0.9 if body != "bus" else 0.05)
+			var top_col := {"side": paint, "top": paint.lightened(0.05), "front": glass, "rear": paint_dark, "bottom": dark}
+			if body == "box":
+				_hexa(st, _corners(hw * 0.95, belt, zf + 0.1, cabz + 0.9), _corners(hw * 0.88, H * 0.82, zf + 0.5, cabz + 0.9), {"side": glass, "top": paint, "front": glass, "rear": paint, "bottom": dark})
+				_hexa(st, _corners(hw * 1.02, sill + 0.2, cabz + 1.0, zr), _corners(hw * 1.02, H, cabz + 1.0, zr), {"side": Color(0.92, 0.92, 0.9), "top": Color(0.85, 0.85, 0.83), "front": Color(0.88, 0.88, 0.86), "rear": Color(0.8, 0.8, 0.78), "bottom": dark})
+			else:
+				_hexa(st, _corners(hw * 0.98, belt, zf + 0.06 + (0.25 if body == "van" else 0.0), zr - 0.05), _corners(hw * 0.95, H, zf + (0.6 if body == "van" else 0.12), zr - 0.08), top_col)
+				# window band along the sides
+				for sx in [-1, 1]:
+					var x1: float = sx * (hw * 0.985 + 0.005)
+					var wz0: float = zf + (0.7 if body == "van" else 0.4); var wz1: float = zr - (1.6 if body == "van" else 0.6)
+					_hexa(st, [Vector3(x1, belt + 0.18, wz0), Vector3(x1 + sx * 0.01, belt + 0.18, wz0), Vector3(x1 + sx * 0.01, belt + 0.18, wz1), Vector3(x1, belt + 0.18, wz1)],
+						[Vector3(x1, H * 0.9, wz0), Vector3(x1 + sx * 0.01, H * 0.9, wz0), Vector3(x1 + sx * 0.01, H * 0.9, wz1), Vector3(x1, H * 0.9, wz1)], {"side": glass})
+	# --- liveries
+	var liv: String = v.get("livery", "")
+	if liv == "police":
+		for sx in [-1, 1]:
+			var x2: float = sx * (hw + 0.005)
+			_hexa(st, [Vector3(x2, sill + 0.15, zf + L * 0.25), Vector3(x2 + sx * 0.01, sill + 0.15, zf + L * 0.25), Vector3(x2 + sx * 0.01, sill + 0.15, zr - L * 0.2), Vector3(x2, sill + 0.15, zr - L * 0.2)],
+				[Vector3(x2, belt - 0.05, zf + L * 0.25), Vector3(x2 + sx * 0.01, belt - 0.05, zf + L * 0.25), Vector3(x2 + sx * 0.01, belt - 0.05, zr - L * 0.2), Vector3(x2, belt - 0.05, zr - L * 0.2)], {"side": Color(0.95, 0.95, 0.95)})
+		_hexa(st, _corners(0.55, H, -0.15, 0.15), _corners(0.5, H + 0.12, -0.12, 0.12), {"side": dark, "top": Color(0.2, 0.2, 0.25), "front": Color(0.9, 0.1, 0.1), "rear": Color(0.1, 0.2, 0.9)})
+	elif liv == "ambulance":
+		for sx in [-1, 1]:
+			var x3: float = sx * (hw * 1.02 + 0.005)
+			_hexa(st, [Vector3(x3, belt + 0.25, zf + 1.2), Vector3(x3 + sx * 0.01, belt + 0.25, zf + 1.2), Vector3(x3 + sx * 0.01, belt + 0.25, zr - 0.1), Vector3(x3, belt + 0.25, zr - 0.1)],
+				[Vector3(x3, belt + 0.55, zf + 1.2), Vector3(x3 + sx * 0.01, belt + 0.55, zf + 1.2), Vector3(x3 + sx * 0.01, belt + 0.55, zr - 0.1), Vector3(x3, belt + 0.55, zr - 0.1)], {"side": Color(0.85, 0.1, 0.08)})
+		_hexa(st, _corners(hw * 0.8, H, zf + 0.9, zf + 1.25), _corners(hw * 0.8, H + 0.14, zf + 0.92, zf + 1.23), {"side": Color(0.9, 0.1, 0.1), "top": Color(0.9, 0.9, 0.9)})
+	elif liv == "fire":
+		_hexa(st, _corners(hw * 0.7, H, zf + 2.0, zr - 0.6), _corners(hw * 0.7, H + 0.22, zf + 2.0, zr - 0.6), {"side": Color(0.75, 0.75, 0.78), "top": Color(0.65, 0.65, 0.68)})   # ladder
+		for sx in [-1, 1]:
+			var x4: float = sx * (hw * 0.985 + 0.01)
+			_hexa(st, [Vector3(x4, sill + 0.3, zf + 0.2), Vector3(x4 + sx * 0.01, sill + 0.3, zf + 0.2), Vector3(x4 + sx * 0.01, sill + 0.3, zr - 0.2), Vector3(x4, sill + 0.3, zr - 0.2)],
+				[Vector3(x4, sill + 0.45, zf + 0.2), Vector3(x4 + sx * 0.01, sill + 0.45, zf + 0.2), Vector3(x4 + sx * 0.01, sill + 0.45, zr - 0.2), Vector3(x4, sill + 0.45, zr - 0.2)], {"side": Color(0.95, 0.85, 0.2)})
+	# --- bumpers, grille, plates, mirrors
+	_hexa(st, _corners(hw * 0.98, sill - 0.04, zf - 0.04, zf + 0.12), _corners(hw * 0.98, sill + 0.2, zf - 0.04, zf + 0.12), {"side": trim})
+	_hexa(st, _corners(hw * 0.98, sill - 0.04, zr - 0.12, zr + 0.04), _corners(hw * 0.98, sill + 0.2, zr - 0.12, zr + 0.04), {"side": trim})
+	var gy: float = belt - nose * H * 0.5 - 0.08
+	_hexa(st, _corners(hw * 0.38, sill + 0.24, zf + 0.02, zf + 0.05), _corners(hw * 0.38, minf(gy, sill + 0.5), zf + 0.02, zf + 0.05), {"side": dark, "front": dark})
+	_hexa(st, _corners(0.26, sill + 0.24, zr - 0.04, zr - 0.01), _corners(0.26, sill + 0.38, zr - 0.04, zr - 0.01), {"side": Color(0.9, 0.9, 0.85), "rear": Color(0.92, 0.92, 0.88)})
+	if not tall or body == "van":
+		for sx in [-1, 1]:
+			var mz: float = zf + L * (v["cabin"][0] if v.has("cabin") else 0.2) + 0.15
+			_hexa(st, _corners(0.08, belt + 0.02, mz, mz + 0.12).map(func(p): return p + Vector3(sx * (hw + 0.06), 0, 0)),
+				_corners(0.08, belt + 0.16, mz, mz + 0.12).map(func(p): return p + Vector3(sx * (hw + 0.06), 0, 0)), {"side": paint_dark})
+	# --- wheels in dark arches
+	var wz: float = L * (0.33 if not tall else 0.36)
+	var axles := [-wz, wz]
+	if body == "bus" or (body == "box" and L > 7.0): axles = [-L * 0.33, L * 0.28, L * 0.38] if body == "box" else [-L * 0.36, L * 0.3]
+	for az in axles:
+		for sx in [-1, 1]:
+			var wc := Vector3(sx * (hw - 0.12), wr, az)
+			_hexa(st, _corners(0.13, wr + 0.02, az - wr * 1.05, az + wr * 1.05).map(func(p): return p + Vector3(sx * (hw - 0.12), 0, 0)),
+				_corners(0.13, wr * 2.05, az - wr * 0.9, az + wr * 0.9).map(func(p): return p + Vector3(sx * (hw - 0.12), 0, 0)), {"side": dark})
+			if with_wheels: _wheel(st, wc, wr, 0.24, tire, hub)
 	var am := st.commit()
 	am.surface_set_material(0, _body_mat)
+	# lights: headlights (white, surface 1) and taillights (red, surface 2)
 	var st2 := SurfaceTool.new(); st2.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var st3 := SurfaceTool.new(); st3.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var ly: float = minf(gy, belt - 0.12)
 	for sx in [-1, 1]:
-		_box(st2, Vector3(0.32, 0.13, 0.04), Vector3(sx * W * 0.34, low_h * 0.78, -L * 0.5 - 0.03), Color.WHITE)
-		_box(st3, Vector3(0.32, 0.13, 0.04), Vector3(sx * W * 0.34, low_h * 0.78, L * 0.5 + 0.03), Color.WHITE)
+		_box(st2, Vector3(W * 0.2, 0.12, 0.04), Vector3(sx * hw * 0.66, ly, zf + 0.03), Color.WHITE)
+		_box(st3, Vector3(W * 0.18, 0.14, 0.04), Vector3(sx * hw * 0.7, belt - nose * H * 0.3 - 0.1 if not tall else sill + 0.5, zr - 0.03), Color.WHITE)
 	st2.commit(am); am.surface_set_material(1, _head_mat)
 	st3.commit(am); am.surface_set_material(2, _tail_mat)
 	_mesh_cache[key] = am

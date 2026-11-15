@@ -43,31 +43,16 @@ func _pick(key: String) -> Color:
 	var a: Array = P[key]
 	return Color(a[rng.randi() % a.size()])
 
+const Humans := preload("res://scripts/humans.gd")
+
+## a random person (humans.gd body, colours from pedestrians.json)
 func _make_person() -> ArrayMesh:
-	var h := rng.randf_range(0.92, 1.08)          # height scale
-	var w := rng.randf_range(0.9, 1.15)           # build
-	var skin := _pick("skin"); var hair := _pick("hair"); var top := _pick("tops"); var bot := _pick("bottoms"); var shoe := _pick("shoes")
-	var dress := rng.randf() < 0.12
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var hip := 0.92 * h; var sh := 1.42 * h
-	_box(st, Vector3(0.42 * w, 0.58 * h, 0.24 * w), Vector3(0, (hip + sh) * 0.5 + 0.02, 0), top, 0, 0)     # torso
-	if dress: _box(st, Vector3(0.46 * w, 0.4 * h, 0.3 * w), Vector3(0, hip - 0.12 * h, 0), top, 0, 0)
-	_box(st, Vector3(0.1, 0.1, 0.1), Vector3(0, sh + 0.06 * h, 0), skin, 0, 0)                              # neck
-	_box(st, Vector3(0.21, 0.25 * h, 0.23), Vector3(0, sh + 0.22 * h, 0), skin, 0, 0)                        # head
-	_box(st, Vector3(0.23, 0.08 + rng.randf() * 0.07, 0.25), Vector3(0, sh + 0.36 * h, 0.01), hair, 0, 0)   # hair
-	for sgn in [-1, 1]:
-		var leg := 1 if sgn < 0 else 2
-		_box(st, Vector3(0.15 * w, hip - 0.08, 0.17 * w), Vector3(0.1 * sgn * w, hip * 0.5 + 0.04, 0), skin if dress else bot, leg, hip)
-		_box(st, Vector3(0.15 * w, 0.08, 0.27), Vector3(0.1 * sgn * w, 0.04, -0.04), shoe, leg, hip)
-		var arm := 3 if sgn < 0 else 4
-		_box(st, Vector3(0.11, 0.6 * h, 0.12), Vector3(0.28 * sgn * w, sh - 0.28 * h, 0), top, arm, sh - 0.02)
-		_box(st, Vector3(0.09, 0.09, 0.09), Vector3(0.28 * sgn * w, sh - 0.62 * h, 0), skin, arm, sh - 0.02)
-	# umbrella (in the right hand, raised): canopy + shaft; hidden by the shader unless raining
-	var uc := _pick("umbrellas")
-	_box(st, Vector3(0.025, 0.75, 0.025), Vector3(0.28 * w, sh + 0.2, -0.32), Color(0.2, 0.2, 0.2), 5, 0)
-	_box(st, Vector3(1.0, 0.06, 1.0), Vector3(0.2 * w, sh + 0.6, -0.2), uc, 5, 0)
-	_box(st, Vector3(0.7, 0.08, 0.7), Vector3(0.2 * w, sh + 0.66, -0.2), uc, 5, 0)
-	var m := st.commit()
+	var look := {"h": rng.randf_range(0.92, 1.08), "w": rng.randf_range(0.9, 1.15),
+		"skin": _pick("skin"), "hair": _pick("hair"), "top": _pick("tops"), "top2": _pick("tops").darkened(0.15),
+		"bottom": _pick("bottoms"), "shoe": _pick("shoes"), "umbrella": _pick("umbrellas"),
+		"sleeves": [0, 0, 1, 1, 2][rng.randi() % 5], "legs": 2 if rng.randf() < 0.12 else (1 if rng.randf() < 0.12 else 0),
+		"hair_style": [0, 0, 1, 1, 2, 3, 4][rng.randi() % 7], "beard": rng.randf() < 0.22}
+	var m := Humans.build(look)
 	m.surface_set_material(0, _mat)
 	return m
 

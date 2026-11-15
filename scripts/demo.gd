@@ -241,7 +241,42 @@ func _shots(dt: float) -> void:
 	var cam: Camera3D = main.camera
 	var pos = s[1]
 	var look = s[2]
-	if s[0] == "@phone" and main.phone:
+	if s[0] == "@closeup":
+		# portrait of the player (and whoever walks by)
+		main.hud.visible = false
+		if main.menu: main.menu.show_screen("")
+		var pl: Vector3 = main.player.global_position + main.world_offset
+		var fwd := Vector3(-sin(main.player.model.rotation.y), 0, -cos(main.player.model.rotation.y))
+		pos = pl + fwd * 2.6 + fwd.cross(Vector3.UP) * 1.0 + Vector3(0, 1.55, 0); look = pl + Vector3(0, 1.1, 0)
+		if shot_wait < 2.0:
+			shot_wait += dt
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 50.0
+			return
+	elif s[0] == "@title" or s[0] == "@pause":
+		var mn = main.menu
+		if mn.screen != s[0].substr(1):
+			mn.show_screen(s[0].substr(1))
+			if s[0] == "@pause": get_tree().paused = false     # keep the demo running for the capture
+		if s[0] == "@title": mn._process(dt)
+		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 30.0
+		if shot_wait < 4.0:
+			shot_wait += dt
+			return
+	elif s[0] == "@play" or s[0] == "@incar":
+		if main.menu and main.menu.screen != "": main.menu.show_screen("")
+		# the normal gameplay camera and HUD (on foot, or in your car)
+		main.hud.visible = true
+		if s[0] == "@incar" and main.current_car == null:
+			var mine = main.cars[0]
+			main.player.global_position = mine.global_position + Vector3(1.5, 0.5, 0)
+			main.toggle_vehicle()
+		if s[0] == "@play" and main.current_car != null: main.toggle_vehicle()
+		main._update_camera(0.2)
+		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 30.0
+		if shot_wait < 2.5:
+			shot_wait += dt
+			return
+	elif s[0] == "@phone" and main.phone:
 		main.hud.visible = true
 		var ph = main.phone
 		if not ph.open:

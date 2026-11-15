@@ -88,7 +88,7 @@ func _ready() -> void:
 		wheels.append(w)
 		var tire := MeshInstance3D.new()
 		var cyl := CylinderMesh.new()
-		cyl.top_radius = 0.36; cyl.bottom_radius = 0.36; cyl.height = 0.26; cyl.radial_segments = 10; cyl.rings = 1
+		cyl.top_radius = wr; cyl.bottom_radius = wr; cyl.height = 0.26; cyl.radial_segments = 12; cyl.rings = 1
 		tire.mesh = cyl
 		tire.rotation.z = PI / 2
 		var tm := StandardMaterial3D.new(); tm.albedo_color = Color(0.08, 0.08, 0.08)
@@ -96,7 +96,7 @@ func _ready() -> void:
 		w.add_child(tire)
 		var hub := MeshInstance3D.new()
 		var hc := CylinderMesh.new()
-		hc.top_radius = 0.2; hc.bottom_radius = 0.2; hc.height = 0.28; hc.radial_segments = 6; hc.rings = 1
+		hc.top_radius = wr * 0.58; hc.bottom_radius = wr * 0.58; hc.height = 0.28; hc.radial_segments = 8; hc.rings = 1
 		hub.mesh = hc
 		hub.rotation.z = PI / 2
 		var hm := StandardMaterial3D.new(); hm.albedo_color = Color(0.7, 0.7, 0.72); hm.metallic = 0.8; hm.roughness = 0.3
@@ -114,20 +114,20 @@ func _build_model() -> void:
 	if body_mesh != null:
 		# the traffic-style body (one mesh: paint + glass + lights) + our own light rig and badge
 		var mi := MeshInstance3D.new(); mi.mesh = body_mesh; mi.name = "Body"
+		var wr0: float = 0.36 if float(spec["size"][2]) < 1.7 else 0.42
+		mi.position.y = 0.38 - 0.22 - wr0 + 0.05     # the mesh's ground (y=0) where the wheels touch down (sits a bit on its springs)
 		add_child(mi)
 		var L: float = float(spec["size"][0]); var H: float = float(spec["size"][2])
 		_hl_mat = _mat(Color(1, 0.97, 0.85)); _hl_mat.emission_enabled = true; _hl_mat.emission = Color(1, 0.95, 0.8)
 		_tl_mat = _mat(Color(0.8, 0.05, 0.05)); _tl_mat.emission_enabled = true; _tl_mat.emission = Color(0.9, 0, 0)
+		if body_mesh.get_surface_count() >= 3:     # our own light materials, so our brake lights work
+			mi.set_surface_override_material(1, _hl_mat); mi.set_surface_override_material(2, _tl_mat)
 		for s in [-0.6, 0.6]:
 			var sp := SpotLight3D.new()
 			sp.position = Vector3(s, 0.75, -L * 0.5 - 0.1); sp.rotation_degrees = Vector3(-7, 0, 0)
 			sp.spot_range = 38.0; sp.spot_angle = 26.0; sp.spot_attenuation = 1.2
 			sp.light_color = Color(1.0, 0.95, 0.85); sp.light_energy = 0.0; sp.shadow_enabled = false; sp.visible = false
 			add_child(sp); _heads.append(sp)
-			_box(Vector3(0.32, 0.12, 0.04), Vector3(s, 0.72, -L * 0.5 - 0.02), _hl_mat)
-			_box(Vector3(0.32, 0.12, 0.04), Vector3(s, 0.72, L * 0.5 + 0.02), _tl_mat)
-		var badge := Label3D.new(); badge.text = model_name; badge.font_size = 24; badge.pixel_size = 0.004
-		badge.position = Vector3(0, 0.6, L * 0.5 + 0.03); add_child(badge)
 		_smoke = CPUParticles3D.new(); _smoke.emitting = false; _smoke.amount = 24; _smoke.lifetime = 1.6
 		_smoke.position = Vector3(0, H * 0.5, -L * 0.42); _smoke.direction = Vector3(0, 1, 0); _smoke.initial_velocity_min = 1.0; _smoke.initial_velocity_max = 2.5
 		_smoke.gravity = Vector3(0, 1.0, 0); _smoke.scale_amount_min = 0.5; _smoke.scale_amount_max = 1.4

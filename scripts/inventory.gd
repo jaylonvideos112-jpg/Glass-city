@@ -10,10 +10,7 @@ var _label: Label
 var _food_order: Array = []
 
 func _ready() -> void:
-	_label = Label.new(); _label.position = Vector2(30, 160); _label.visible = false
-	_label.add_theme_font_size_override("font_size", 20)
-	_label.add_theme_color_override("font_outline_color", Color.BLACK); _label.add_theme_constant_override("outline_size", 6)
-	if main.hud: main.hud.add_child(_label)
+	_label = main.hud.overlay_label()
 
 func add(cat: String, item: String, n := 1) -> void:
 	items[cat][item] = int(items[cat].get(item, 0)) + n

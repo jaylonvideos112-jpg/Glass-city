@@ -40,13 +40,7 @@ func _ready() -> void:
 	m.albedo_color = Color(1.0, 0.8, 0.2, 0.35); m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_beam.material_override = m; _beam.visible = false; _beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	main.world.add_child(_beam)
-	_board_label = Label.new()
-	_board_label.position = Vector2(30, 160)
-	_board_label.add_theme_font_size_override("font_size", 20)
-	_board_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	_board_label.add_theme_constant_override("outline_size", 6)
-	_board_label.visible = false
-	if main.hud: main.hud.add_child(_board_label)
+	_board_label = main.hud.overlay_label()
 
 func place(id: int) -> Dictionary:
 	return places[id] if id >= 0 and id < places.size() else {}

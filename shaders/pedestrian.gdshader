@@ -7,7 +7,7 @@ instance uniform float swing = 0.0;      // 0 standing .. 1 full stride
 instance uniform float umbrella = 0.0;   // 1 = holding an umbrella (rain)
 varying vec3 col;
 void vertex() {
-	col = COLOR.rgb;
+	col = mix(COLOR.rgb / 12.92, pow((COLOR.rgb + 0.055) / 1.055, vec3(2.4)), step(0.04045, COLOR.rgb));   // sRGB -> linear
 	int part = int(UV2.x + 0.5);
 	float pivot = UV2.y;
 	float a = 0.0;
@@ -24,8 +24,9 @@ void vertex() {
 		VERTEX = p;
 	}
 	if (part == 5) VERTEX = mix(vec3(0.0, 1.0, 0.0), VERTEX, umbrella);
-	// subtle body bob
-	if (part == 0) VERTEX.y += abs(sin(phase)) * 0.03 * swing;
+	// body bob and a slight forward lean at a run
+	VERTEX.y += abs(sin(phase)) * 0.03 * min(swing, 1.0);
+	if (swing > 1.0) VERTEX.z -= (swing - 1.0) * 0.25 * VERTEX.y * 0.3;
 }
 void fragment() {
 	ALBEDO = col;

@@ -7,6 +7,11 @@ uniform sampler2D detail : source_color, filter_linear_mipmap, repeat_enable;
 uniform float chunk_size = 200.0;
 uniform float detail_scale = 0.25;
 uniform float detail_strength = 0.35;
+// how much of the aerial photo to keep (1 = all). Below 1 the ground blends toward a clean tiled texture whose
+// brightness follows the photo - photos of lots and lawns are blurry and full of shadows and parked cars.
+uniform float photo_mix = 1.0;
+uniform sampler2D clean : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float clean_scale = 0.25;
 global uniform float wetness;
 global uniform float snow_cover;
 varying vec2 plan;
@@ -25,6 +30,13 @@ void fragment() {
 	float l = dot(a, vec3(0.299, 0.587, 0.114));
 	a = mix(vec3(l), a, 1.18);
 	vec3 col = a * mix(1.0, 0.75 + d * 0.6, detail_strength);
+	if (photo_mix < 0.999) {
+		vec3 c = texture(clean, plan * clean_scale).rgb;
+		float cl = max(dot(c, vec3(0.299, 0.587, 0.114)), 0.02);
+		vec3 tint = mix(vec3(1.0), a / max(l, 0.02), 0.35);          // keep a little of the photo's hue
+		vec3 cc = c * clamp(l / cl, 0.7, 1.25) * tint;
+		col = mix(cc, col, photo_mix);
+	}
 	float rough = 0.92;
 	// snow settles on flat surfaces first; patchy while thin
 	float flat_ = smoothstep(0.6, 0.95, up);

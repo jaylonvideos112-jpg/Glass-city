@@ -1432,7 +1432,7 @@ def do_building(e, g, cp, is_part):
             if cls in ("house", "garage") and roof is None and not (m and m.get("roof") == "flat"):
                 roof = "gable" if rnd < 0.62 else "hip"
     bar_theme = BAR_BLDG.get(key)
-    if bar_theme:
+    if bar_theme and h <= 15.0:      # the themed bar front only on low buildings; a tower keeps its own walls (door + sign still go on)
         mat = BAR_MAT[bar_theme]; store = False; roof = None; tiers = None
     if exact:
         e["_exact"] = True

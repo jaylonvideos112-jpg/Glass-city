@@ -57,11 +57,11 @@
       "ambient": 0.45
     },
     "night": {
-      "top": "#060a18",
-      "horizon": "#1c2236",
-      "ground": "#0c0e12",
-      "fog": "#141a26",
-      "ambient": 0.13
+      "top": "#0a1226",
+      "horizon": "#26304a",
+      "ground": "#12151c",
+      "fog": "#1c2436",
+      "ambient": 0.32
     }
   },
   "occupancy_by_hour": [
@@ -243,10 +243,10 @@
   "lights": {
     "_doc": "street lamps and car lights",
     "lamp_pool_radius": 7.5,
-    "lamp_pool_energy": 0.55,
+    "lamp_pool_energy": 0.8,
     "real_lamp_lights": 24,
-    "real_lamp_range": 15.0,
-    "real_lamp_energy": 1.6,
+    "real_lamp_range": 17.0,
+    "real_lamp_energy": 2.2,
     "headlight_on_night": 0.25
   }
 }

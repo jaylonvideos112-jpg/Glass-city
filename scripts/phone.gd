@@ -214,9 +214,9 @@ func exit_photo_mode() -> void:
 func set_filter(i: int) -> void:
 	_filter = i
 	var env: Environment = main.env
-	env.adjustment_enabled = i != 0
-	env.adjustment_saturation = [1.0, 0.0, 0.85, 1.6][i]
-	env.adjustment_contrast = [1.0, 1.15, 1.05, 1.1][i]
+	env.adjustment_enabled = true
+	env.adjustment_saturation = [1.08, 0.0, 0.85, 1.6][i]
+	env.adjustment_contrast = [1.06, 1.15, 1.05, 1.1][i]
 	env.adjustment_brightness = [1.0, 1.0, 1.05, 1.0][i]
 	if photo_mode: _photo_label.text = "PHOTO  ·  Space = take  ·  Z/X or wheel = zoom  ·  1-4 = filter (%s)  ·  Tab = exit" % FILTERS[_filter]
 
