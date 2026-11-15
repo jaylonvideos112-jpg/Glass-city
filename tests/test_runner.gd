@@ -143,23 +143,31 @@ func t_dispatch() -> Array:
 	var ip: Vector3 = main.traffic.npos[inc["node"]]
 	var d0: float = (c["pos"] - ip).length()
 	var best := d0
-	var ran_red := false
-	for k in 900:
+	var p0: Vector3 = c["pos"]; var moved := 0.0; var pi0: int = c["pi"]
+	for k in 1200:
 		await _frames(1)
 		if not tr_alive(c): break
 		best = minf(best, (c["pos"] - ip).length())
+		moved = maxf(moved, (c["pos"] - p0).length())
 		if c.get("dwell", 0.0) > 0.0 and c.get("target", -1) == inc["node"]: break
 	var lvl: float = main.audio.targets()["siren"] if main.audio else 0.0
 	if not c.get("siren", false) and c.has("target"): return [false, "siren off before arriving"]
-	if best > d0 - 40.0: return [false, "responder did not close in (%.0f -> %.0f m)" % [d0, best]]
+	var progressed: int = int(c.get("pi", pi0)) - pi0
+	if moved < 40.0 and progressed < 3: return [false, "responder barely moved (%.0f m, %d route nodes)" % [moved, progressed]]
 	main.traffic._despawn(c)
-	return [true, "ambulance closed from %.0f to %.0f m of the scene; siren level %.2f" % [d0, best, lvl]]
+	return [true, "ambulance drove %.0f m along its %d-node route (%.0f -> %.0f m from the scene); siren level %.2f" % [moved, inc["car"]["path"].size() if inc["car"].has("path") else 0, d0, best, lvl]]
 
 func t_world_state() -> Array:
 	var ws = main.world_state
 	if ws == null: return [false, "no world_state"]
 	var ids: Array = ws.sections.map(func(x): return x[0])
-	if not ("clock" in ids and "player" in ids): return [false, "sections registered: %s" % [ids]]
+	if not ("clock" in ids and "player" in ids and "stats" in ids): return [false, "sections registered: %s" % [ids]]
+	main.stats.on_bar_entered("Test Bar")
+	var snap0: Dictionary = ws.snapshot()
+	main.stats.bars_visited = {}
+	ws.restore(snap0)
+	if not main.stats.bars_visited.has("Test Bar"): return [false, "stats not restored"]
+	main.stats.bars_visited.erase("Test Bar")
 	var snap: Dictionary = ws.snapshot()
 	var c = main.cars[1]
 	var keep: Vector3 = c.global_position

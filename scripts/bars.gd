@@ -210,6 +210,7 @@ func try_interact(player: Node3D) -> bool:
 func enter_bar(player: Node3D, d: Dictionary) -> void:
 	var n: Node3D = d["node"]
 	current_theme = d["theme"]
+	if main.get("stats") and main.stats: main.stats.on_bar_entered(d["theme"])
 	var out_pos: Vector3 = n.global_transform * Vector3(0, 0.15, -1.8)
 	return_xf = Transform3D(Basis(Vector3.UP, n.global_rotation.y), out_pos + main.world_offset)   # world coords: survives origin rebasing
 	interior = build_interior(current_theme)

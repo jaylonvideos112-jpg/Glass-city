@@ -333,7 +333,12 @@ func _at_node(p: Dictionary) -> void:
 	var side := near_side
 	var intersection: bool = node_walk.get(n, []).size() >= 3 or tr.ix.has(n)
 	var close_corner: bool = sidewalk_point(nk, sstart, near_side, p["off"]).distance_to(here) < 6.0   # odd geometry: don't cross
-	if intersection and close_corner and rng.randf() < float(P["cross_chance"]) and side_block.get(nk, 0) != -near_side and lim.y - lim.x > 2.0: side = -near_side
+	# cross at random sometimes, and whenever where we're going is on the other side
+	var goal_across := false
+	if gp != null:
+		var g3: Vector3 = gp
+		goal_across = sidewalk_point(nk, sstart, -near_side, p["off"]).distance_to(g3) < sidewalk_point(nk, sstart, near_side, p["off"]).distance_to(g3) - 3.0 and rng.randf() < 0.6
+	if intersection and close_corner and (rng.randf() < float(P["cross_chance"]) or goal_across) and side_block.get(nk, 0) != -near_side and lim.y - lim.x > 2.0: side = -near_side
 	p["edge"] = nk; p["ea"] = ne["a"]; p["eb"] = ne["b"]; p["dir"] = ndir; p["s"] = sstart
 	if side != near_side:
 		# cross the new street at the corner: from our side to the far side

@@ -292,7 +292,8 @@ func target_count() -> int:
 	d *= float(T["weather_density"].get(main.weather.state, 1.0)) if main.weather else 1.0
 	var cap := float(T["budget"]["max_cars"])
 	if Time.get_ticks_msec() - _road_km_ms > 1500 and not edges.is_empty(): _update_road_km(main.focus_world())   # stale (sim paused)
-	if T["budget"].has("cars_per_road_km"): cap = minf(cap, maxf(2.0, _road_km_near * float(T["budget"]["cars_per_road_km"])))
+	# (no roads measured yet = graph still building: don't cap)
+	if T["budget"].has("cars_per_road_km") and _road_km_near > 0.05: cap = minf(cap, maxf(2.0, _road_km_near * float(T["budget"]["cars_per_road_km"])))
 	return int(round(cap * d))
 
 ## km of drivable road within spawn range of the focus (refreshed once a second)

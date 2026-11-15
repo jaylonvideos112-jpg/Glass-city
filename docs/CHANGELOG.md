@@ -1,5 +1,14 @@
 # Changelog
 
+## NPC schedules and stats saves (2026-11-15)
+* **NPC schedules (Bible stage 3), `source_data/npc_schedules.json`:** pedestrians have roles (worker, student,
+  shopper, resident, night owl), each with an hourly routine per area type (downtown, near bars, residential) and
+  goals by hour (head downtown, home, to the nearest bar, or wander). How many people are out, and who, now follows
+  those routines; walkers steer toward their goal at corners and cross the street when it's on the other side.
+* **Stats (`scripts/stats.gd`), saved as world-state section `stats`:** distance walked and driven, top speed,
+  days played, bars visited, emergencies seen. Time tests now restore only the clock section.
+* Traffic doesn't cap itself before the road graph is measured (a flaky start-up case).
+
 ## Public services (Bible stage 3) (2026-11-15)
 * **Buses:** 12 Glass City Transit routes from downtown to each town (`source_data/bus_routes.json`, made by
   `tools/pipeline/make_bus_routes.py` because the real route data couldn't be downloaded). Buses follow their route,

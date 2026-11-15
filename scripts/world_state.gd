@@ -41,15 +41,17 @@ func save(path := SAVE_PATH) -> bool:
 	f.close()
 	return true
 
-func load_file(path := SAVE_PATH) -> bool:
+func load_file(path := SAVE_PATH, only: Array = []) -> bool:
 	if not FileAccess.file_exists(path): return false
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if not (d is Dictionary): return false
-	return restore(_migrate(d))
+	return restore(_migrate(d), only)
 
-func restore(d: Dictionary) -> bool:
+## apply saved sections (all, or just the ids in `only`)
+func restore(d: Dictionary, only: Array = []) -> bool:
 	var secs: Dictionary = d.get("sections", {})
 	for s in sections:
+		if not only.is_empty() and not only.has(s[0]): continue
 		if secs.has(s[0]) and is_instance_valid(s[1]) and s[1].has_method("apply_save_data"):
 			s[1].apply_save_data(secs[s[0]])
 	return true

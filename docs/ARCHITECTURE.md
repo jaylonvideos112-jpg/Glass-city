@@ -91,3 +91,12 @@ and shown until all of that region's chunks are loaded in detail. The streamer l
 ## World state
 `scripts/world_state.gd`: `register(id, obj)`; obj implements `get_save_data()` / `apply_save_data(d)`.
 File `user://world_state.json` = `{version, saved_at, sections: {id: data}}`. Add `_migrate` steps when a section changes.
+
+## Public services
+`scripts/services.gd` drives special traffic.gd cars: buses carry `path` (route node ids), `loop`, `stops`;
+responders carry `path`, `target`, `siren`, `keep`. traffic.gd's `_choose_next` follows `path`, `_step` handles stop
+dwell, siren behaviour and scene arrival (signal `scene_cleared`), `_update_pull_over` moves cars aside.
+
+## NPC schedules
+`pedestrians.gd`: `area_at()`, `role_weights(area, hour)`, `goal_for(role, hour)`, `goal_point(goal, from)`; data in
+`source_data/npc_schedules.json`.

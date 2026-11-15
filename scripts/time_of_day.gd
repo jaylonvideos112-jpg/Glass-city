@@ -267,7 +267,7 @@ func save_state() -> void:
 	if main.get("world_state"): main.world_state.save()
 
 func load_state() -> bool:
-	return main.world_state.load_file() if main.get("world_state") else false
+	return main.world_state.load_file(main.world_state.SAVE_PATH, ["clock"]) if main.get("world_state") else false   # just time & weather
 
 func _notification(_what: int) -> void:
 	pass   # saving on quit is done by world_state.gd

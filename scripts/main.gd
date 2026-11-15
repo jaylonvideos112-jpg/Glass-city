@@ -37,6 +37,7 @@ var traffic: Node = null
 var audio: Node = null
 var world_state: Node = null
 var services: Node = null
+var stats: Node = null
 var peds: Node = null
 var input_enabled := true
 var env: Environment
@@ -105,6 +106,8 @@ func _ready() -> void:
 	world_state = load("res://scripts/world_state.gd").new(); world_state.name = "WorldState"; world_state.main = self; add_child(world_state)
 	world_state.register("clock", tod)
 	world_state.register("player", self)
+	stats = load("res://scripts/stats.gd").new(); stats.name = "Stats"; stats.main = self; add_child(stats)
+	world_state.register("stats", stats)
 	if OS.get_cmdline_user_args().has("--load-world") or (world_state.enabled and not OS.get_cmdline_user_args().has("--new-game")):
 		world_state.load_file()
 	player.collision_mask |= 2      # bump into traffic
