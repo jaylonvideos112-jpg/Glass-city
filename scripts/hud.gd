@@ -132,8 +132,9 @@ func _process(dt: float) -> void:
 		wanted_label.text = "" if n == 0 else ("★".repeat(n) + "☆".repeat(5 - n))
 		wanted_label.visible = n > 0 and not blink
 	if main.current_car:
-		speed_label.text = "%d MPH" % int(main.current_car.speed_mps() * 2.237)
-		prompt_label.text = ""
+		var cc = main.current_car
+		speed_label.text = "%d MPH" % int(cc.speed_mps() * 2.237) + ("   ·   car %d%%" % int(cc.health / 10.0) if cc.health < 999.0 else "") + ("   ·   STOLEN" if cc.stolen else "")
+		prompt_label.text = main.vehicles.prompt(cc.global_position) if main.get("vehicles") and main.vehicles else ""
 	else:
 		speed_label.text = ""
 		var bp: String = main.jobs.prompt(main.player.global_position) if main.get("jobs") and main.jobs else ""
@@ -143,6 +144,7 @@ func _process(dt: float) -> void:
 			if bz != "": bp = (bp + "\n" + bz) if bp != "" else bz
 		if bp == "": bp = main.money.prompt(main.player.global_position) if main.get("money") and main.money else ""
 		if bp == "": bp = main.bars.prompt(main.player.global_position) if main.bars else ""
+		if bp == "" and main.get("vehicles") and main.vehicles: bp = main.vehicles.prompt(main.player.global_position)
 		if bp != "": prompt_label.text = bp
 		else: prompt_label.text = "Press E to get in" if (main.nearest_car() != null and not main.bars.inside) else ""
 	flash_t -= dt

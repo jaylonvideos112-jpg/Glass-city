@@ -1,0 +1,38 @@
+{
+  "_doc": "Vehicle roster (Bible section 8): made-up manufacturers and models, loosely inspired by what drives around Toledo. traffic_share = how common in AI traffic (ordinary cars dominate; sports/luxury rare). Prices are new; used lots sell at 40-70% with worse condition. Performance: top_mps, engine (force), mass (kg), grip (tyre friction), steer. body = shape used for the mesh (sedan, hatch, suv, pickup, van, box, sports, coupe, wagon). size = [length, width, height] m.",
+  "makes": {
+    "halden":   "Halden Motor Co. (Detroit-style mainstream)",
+    "corvane":  "Corvane (American trucks & muscle)",
+    "takumi":   "Takumi (Japanese reliable)",
+    "hanzo":    "Hanzo (Japanese compact/sporty)",
+    "overmark": "Overmark (4x4s built in Glass City)",
+    "bulward":  "Bulward (heavy-duty trucks)",
+    "kessler":  "Kessler (German luxury)",
+    "strato":   "Strato (Italian exotic)",
+    "pellam":   "Pellam (budget imports)",
+    "freightline": "Freightline (commercial)"
+  },
+  "models": [
+    {"id": "halden_fairway",  "make": "Halden",   "model": "Fairway",   "category": "sedan",   "body": "sedan",  "size": [4.8, 1.85, 1.45], "traffic_share": 0.12, "price": 27000, "top_mps": 52, "engine": 3800, "mass": 1500, "grip": 2.5, "steer": 0.55},
+    {"id": "takumi_corsa",    "make": "Takumi",   "model": "Corsa",     "category": "sedan",   "body": "sedan",  "size": [4.6, 1.8, 1.45],  "traffic_share": 0.12, "price": 24000, "top_mps": 50, "engine": 3500, "mass": 1350, "grip": 2.6, "steer": 0.55},
+    {"id": "hanzo_civet",     "make": "Hanzo",    "model": "Civet",     "category": "compact", "body": "hatch",  "size": [4.3, 1.78, 1.45], "traffic_share": 0.09, "price": 22000, "top_mps": 50, "engine": 3300, "mass": 1250, "grip": 2.7, "steer": 0.58},
+    {"id": "pellam_tidy",     "make": "Pellam",   "model": "Tidy",      "category": "compact", "body": "hatch",  "size": [4.0, 1.7, 1.48],  "traffic_share": 0.04, "price": 16000, "top_mps": 44, "engine": 2600, "mass": 1100, "grip": 2.4, "steer": 0.6},
+    {"id": "corvane_dutchess","make": "Corvane",  "model": "Dutchess",  "category": "sedan",   "body": "sedan",  "size": [5.0, 1.9, 1.42],  "traffic_share": 0.08, "price": 9000,  "top_mps": 46, "engine": 3400, "mass": 1650, "grip": 2.2, "steer": 0.5, "old": true},
+    {"id": "halden_wayfarer", "make": "Halden",   "model": "Wayfarer",  "category": "suv",     "body": "suv",    "size": [4.9, 1.95, 1.8],  "traffic_share": 0.1,  "price": 36000, "top_mps": 48, "engine": 4200, "mass": 1900, "grip": 2.4, "steer": 0.5},
+    {"id": "takumi_ridgeline","make": "Takumi",   "model": "Ridgeline", "category": "suv",     "body": "suv",    "size": [4.7, 1.9, 1.75],  "traffic_share": 0.07, "price": 33000, "top_mps": 49, "engine": 4000, "mass": 1750, "grip": 2.5, "steer": 0.52},
+    {"id": "overmark_trailhand","make": "Overmark","model": "Trailhand", "category": "suv",     "body": "suv",    "size": [4.4, 1.9, 1.85],  "traffic_share": 0.07, "price": 38000, "top_mps": 44, "engine": 4300, "mass": 1900, "grip": 2.6, "steer": 0.5},
+    {"id": "corvane_stockman","make": "Corvane",  "model": "Stockman",  "category": "pickup",  "body": "pickup", "size": [5.8, 2.0, 1.9],   "traffic_share": 0.08, "price": 41000, "top_mps": 49, "engine": 5200, "mass": 2300, "grip": 2.4, "steer": 0.45},
+    {"id": "bulward_haul",    "make": "Bulward",  "model": "Haul 1500", "category": "pickup",  "body": "pickup", "size": [5.9, 2.05, 1.95], "traffic_share": 0.06, "price": 45000, "top_mps": 50, "engine": 5600, "mass": 2400, "grip": 2.4, "steer": 0.45},
+    {"id": "halden_brood",    "make": "Halden",   "model": "Brood",     "category": "minivan", "body": "suv",    "size": [5.1, 1.98, 1.78], "traffic_share": 0.06, "price": 34000, "top_mps": 47, "engine": 3800, "mass": 2000, "grip": 2.4, "steer": 0.5},
+    {"id": "freightline_porter","make": "Freightline","model": "Porter", "category": "van",    "body": "van",    "size": [5.6, 2.05, 2.4],  "traffic_share": 0.05, "price": 39000, "top_mps": 42, "engine": 4200, "mass": 2400, "grip": 2.3, "steer": 0.45},
+    {"id": "freightline_mover","make": "Freightline","model": "Mover 16","category": "commercial","body": "box", "size": [7.4, 2.4, 3.3],  "traffic_share": 0.025,"price": 62000, "top_mps": 36, "engine": 6500, "mass": 5000, "grip": 2.2, "steer": 0.4},
+    {"id": "kessler_v6",      "make": "Kessler",  "model": "Aurum",     "category": "luxury",  "body": "sedan",  "size": [5.0, 1.9, 1.45],  "traffic_share": 0.015,"price": 68000, "top_mps": 62, "engine": 5200, "mass": 1800, "grip": 2.8, "steer": 0.55},
+    {"id": "corvane_ravager", "make": "Corvane",  "model": "Ravager",   "category": "muscle",  "body": "coupe",  "size": [4.8, 1.9, 1.3],   "traffic_share": 0.01, "price": 52000, "top_mps": 68, "engine": 6200, "mass": 1700, "grip": 2.6, "steer": 0.52},
+    {"id": "hanzo_kaze",      "make": "Hanzo",    "model": "Kaze",      "category": "sports",  "body": "sports", "size": [4.4, 1.85, 1.25], "traffic_share": 0.006,"price": 58000, "top_mps": 70, "engine": 5600, "mass": 1350, "grip": 3.0, "steer": 0.6},
+    {"id": "strato_furia",    "make": "Strato",   "model": "Furia",     "category": "exotic",  "body": "sports", "size": [4.5, 2.0, 1.15],  "traffic_share": 0.002,"price": 240000,"top_mps": 88, "engine": 8200, "mass": 1450, "grip": 3.3, "steer": 0.62},
+    {"id": "takumi_wagon",    "make": "Takumi",   "model": "Hikari Wagon","category": "wagon", "body": "wagon",  "size": [4.8, 1.8, 1.5],   "traffic_share": 0.02, "price": 26000, "top_mps": 49, "engine": 3500, "mass": 1450, "grip": 2.6, "steer": 0.55}
+  ],
+  "colors": ["#1f2a44", "#7a1712", "#c9c9c9", "#e8e8e6", "#202020", "#3d4a5c", "#6b6f72", "#8c1d1d", "#1e4d2b", "#b5a37a", "#24486e", "#d4b030", "#5a2d6e"],
+  "used_condition": [0.45, 0.85],
+  "used_price_factor": [0.4, 0.7]
+}

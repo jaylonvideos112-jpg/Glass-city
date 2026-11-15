@@ -67,6 +67,10 @@ func _run() -> void:
 		["jobs_hire_shift_tasks_paycheck_strikes", t_jobs],
 		["business_buy_income_collect", t_business],
 		["homes_rent_buy_sleep_garage", t_homes],
+		["vehicle_roster_in_traffic", t_roster],
+		["steal_car_from_traffic", t_carjack],
+		["buy_car_new_and_used", t_dealer],
+		["car_damage_repair_upgrade_views", t_damage],
 		["police_close_in_offroad_and_helicopter", t_police_heli],
 		["emergency_responds_with_siren", t_dispatch],
 	]
@@ -143,6 +147,105 @@ func t_wanted() -> Array:
 	if fined != 300: return [false, "fine %d, expected 300" % fined]
 	if not at_station: return [false, "not released at a police station"]
 	return [true, "1 star -> %d unit(s) (routed: %s); lost them; busted = 8 am at the station, fined $%d" % [got_units, has_route, fined]]
+
+func t_roster() -> Array:
+	var tr = main.traffic; var vh = main.vehicles
+	var counts := {}
+	for i in 4000:
+		var v: Dictionary = tr._pick_type()
+		counts[v["id"]] = counts.get(v["id"], 0) + 1
+	var cat := {}
+	for id in counts:
+		var m: Dictionary = vh.roster.get(id, {})
+		var k: String = m.get("category", id)
+		cat[k] = cat.get(k, 0) + counts[id]
+	var ordinary: int = cat.get("sedan", 0) + cat.get("suv", 0) + cat.get("pickup", 0) + cat.get("compact", 0) + cat.get("minivan", 0)
+	var rare: int = cat.get("sports", 0) + cat.get("exotic", 0) + cat.get("luxury", 0) + cat.get("muscle", 0)
+	for id in counts:
+		var t: Dictionary = tr._type(id)
+		if String(t.get("name", "")).contains("Vapid") or String(t.get("name", "")).contains("Declasse"): return [false, "a GTA brand name is still in traffic"]
+	if ordinary < 3000 or rare > 200: return [false, "mix: ordinary %d, sports/luxury %d of 4000" % [ordinary, rare]]
+	return [true, "%d models in traffic; ordinary %d%%, sports/luxury/exotic %.1f%%" % [counts.size(), ordinary * 100 / 4000, rare * 100.0 / 4000.0]]
+
+func t_carjack() -> Array:
+	var tr = main.traffic; var vh = main.vehicles
+	var f: Vector3 = main.focus_world()
+	# an AI car stopped next to the player
+	var tc: Dictionary = {}
+	for i in tr.edges.size():
+		var e: Dictionary = tr.edges[i]
+		if e["cls"] > 5 or e["len"] < 12.0: continue
+		var q: Vector3 = tr.lane_point(e, 4.0, 0)
+		if Vector2(q.x - f.x, q.z - f.z).length() < 40.0 and not tr._occupied(i, 4.0, 10.0):
+			tc = tr._spawn_on(i, 4.0, "takumi_corsa"); break
+	if tc.is_empty(): return [false, "no road near the player"]
+	tc["pers"] = 0.0; tc["v"] = 0.0
+	await _frames(2)            # placed on the road
+	var keep: Vector3 = main.player.global_position
+	main.player.global_position = tc["pos"] - main.world_offset + Vector3(2.2, 0.5, 0)
+	var n0: int = main.cars.size()
+	main.police.lose_them()
+	var car = vh.try_carjack(main.player.global_position)
+	main.player.global_position = keep
+	if car == null: return [false, "couldn't take the stopped car"]
+	var ok: bool = main.cars.size() == n0 + 1 and car.stolen and car.spec_id == "takumi_corsa" and not tr.cars.has(tc)
+	var crime: Array = main.police.crimes[-1] if not main.police.crimes.is_empty() else []
+	main.cars.erase(car); car.queue_free(); main.police.lose_them()
+	if not ok: return [false, "stolen car not set up right"]
+	if crime.is_empty() or crime[0] != "car_theft": return [false, "no car theft recorded"]
+	return [true, "took a %s from traffic; marked stolen; theft %s" % [car.model_name, "seen by " + crime[1] if crime[1] != "" else "unseen"]]
+
+func t_dealer() -> Array:
+	var vh = main.vehicles
+	var c0: int = main.money.cash; var w0: int = main.money.wallet
+	var newd := -1; var usedd := -1
+	for d in vh.dealers:
+		if d["used"] and usedd < 0: usedd = int(d["id"])
+		if not d["used"] and newd < 0: newd = int(d["id"])
+	var newo: Array = vh._offers(vh.dealers[newd]); var usedo: Array = vh._offers(vh.dealers[usedd])
+	main.money.cash = 0; main.money.wallet = 10
+	if vh.buy_offer(newd, 0) != null: return [false, "bought a new car with $10"]
+	main.money.wallet = 1000000
+	var n0: int = vh.owned.size()
+	var car = vh.buy_offer(usedd, 0)
+	var spent: int = 1000000 - main.money.wallet
+	var ok: bool = car != null and vh.owned.size() == n0 + 1 and spent == int(usedo[0]["price"]) and car.health < 1000.0
+	if car: main.cars.erase(car); car.queue_free(); vh.owned.pop_back()
+	main.money.cash = c0; main.money.wallet = w0
+	var newp: int = int(newo[0]["price"]); var usedp: int = int(usedo[0]["price"])
+	if not ok: return [false, "used purchase wrong (spent %d)" % spent]
+	return [true, "new %s $%d; used %s $%d (condition %d%%), delivered and owned" % [vh.spec(newo[0]["spec"])["model"], newp, vh.spec(usedo[0]["spec"])["model"], usedp, int(float(usedo[0]["health"]) / 10.0)]]
+
+func t_damage() -> Array:
+	var vh = main.vehicles
+	var c = vh.spawn_car("halden_fairway", Color(0.3, 0.3, 0.8), main.focus_world() + Vector3(6, 0.5, 6), 0.0)
+	c.owned_index = vh.add_owned(c)
+	await _frames(3)
+	var top0: float = c.TOP_SPEED; var eng0: float = c.MAX_ENGINE
+	c.damage(700.0)
+	var w0: int = main.money.wallet; var cs0: int = main.money.cash; main.money.wallet = 100000; main.money.cash = 0
+	var cost: int = vh.repair_cost(c)
+	vh.repair(c)
+	var repaired: bool = c.health >= 1000.0 and 100000 - main.money.wallet == cost
+	vh.upgrade(c)
+	var faster: bool = c.MAX_ENGINE > eng0 and c.TOP_SPEED > top0
+	# a crash damages it
+	c.linear_velocity = Vector3(0, 0, -25); await _frames(1)
+	c._prev_v = Vector3(0, 0, -25); c.linear_velocity = Vector3.ZERO; c._check_damage()
+	var crashed: bool = c.health < 1000.0
+	# camera views
+	var views := 0
+	for i in vh.VIEWS.size():
+		vh.cam_view = i
+		if i >= 2 and vh.view_offset(c) != null: views += 1
+	vh.cam_view = 0
+	main.money.wallet = w0; main.money.cash = cs0
+	main.cars.erase(c); c.queue_free(); vh.owned.pop_back()
+	if not repaired: return [false, "repair didn't fix it / charge $%d" % cost]
+	if not faster: return [false, "engine upgrade didn't add power"]
+	if not crashed: return [false, "a 25 m/s stop didn't damage the car"]
+	if views != 3: return [false, "only %d interior/hood/bumper views" % views]
+	return [true, "repair $%d at 30%% health; engine upgrade +12%%; crash damage works; 5 camera views" % cost]
 
 func t_homes() -> Array:
 	var hm = main.homes; var tod = main.tod
@@ -410,13 +513,19 @@ func t_world_state() -> Array:
 	ws.restore(snap0)
 	if not main.stats.bars_visited.has("Test Bar"): return [false, "stats not restored"]
 	main.stats.bars_visited.erase("Test Bar")
-	var snap: Dictionary = ws.snapshot()
-	var c = main.cars[1]
+	# your car (owned, section "vehicles"): move it, restore, and it's back where it was saved
+	var c = null
+	for cc in main.cars:
+		if is_instance_valid(cc) and cc.owned_index >= 0: c = cc
+	if c == null: return [false, "you don't own a car at the start"]
 	var keep: Vector3 = c.global_position
+	var snap: Dictionary = ws.snapshot()
 	c.global_position += Vector3(40, 0, 0)
-	ws.restore(snap)
+	ws.restore(snap, ["vehicles"])
 	await _frames(2)
-	var back: float = Vector2(c.global_position.x - keep.x, c.global_position.z - keep.z).length()
+	var back := 999.0
+	for cc in main.cars:
+		if is_instance_valid(cc) and cc.owned_index == 0: back = Vector2(cc.global_position.x - keep.x, cc.global_position.z - keep.z).length()
 	var legacy: Dictionary = ws._migrate({"total_hours": 5.0})
 	if back > 1.0: return [false, "car not restored (%.1f m off)" % back]
 	if not legacy["sections"].has("clock"): return [false, "old save format not migrated"]

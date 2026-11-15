@@ -241,7 +241,26 @@ func _shots(dt: float) -> void:
 	var cam: Camera3D = main.camera
 	var pos = s[1]
 	var look = s[2]
-	if (s[0] == "@worksign" or s[0] == "@homesign") and main.jobs:
+	if s[0] == "@roster" and main.vehicles:
+		# every roster model parked in a row, photographed from the side
+		if not has_meta("roster_done"):
+			set_meta("roster_done", true)
+			var base: Vector3 = main.player.global_position + main.world_offset + Vector3(0, 0, 14)
+			var x := 0.0
+			for m in main.vehicles.V["models"]:
+				var col := Color(main.vehicles.V["colors"][int(x) % main.vehicles.V["colors"].size()])
+				var c = main.vehicles.spawn_car(m["id"], col, base + Vector3(x, 0.5, 0), PI * 0.5)
+				c.freeze = true
+				x += float(m["size"][0]) + 1.5
+			set_meta("roster_len", x)
+		var b2: Vector3 = main.player.global_position + main.world_offset + Vector3(0, 0, 14)
+		var mid: float = float(get_meta("roster_len")) * 0.32
+		pos = b2 + Vector3(mid, 9.0, 26.0); look = b2 + Vector3(mid, 0.5, 0)
+		if shot_wait < 3.0:
+			shot_wait += dt
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP)
+			return
+	elif (s[0] == "@worksign" or s[0] == "@homesign") and main.jobs:
 		# street-level view of the nearest "now hiring" / "for rent" sign, HUD on
 		main.hud.visible = true
 		var sys = main.jobs if s[0] == "@worksign" else main.homes

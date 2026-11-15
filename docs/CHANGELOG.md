@@ -1,5 +1,24 @@
 # Changelog
 
+## Vehicles: roster, ownership, dealers, stealing, damage, shops, camera views (2026-11-15)
+* **Roster (`source_data/vehicles.json`):** 18 made-up models from 10 made-up makes (Halden, Corvane, Takumi, Hanzo,
+  Overmark - "built in Glass City", Bulward, Kessler, Strato, Pellam, Freightline), each with size, body shape,
+  price and performance. AI traffic is built from it, weighted like real Toledo traffic (about 86 % ordinary sedans,
+  SUVs, pickups, compacts and minivans; under 3 % sports/luxury/exotic). The old placeholder names borrowed from GTA
+  (Vapid, Declasse, Karin, Bravado, Albany, Grotti, Brute) are gone.
+* **Your cars (`scripts/vehicles.gd`):** you start owning a beat-up Corvane Dutchess; the other cars at the start are
+  other people's. Owned cars are saved (model, paint, damage, upgrades, where you left them or in the garage).
+* **Buying:** 41 dealerships from the map (25 new-car dealers, 16 used lots, made-up names). K at the sign shows the
+  cars, 1-9 buys; used lots sell 6 cars a day at 40-70 % of new in worse condition. The car waits at the curb.
+* **Stealing:** E next to a stopped or slow AI car takes it (1 star if seen; 2 for a police car); unowned parked cars
+  too. Stolen cars show STOLEN on the HUD; drive one into your garage (G) and it's yours.
+* **Damage:** hard hits lower the car's health; a damaged car loses power and top speed and smokes below 35 %; at 0
+  the engine dies. Health shows next to the speed.
+* **Auto shops** (the 48 auto-shop workplaces): P repair (4 % of the car's price per 100 % damage), C respray $250,
+  U upgrade engine/brakes/suspension (3 levels each).
+* **Camera views:** V cycles chase, far chase, hood, bumper, cockpit (no modelled interior yet).
+* Car physics now follow each model's size, mass, power, grip and steering. 4 new tests; `@roster` screenshot.
+
 ## Jobs, businesses, homes (2026-11-15)
 * **Jobs (`scripts/jobs.gd`, `source_data/jobs.json`):** 11 basic jobs (stocker, cashier, attendant, crew member,
   server, sales associate, mechanic helper, delivery driver, warehouse worker, line worker...) at 706 real workplaces

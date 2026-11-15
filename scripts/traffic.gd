@@ -31,8 +31,20 @@ var time_s := 0.0       # signal clock (real seconds)
 var spawned_total := 0
 var graph_version := 0
 
+## civilian vehicle types from the roster (source_data/vehicles.json), in the shape traffic.gd uses
+static func roster_types() -> Array:
+	var V = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/vehicles.json"))
+	var CAB := {"sedan": [0.22, 0.48], "hatch": [0.2, 0.55], "suv": [0.15, 0.62], "pickup": [0.1, 0.3], "van": [0.1, 0.2],
+		"box": [0.1, 0.2], "coupe": [0.28, 0.4], "sports": [0.3, 0.36], "wagon": [0.2, 0.66]}
+	var out: Array = []
+	for m in V["models"]:
+		out.append({"id": m["id"], "name": "%s %s" % [m["make"], m["model"]], "share": float(m["traffic_share"]), "size": m["size"],
+			"cabin": CAB.get(m["body"], [0.2, 0.5]), "body": m["body"], "old": m.get("old", false)})
+	return out
+
 func _ready() -> void:
 	T = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH))
+	T["vehicles"] = roster_types() + T["vehicles"]
 	rng.seed = 1977
 	main.streamer.chunk_loaded.connect(func(_k): _dirty = true)
 	_body_mat = StandardMaterial3D.new()
@@ -175,10 +187,10 @@ func vehicle_mesh(v: Dictionary, paint: Color) -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var body: String = v["body"]
 	var floor_y := 0.32
-	var low_h: float = H * (0.45 if body in ["sedan", "hatch", "suv", "pickup"] else 0.92)
+	var low_h: float = H * (0.45 if body in ["sedan", "hatch", "suv", "pickup", "wagon"] else (0.5 if body in ["coupe", "sports"] else 0.92))
 	_box(st, Vector3(W, low_h - floor_y, L), Vector3(0, (low_h + floor_y) * 0.5, 0), paint)
 	match body:
-		"sedan", "hatch", "suv":
+		"sedan", "hatch", "suv", "wagon", "coupe", "sports":
 			var cl: float = L * cab[1]; var cz: float = L * (cab[0] - 0.5) + cl * 0.5 - L * 0.08
 			_box(st, Vector3(W * 0.88, H - low_h, cl), Vector3(0, (H + low_h) * 0.5, cz + (0.15 if body == "hatch" else 0.0)), glass)
 			_box(st, Vector3(W * 0.9, 0.07, cl * 0.92), Vector3(0, H, cz), paint)
@@ -237,7 +249,7 @@ func _spawn_on(eid: int, s: float, type_id := "") -> Dictionary:
 	body.add_child(mi)
 	main.world.add_child(body)
 	var per_dir: int = e["lanes"] if e["oneway"] else max(1, e["lanes"] / 2)
-	var c := {"node": body, "type": v["id"], "len": float(v["size"][0]), "edge": eid, "ea": e["a"], "eb": e["b"], "s": s,
+	var c := {"node": body, "type": v["id"], "paint": paint, "len": float(v["size"][0]), "edge": eid, "ea": e["a"], "eb": e["b"], "s": s,
 		"lane": rng.randi() % per_dir, "v": 0.0, "pers": 1.0 + rng.randf_range(-1.0, 1.0) * float(T["driver"]["speed_jitter"]),
 		"y": 0.0, "ray_t": 0.0, "wait": 0.0, "stopped_at": -1, "next": -1, "pos": Vector3.ZERO, "yaw": 0.0}
 	c["v"] = e["speed"] * 0.6

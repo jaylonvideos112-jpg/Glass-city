@@ -43,6 +43,7 @@ var police: Node = null
 var jobs: Node = null
 var business: Node = null
 var homes: Node = null
+var vehicles: Node = null
 var peds: Node = null
 var input_enabled := true
 var env: Environment
@@ -122,6 +123,9 @@ func _ready() -> void:
 	world_state.register("business", business)
 	homes = load("res://scripts/homes.gd").new(); homes.name = "Homes"; homes.main = self; add_child(homes)
 	world_state.register("home", homes)
+	vehicles = load("res://scripts/vehicles.gd").new(); vehicles.name = "Vehicles"; vehicles.main = self; add_child(vehicles)
+	_roster_start_cars()
+	world_state.register("vehicles", vehicles)
 	if OS.get_cmdline_user_args().has("--load-world") or (world_state.enabled and not OS.get_cmdline_user_args().has("--new-game")):
 		world_state.load_file()
 	player.collision_mask |= 2      # bump into traffic
@@ -244,16 +248,35 @@ func nearest_car(max_d := 5.0) -> VehicleBody3D:
 	var best: VehicleBody3D = null
 	var bd := max_d
 	for c in cars:
+		if not is_instance_valid(c) or not c.visible: continue
 		var d: float = c.global_position.distance_to(player.global_position)
 		if d < bd:
 			bd = d; best = c
 	return best
 
+## the demo cars at the curb become roster cars: the first one is yours (a beat-up used car), the rest are
+## other people's parked cars (taking one is car theft if someone sees)
+func _roster_start_cars() -> void:
+	var ids := ["corvane_dutchess", "takumi_corsa", "halden_wayfarer", "hanzo_civet", "corvane_stockman"]
+	var old := cars.duplicate()
+	cars.clear()
+	for i in old.size():
+		var o = old[i]
+		var col: Color = o.body_color
+		var c = vehicles.make_car(ids[i % ids.size()], col, 720.0 if i == 0 else 1000.0)
+		world.add_child(c)
+		c.global_transform = o.global_transform
+		cars.append(c)
+		o.queue_free()
+		if i == 0: vehicles.add_owned(c)
+
 func toggle_vehicle() -> void:
 	if current_car == null:
 		var c := nearest_car()
+		if c == null and vehicles: c = vehicles.try_carjack(player.global_position)
 		if c == null:
 			return
+		if vehicles: vehicles.on_enter_car(c)
 		current_car = c
 		c.driven = true
 		player.visible = false
@@ -278,25 +301,13 @@ func focus_local() -> Vector3:
 
 # ------------------------------------------------------------------ save section "player": you, and your cars
 func get_save_data() -> Dictionary:
-	var vs := []
-	for c in cars:
-		if not is_instance_valid(c): continue
-		var p: Vector3 = c.global_position + world_offset
-		vs.append({"model": c.model_name, "color": c.body_color.to_html(false), "pos": [p.x, p.y, p.z], "yaw": c.global_rotation.y})
 	var pp: Vector3 = (current_car.global_position if current_car else player.global_position) + world_offset
-	return {"pos": [pp.x, pp.y, pp.z], "cam_yaw": cam_yaw, "driving": cars.find(current_car) if current_car else -1, "vehicles": vs}
+	return {"pos": [pp.x, pp.y, pp.z], "cam_yaw": cam_yaw, "driving": cars.find(current_car) if current_car else -1}
 
 func apply_save_data(d: Dictionary) -> void:
 	if current_car: return                       # never yank the player out of a moving car
 	var pw := Vector3(d["pos"][0], d["pos"][1], d["pos"][2])
 	streamer.load_now(pw)
-	var vs: Array = d.get("vehicles", [])
-	for i in mini(vs.size(), cars.size()):
-		var c = cars[i]; var v: Dictionary = vs[i]
-		c.model_name = v.get("model", c.model_name)
-		var vp := Vector3(v["pos"][0], v["pos"][1] + 0.3, v["pos"][2]) - world_offset
-		c.global_transform = Transform3D(Basis(Vector3.UP, float(v.get("yaw", 0.0))), vp)
-		c.linear_velocity = Vector3.ZERO; c.angular_velocity = Vector3.ZERO
 	var drv := int(d.get("driving", -1))
 	# you come back standing next to where you left off (beside the car if you were driving)
 	player.global_position = pw - world_offset + (Vector3(2.5, 0.6, 0) if drv >= 0 else Vector3(0, 0.3, 0))
@@ -379,7 +390,13 @@ func _update_camera(dt: float) -> void:
 		# chase cam swings behind the car unless the mouse is moving it
 		if Input.mouse_mode != Input.MOUSE_MODE_CAPTURED or spd > 3.0:
 			cam_yaw = lerp_angle(cam_yaw, car_yaw, 1.0 - exp(-3.0 * dt))
-		var dist: float = 7.5 + spd * 0.06
+		var vo = vehicles.view_offset(c) if vehicles else null
+		if vo != null:
+			camera.global_position = c.global_transform * (vo[0] as Vector3)
+			camera.look_at(c.global_transform * (vo[1] as Vector3), c.global_transform.basis.y)
+			camera.fov = lerp(camera.fov, 75.0 + clamp(spd * 0.3, 0.0, 12.0), 0.05)
+			return
+		var dist: float = (7.5 + spd * 0.06) * (vehicles.chase_distance_mult() if vehicles else 1.0)
 		var target := c.global_position + Vector3(0, 1.6, 0)
 		var back := Vector3(sin(cam_yaw), 0, cos(cam_yaw))
 		var desired := target + back * dist * cos(-0.18) + Vector3(0, dist * sin(0.18) + 0.6, 0)

@@ -76,27 +76,30 @@ func sleep() -> void:
 	if main.world_state and main.world_state.enabled: main.world_state.save()
 	main.hud.flash("You slept until 8 AM. Game saved.")
 
+## garage = owned cars marked "garage" in vehicles.gd. A car you drive in becomes yours (even a stolen one).
 func store_car() -> bool:
 	var h := listing(int(home.get("id", -1)))
 	if h.is_empty() or not h.get("garage", false): return false
 	var c = main.nearest_car(6.0)
 	if c == null or c == main.current_car or not c.visible: return false
-	garage.append({"model": c.model_name, "color": c.body_color.to_html(false), "car": main.cars.find(c)})
+	var idx: int = main.vehicles.add_owned(c) if main.vehicles else -1
+	if idx < 0: return false
+	if not garage.has(idx): garage.append(idx)
 	c.visible = false; c.freeze = true; c.collision_layer = 0
 	main.hud.flash("Stored the %s in your garage" % c.model_name)
 	return true
 
 func take_car(sign_pos: Vector3) -> bool:
 	if garage.is_empty(): return false
-	var g: Dictionary = garage.pop_back()
-	var idx: int = int(g.get("car", -1))
-	if idx < 0 or idx >= main.cars.size(): return false
-	var c = main.cars[idx]
-	c.global_position = sign_pos + Vector3(0, 0.8, 0) + Vector3(3.0, 0, 0)
-	c.visible = true; c.freeze = false; c.collision_layer = 1
-	c.linear_velocity = Vector3.ZERO
-	main.hud.flash("Took the %s out of the garage" % c.model_name)
-	return true
+	var idx: int = int(garage.pop_back())
+	for c in main.cars:
+		if is_instance_valid(c) and c.owned_index == idx:
+			c.global_position = sign_pos + Vector3(3.0, 0.8, 0)
+			c.visible = true; c.freeze = false; c.collision_layer = 1
+			c.linear_velocity = Vector3.ZERO
+			main.hud.flash("Took the %s out of the garage" % c.model_name)
+			return true
+	return false
 
 # ------------------------------------------------------------------ signs
 func _update_signs() -> void:
@@ -184,7 +187,4 @@ func get_save_data() -> Dictionary:
 func apply_save_data(d: Dictionary) -> void:
 	home = d.get("home", {}); garage = d.get("garage", [])
 	if home.has("id"): home["id"] = int(home["id"]); home["next_rent_day"] = int(home.get("next_rent_day", -1))
-	for g in garage:
-		var idx: int = int(g.get("car", -1))
-		if idx >= 0 and idx < main.cars.size():
-			var c = main.cars[idx]; c.visible = false; c.freeze = true; c.collision_layer = 0
+	garage = garage.filter(func(x): return typeof(x) == TYPE_INT or typeof(x) == TYPE_FLOAT).map(func(x): return int(x))   # cars themselves come back via vehicles.gd

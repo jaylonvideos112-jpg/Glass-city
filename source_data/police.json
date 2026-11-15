@@ -5,7 +5,9 @@
     "hit_ped": 2,
     "ram_police": 2,
     "run_red": 1,
-    "flee_stop": 1
+    "flee_stop": 1,
+    "car_theft": 1,
+    "steal_police_car": 2
   },
   "witness_police_m": 80,
   "witness_ped_m": 35,

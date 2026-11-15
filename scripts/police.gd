@@ -74,7 +74,8 @@ func report(kind: String, at: Vector3, force_seen := false) -> int:
 	last_seen = player_world(); _unseen_t = 0.0; searching = false
 	if main.hud and stars > before:
 		main.hud.flash({"hit_car": "Hit and run reported", "hit_ped": "You hit someone - police alerted", "ram_police": "You rammed a police car!",
-			"run_red": "Ran a red light in front of police"}.get(kind, "Crime reported"))
+			"run_red": "Ran a red light in front of police", "car_theft": "Car theft reported", "steal_police_car": "You stole a police car!",
+			"flee_stop": "Failure to stop"}.get(kind, "Crime reported"))
 	return stars
 
 ## the player's car touching an AI car at speed (box overlap in the AI car's frame)

@@ -71,126 +71,6 @@
   },
   "vehicles": [
     {
-      "id": "sedan",
-      "name": "Declasse Meridian",
-      "share": 0.3,
-      "size": [
-        4.7,
-        1.85,
-        1.45
-      ],
-      "cabin": [
-        0.45,
-        0.55
-      ],
-      "body": "sedan"
-    },
-    {
-      "id": "sedan_old",
-      "name": "Albany Prairie",
-      "share": 0.1,
-      "size": [
-        4.9,
-        1.85,
-        1.42
-      ],
-      "cabin": [
-        0.45,
-        0.52
-      ],
-      "body": "sedan"
-    },
-    {
-      "id": "compact",
-      "name": "Karin Pebble",
-      "share": 0.08,
-      "size": [
-        4.2,
-        1.75,
-        1.45
-      ],
-      "cabin": [
-        0.4,
-        0.6
-      ],
-      "body": "hatch"
-    },
-    {
-      "id": "suv",
-      "name": "Vapid Ridgeback",
-      "share": 0.2,
-      "size": [
-        4.8,
-        1.95,
-        1.8
-      ],
-      "cabin": [
-        0.3,
-        0.72
-      ],
-      "body": "suv"
-    },
-    {
-      "id": "pickup",
-      "name": "Bravado Boulder",
-      "share": 0.13,
-      "size": [
-        5.6,
-        2.0,
-        1.9
-      ],
-      "cabin": [
-        0.32,
-        0.38
-      ],
-      "body": "pickup"
-    },
-    {
-      "id": "minivan",
-      "name": "Vapid Schoolrun",
-      "share": 0.07,
-      "size": [
-        5.1,
-        1.98,
-        1.78
-      ],
-      "cabin": [
-        0.22,
-        0.75
-      ],
-      "body": "suv"
-    },
-    {
-      "id": "workvan",
-      "name": "Brute Hauler",
-      "share": 0.05,
-      "size": [
-        5.6,
-        2.05,
-        2.4
-      ],
-      "cabin": [
-        0.18,
-        0.25
-      ],
-      "body": "van"
-    },
-    {
-      "id": "boxtruck",
-      "name": "Brute Mover 16",
-      "share": 0.025,
-      "size": [
-        7.4,
-        2.4,
-        3.3
-      ],
-      "cabin": [
-        0.0,
-        0.22
-      ],
-      "body": "box"
-    },
-    {
       "id": "bus",
       "name": "Glass City Transit",
       "share": 0.0,
@@ -205,21 +85,6 @@
       ],
       "body": "bus",
       "_doc": "buses run on source_data/bus_routes.json (services.gd), not random"
-    },
-    {
-      "id": "sports",
-      "name": "Grotti Vento",
-      "share": 0.013,
-      "size": [
-        4.5,
-        1.95,
-        1.2
-      ],
-      "cabin": [
-        0.45,
-        0.4
-      ],
-      "body": "sedan"
     },
     {
       "id": "police",
@@ -315,5 +180,6 @@
     "pull_over_shift_m": 1.6,
     "pull_over_speed": 2.5,
     "police_patrol_share": 0.012
-  }
+  },
+  "_doc_vehicles": "service vehicles only; civilian traffic comes from source_data/vehicles.json (traffic_share)"
 }
