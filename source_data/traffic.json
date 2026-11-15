@@ -193,7 +193,7 @@
     {
       "id": "bus",
       "name": "Glass City Transit",
-      "share": 0.012,
+      "share": 0.0,
       "size": [
         12.2,
         2.6,
@@ -203,7 +203,8 @@
         0.05,
         0.9
       ],
-      "body": "bus"
+      "body": "bus",
+      "_doc": "buses run on source_data/bus_routes.json (services.gd), not random"
     },
     {
       "id": "sports",
@@ -222,7 +223,7 @@
     },
     {
       "id": "police",
-      "name": "Toledo Police Cruiser",
+      "name": "Glass City Police Cruiser",
       "share": 0.01,
       "size": [
         5.0,
@@ -235,6 +236,38 @@
       ],
       "body": "sedan",
       "livery": "police"
+    },
+    {
+      "id": "ambulance",
+      "name": "Glass City EMS Ambulance",
+      "share": 0.0,
+      "size": [
+        6.6,
+        2.3,
+        2.8
+      ],
+      "cabin": [
+        0.1,
+        0.2
+      ],
+      "body": "box",
+      "livery": "ambulance"
+    },
+    {
+      "id": "firetruck",
+      "name": "Glass City Fire Engine",
+      "share": 0.0,
+      "size": [
+        10.5,
+        2.5,
+        3.2
+      ],
+      "cabin": [
+        0.1,
+        0.2
+      ],
+      "body": "van",
+      "livery": "fire"
     }
   ],
   "paint": [
@@ -253,5 +286,34 @@
     "#d9d4c7",
     "#40464c"
   ],
-  "bus_paint": "#f2c230"
+  "bus_paint": "#f2c230",
+  "services": {
+    "_doc": "scripts/services.gd: buses on routes, emergency dispatch, pull-over for sirens",
+    "max_buses": 4,
+    "bus_dwell_s": 7.0,
+    "bus_spawn_every_s": 6.0,
+    "dispatch_every_s": [
+      70,
+      160
+    ],
+    "dispatch_mix": {
+      "police": 0.5,
+      "ambulance": 0.3,
+      "firetruck": 0.2
+    },
+    "incident_m": [
+      150,
+      260
+    ],
+    "responder_start_m": [
+      180,
+      260
+    ],
+    "siren_speed_factor": 1.35,
+    "on_scene_s": 30.0,
+    "pull_over_m": 45.0,
+    "pull_over_shift_m": 1.6,
+    "pull_over_speed": 2.5,
+    "police_patrol_share": 0.012
+  }
 }

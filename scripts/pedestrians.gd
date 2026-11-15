@@ -221,6 +221,7 @@ func _can_cross(eid: int, n: int) -> bool:
 	# otherwise: no car close to the node on any road
 	var np: Vector3 = tr.npos[n]
 	for c in tr.cars:
+		if float(c.get("dwell", 0.0)) > 0.0: continue     # a bus at its stop / responder on scene isn't coming through
 		if (c["pos"] - np).length() < float(P["crossing_clear_m"]): return false
 	return true
 

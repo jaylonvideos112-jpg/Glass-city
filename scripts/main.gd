@@ -36,6 +36,7 @@ var weather: Node3D = null
 var traffic: Node = null
 var audio: Node = null
 var world_state: Node = null
+var services: Node = null
 var peds: Node = null
 var input_enabled := true
 var env: Environment
@@ -99,6 +100,7 @@ func _ready() -> void:
 	var sl = load("res://scripts/street_lights.gd").new(); sl.name = "StreetLights"; sl.main = self; add_child(sl)
 	traffic = load("res://scripts/traffic.gd").new(); traffic.name = "Traffic"; traffic.main = self; add_child(traffic)
 	peds = load("res://scripts/pedestrians.gd").new(); peds.name = "Pedestrians"; peds.main = self; add_child(peds)
+	services = load("res://scripts/services.gd").new(); services.name = "Services"; services.main = self; add_child(services)
 	audio = load("res://scripts/audio.gd").new(); audio.name = "Audio"; audio.main = self; add_child(audio)
 	world_state = load("res://scripts/world_state.gd").new(); world_state.name = "WorldState"; world_state.main = self; add_child(world_state)
 	world_state.register("clock", tod)

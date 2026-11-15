@@ -59,6 +59,8 @@ func _run() -> void:
 		["audio_follows_car_and_weather", t_audio],
 		["far_city_hlod_covers_horizon", t_hlod],
 		["world_state_sections_round_trip", t_world_state],
+		["buses_follow_routes_and_stop", t_bus],
+		["emergency_responds_with_siren", t_dispatch],
 	]
 	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
 		if a.begins_with("--only="): tests = tests.filter(func(t): return a.substr(7) in t[0])
@@ -80,6 +82,58 @@ func _run() -> void:
 	get_tree().quit(failed)
 
 # ------------------------------------------------------------------ tests
+func t_bus() -> Array:
+	var sv = main.services
+	if sv.routes.size() < 8: return [false, "only %d bus routes" % sv.routes.size()]
+	var c: Dictionary = {}
+	for i in 20:
+		c = sv.spawn_bus(true)
+		if not c.is_empty(): break
+		await _frames(5)
+	if c.is_empty(): return [false, "no bus route passes near the player"]
+	var ns: Array = c["path"]
+	var off_route := 0; var stopped_at_stop := false; var moved := 0.0
+	var p0: Vector3 = c["pos"]
+	for k in 1500:
+		await _frames(1)
+		if not tr_alive(c): break
+		if moved > 40.0 and stopped_at_stop: break
+		if c.has("path"):
+			var i: int = c["pi"]
+			if i <= 0 or i >= ns.size() or ns[i] != c["eb"] or ns[i - 1] != c["ea"]: off_route += 1
+		if c.get("dwell", 0.0) > 0.5: stopped_at_stop = true
+		moved = maxf(moved, (c["pos"] - p0).length())
+	if off_route > 5: return [false, "bus left its route %d frames" % off_route]
+	if moved < 20.0 and not stopped_at_stop: return [false, "bus barely moved (%.0f m) and never stopped at a stop" % moved]
+	return [true, "route %s: %.0f m along it%s" % [c["route_name"], moved, ", stopped at a stop" if stopped_at_stop else ""]]
+
+func tr_alive(c: Dictionary) -> bool:
+	return main.traffic.cars.has(c)
+
+func t_dispatch() -> Array:
+	var sv = main.services
+	var inc: Dictionary = {}
+	for i in 10:
+		inc = sv.dispatch("ambulance")
+		if not inc.is_empty(): break
+		await _frames(5)
+	if inc.is_empty(): return [false, "could not dispatch"]
+	var c: Dictionary = inc["car"]
+	var ip: Vector3 = main.traffic.npos[inc["node"]]
+	var d0: float = (c["pos"] - ip).length()
+	var best := d0
+	var ran_red := false
+	for k in 900:
+		await _frames(1)
+		if not tr_alive(c): break
+		best = minf(best, (c["pos"] - ip).length())
+		if c.get("dwell", 0.0) > 0.0 and c.get("target", -1) == inc["node"]: break
+	var lvl: float = main.audio.targets()["siren"] if main.audio else 0.0
+	if not c.get("siren", false) and c.has("target"): return [false, "siren off before arriving"]
+	if best > d0 - 40.0: return [false, "responder did not close in (%.0f -> %.0f m)" % [d0, best]]
+	main.traffic._despawn(c)
+	return [true, "ambulance closed from %.0f to %.0f m of the scene; siren level %.2f" % [d0, best, lvl]]
+
 func t_world_state() -> Array:
 	var ws = main.world_state
 	if ws == null: return [false, "no world_state"]

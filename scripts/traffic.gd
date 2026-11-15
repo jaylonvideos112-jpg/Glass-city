@@ -143,6 +143,11 @@ func signal_state(eid: int) -> String:
 	return control_for(edges[eid], edges[eid]["b"])
 
 # ------------------------------------------------------------------ vehicles
+func _type(id: String) -> Dictionary:
+	for v in T["vehicles"]:
+		if v["id"] == id: return v
+	return T["vehicles"][0]
+
 func _pick_type() -> Dictionary:
 	var vs: Array = T["vehicles"]
 	var tot := 0.0
@@ -191,6 +196,12 @@ func vehicle_mesh(v: Dictionary, paint: Color) -> ArrayMesh:
 	if v.get("livery", "") == "police":
 		_box(st, Vector3(W * 0.94, 0.12, L * 0.24), Vector3(0, low_h * 0.7, -L * 0.05), Color(0.95, 0.95, 0.95))
 		_box(st, Vector3(1.0, 0.12, 0.25), Vector3(0, H + 0.1, -L * 0.05), Color(0.1, 0.1, 0.12))
+	if v.get("livery", "") == "ambulance":
+		for sgn in [-1, 1]: _box(st, Vector3(0.03, 0.3, L * 0.9), Vector3(sgn * (W * 0.5 + 0.01), H * 0.55, 0), Color(0.8, 0.1, 0.08))
+		_box(st, Vector3(W * 0.96, H * 0.22, 0.05), Vector3(0, H * 0.72, -L * 0.5 - 0.01), glass)
+	if v.get("livery", "") == "fire":
+		for sgn in [-1, 1]: _box(st, Vector3(0.03, 0.18, L * 0.95), Vector3(sgn * (W * 0.5 + 0.01), H * 0.4, 0), Color(0.95, 0.85, 0.2))
+		_box(st, Vector3(W * 0.7, 0.2, L * 0.55), Vector3(0, H + 0.1, L * 0.12), Color(0.75, 0.75, 0.78))   # ladder
 	_box(st, Vector3(W + 0.02, 0.2, 0.25), Vector3(0, 0.42, -L * 0.5), dark)
 	_box(st, Vector3(W + 0.02, 0.2, 0.25), Vector3(0, 0.42, L * 0.5), dark)
 	for sx in [-1, 1]:
@@ -208,10 +219,11 @@ func vehicle_mesh(v: Dictionary, paint: Color) -> ArrayMesh:
 	_mesh_cache[key] = am
 	return am
 
-func _spawn_on(eid: int, s: float) -> Dictionary:
+func _spawn_on(eid: int, s: float, type_id := "") -> Dictionary:
 	var e: Dictionary = edges[eid]
-	var v := _pick_type()
-	var paint: Color = Color(T["bus_paint"]) if v["id"] == "bus" else (Color(0.1, 0.12, 0.2) if v.get("livery", "") == "police" else Color(T["paint"][rng.randi() % T["paint"].size()]))
+	var v := _pick_type() if type_id == "" else _type(type_id)
+	var LIV := {"police": Color(0.1, 0.12, 0.2), "ambulance": Color(0.95, 0.95, 0.93), "fire": Color(0.72, 0.06, 0.05)}
+	var paint: Color = Color(T["bus_paint"]) if v["id"] == "bus" else (LIV[v["livery"]] if LIV.has(v.get("livery", "")) else Color(T["paint"][rng.randi() % T["paint"].size()]))
 	var body := AnimatableBody3D.new()
 	body.sync_to_physics = false
 	body.collision_layer = 2
@@ -241,6 +253,16 @@ func _despawn(c: Dictionary) -> void:
 
 func _choose_next(c: Dictionary) -> int:
 	var e: Dictionary = edges[c["edge"]]
+	if c.has("path"):           # buses and responders follow a node path (services.gd)
+		var pth: Array = c["path"]; var i: int = c["pi"]
+		if i + 1 < pth.size() and pth[i] == e["b"]:
+			var nx := _find_edge(pth[i], pth[i + 1])
+			if nx >= 0: return nx
+		if c.get("loop", false) and i + 1 >= pth.size() and pth.size() > 1 and pth[0] == e["b"]:
+			c["pi"] = 0
+			var nx2 := _find_edge(pth[0], pth[1])
+			if nx2 >= 0: return nx2
+		c.erase("path")         # left the known roads: drive on like anyone else
 	var opts: Array = []
 	for eid in nout.get(e["b"], []):
 		var n: Dictionary = edges[eid]
@@ -269,12 +291,14 @@ func target_count() -> int:
 	if tod.weekday_name() in ["Saturday", "Sunday"]: d *= float(T["weekend_factor"])
 	d *= float(T["weather_density"].get(main.weather.state, 1.0)) if main.weather else 1.0
 	var cap := float(T["budget"]["max_cars"])
+	if Time.get_ticks_msec() - _road_km_ms > 1500 and not edges.is_empty(): _update_road_km(main.focus_world())   # stale (sim paused)
 	if T["budget"].has("cars_per_road_km"): cap = minf(cap, maxf(2.0, _road_km_near * float(T["budget"]["cars_per_road_km"])))
 	return int(round(cap * d))
 
 ## km of drivable road within spawn range of the focus (refreshed once a second)
 var _road_km_near := 999.0
 var _road_km_t := 0.0
+var _road_km_ms := -100000
 func _update_road_km(focus: Vector3) -> void:
 	var r: float = float(T["budget"]["spawn_max_m"])
 	var tot := 0.0
@@ -284,6 +308,7 @@ func _update_road_km(focus: Vector3) -> void:
 		var dd := Vector2(a.x - focus.x, a.z - focus.z).length()
 		if dd < r: tot += float(e["len"]) * (1.0 if e["oneway"] else 0.5)   # two-way roads appear as two edges
 	_road_km_near = tot / 1000.0
+	_road_km_ms = Time.get_ticks_msec()
 
 func _physics_process(dt: float) -> void:
 	if not enabled: return
@@ -306,15 +331,31 @@ func _physics_process(dt: float) -> void:
 	for c in cars:
 		if not on_edge.has(c["edge"]): on_edge[c["edge"]] = []
 		on_edge[c["edge"]].append(c)
+	_update_pull_over(dt)
 	for c in cars:
 		_step(c, dt, wspeed, on_edge)
 	for c in cars:
 		_place(c, dt, false)
 
+## cars with a siren behind them (same direction, close) slow down and move to the right
+func _update_pull_over(dt: float) -> void:
+	var sirens := cars.filter(func(x): return x.get("siren", false))
+	var R2: float = float(T["services"]["pull_over_m"])
+	for c in cars:
+		var want := 0.0
+		if not c.get("siren", false):
+			var fwd := Vector3(sin(c["yaw"]), 0, cos(c["yaw"])) * -1.0
+			for sr in sirens:
+				var rel: Vector3 = c["pos"] - sr["pos"]
+				if rel.length() > R2: continue
+				var sf := Vector3(sin(sr["yaw"]), 0, cos(sr["yaw"])) * -1.0
+				if rel.dot(sf) > 2.0 and fwd.dot(sf) > 0.5: want = 1.0
+		c["pull"] = move_toward(float(c.get("pull", 0.0)), want, dt * 0.8)
+
 func _manage_population(focus: Vector3) -> void:
 	var B: Dictionary = T["budget"]
 	for c in cars.duplicate():
-		if Vector2(c["pos"].x - focus.x, c["pos"].z - focus.z).length() > float(B["despawn_m"]): _despawn(c)
+		if Vector2(c["pos"].x - focus.x, c["pos"].z - focus.z).length() > float(B["despawn_m"]) * (2.5 if c.get("keep", false) else 1.0): _despawn(c)
 	var want := target_count()
 	var tries := 0
 	while cars.size() < want and tries < (60 if time_s < 6.0 else 6):
@@ -369,6 +410,8 @@ func _leader(c: Dictionary, on_edge: Dictionary) -> Array:
 		if gp < best_gap: best_gap = gp; best_v = 0.0
 	return [best_gap, best_v]
 
+signal scene_cleared(c)
+
 func _step(c: Dictionary, dt: float, wspeed: float, on_edge: Dictionary) -> void:
 	var D: Dictionary = T["driver"]
 	var e: Dictionary = edges[c["edge"]]
@@ -379,6 +422,28 @@ func _step(c: Dictionary, dt: float, wspeed: float, on_edge: Dictionary) -> void
 	var to_end: float = e["len"] - c["s"]
 	var stop_line: float = to_end - float(D["stop_line_m"]) * (1.0 if ix.has(e["b"]) else 0.0)
 	var ctrl := control_for(e, e["b"])
+	var SV: Dictionary = T["services"]
+	if c.get("siren", false):
+		v0 *= float(SV["siren_speed_factor"])
+		if ctrl != "go": ctrl = "yield"           # lights and siren: through red lights and stop signs, carefully
+	elif c.get("pull", 0.0) > 0.0:
+		v0 = minf(v0, float(SV["pull_over_speed"]))
+	# a halt at the end of this edge: bus stop, or the emergency scene
+	var halt := false
+	if c.has("stops") and c["stops"].has(e["b"]) and c.get("served", -1) != e["b"]: halt = true
+	if c.get("target", -1) == e["b"]: halt = true
+	if halt:
+		if to_end < 3.0 and c["v"] < 0.4:
+			c["dwell"] = float(c.get("dwell", 0.0)) + dt
+			var need: float = float(SV["on_scene_s"]) if c.get("target", -1) == e["b"] else float(SV["bus_dwell_s"])
+			if c["dwell"] >= need:
+				c["dwell"] = 0.0
+				if c.get("target", -1) == e["b"]:
+					c.erase("target"); c["siren"] = false; c.erase("path"); c["next"] = _choose_next(c)
+					emit_signal("scene_cleared", c)
+				else: c["served"] = e["b"]
+		var g3: float = maxf(to_end - 1.5, 0.0)
+		if g3 < gap: gap = g3; lv = 0.0
 	if ctrl == "yellow":
 		# go if we can't stop comfortably
 		ctrl = "go" if c["v"] * c["v"] / (2.0 * float(D["decel"])) > stop_line else "stop"
@@ -425,11 +490,14 @@ func _step(c: Dictionary, dt: float, wspeed: float, on_edge: Dictionary) -> void
 		var per_dir: int = ne["lanes"] if ne["oneway"] else max(1, ne["lanes"] / 2)
 		c["lane"] = min(c["lane"], per_dir - 1)
 		if c["stopped_at"] != ne["a"]: c["stopped_at"] = -1
+		if c.has("path"): c["pi"] = int(c["pi"]) + 1
 		c["next"] = _choose_next(c)
 
 func _place(c: Dictionary, dt: float, snap: bool) -> void:
 	var e: Dictionary = edges[c["edge"]]
 	var p := lane_point(e, c["s"], c["lane"])
+	if c.get("pull", 0.0) > 0.0:
+		p += Vector3(-e["dir"].z, 0, e["dir"].x) * float(T["services"]["pull_over_shift_m"]) * float(c["pull"])
 	# look ahead a few metres for a smooth heading through corners
 	var ahead: float = float(c["s"]) + 4.0
 	var pa: Vector3

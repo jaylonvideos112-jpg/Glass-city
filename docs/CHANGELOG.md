@@ -1,5 +1,15 @@
 # Changelog
 
+## Public services (Bible stage 3) (2026-11-15)
+* **Buses:** 12 Glass City Transit routes from downtown to each town (`source_data/bus_routes.json`, made by
+  `tools/pipeline/make_bus_routes.py` because the real route data couldn't be downloaded). Buses follow their route,
+  obey one-way streets, stop about every 350 m for 7 s; stops get blue sign posts. Up to 4 buses near you.
+* **Emergencies (`scripts/services.gd`):** every 1-3 minutes an incident happens near you and a police car, ambulance
+  (new) or fire engine (new) drives there on the shortest route with flashing lights and a siren, through red lights
+  at reduced speed, stays 30 s on scene, then rejoins traffic. Cars ahead pull right and slow down. HUD notice.
+* Siren sound added to the procedural audio. Pedestrians may cross past a bus waiting at its stop.
+* Chase-cam screenshots: `@bus` / `@responder` shot names. 2 new tests.
+
 ## Rough edges (2026-11-15)
 * Traffic count now scales with how much road is near you (`traffic.json` `budget.cars_per_road_km`), so a lone
   country road no longer gets every car in the budget (it jammed).

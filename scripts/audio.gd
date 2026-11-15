@@ -21,7 +21,7 @@ var levels := {}              # last target level per channel (read by tests)
 func _ready() -> void:
 	A = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/audio.json"))
 	muted = OS.get_cmdline_user_args().has("--mute")
-	for n in ["engine", "rain", "wind", "city", "thunder"]:
+	for n in ["engine", "rain", "wind", "city", "thunder", "siren"]:
 		var p := AudioStreamPlayer.new()
 		var g := AudioStreamGenerator.new()
 		g.mix_rate = RATE
@@ -40,7 +40,7 @@ func _on_lightning() -> void:
 
 ## 0..1 target loudness of each channel for the current situation (pure; used by tests)
 func targets() -> Dictionary:
-	var t := {"engine": 0.0, "rain": 0.0, "wind": 0.0, "city": 0.0, "thunder": 0.0}
+	var t := {"engine": 0.0, "rain": 0.0, "wind": 0.0, "city": 0.0, "thunder": 0.0, "siren": 0.0}
 	if main == null: return t
 	var indoors: bool = main.bars != null and main.bars.inside
 	var car = main.current_car
@@ -56,7 +56,11 @@ func targets() -> Dictionary:
 	if main.get("traffic") and main.traffic and main.tod:
 		var n: int = main.traffic.cars.size() if "cars" in main.traffic else 0
 		t["city"] = clampf(0.1 + n / 60.0, 0.0, 1.0)
+	if main.get("services") and main.services:
+		var d: float = main.services.nearest_siren(main.camera.global_position + main.world_offset if main.camera else main.focus_world())
+		t["siren"] = clampf(1.0 - d / 450.0, 0.0, 1.0)
 	if indoors:
+		t["siren"] *= 0.3
 		t["rain"] *= 0.25; t["wind"] *= 0.1; t["city"] *= 0.15; t["engine"] = 0.0
 	return t
 
@@ -78,6 +82,7 @@ func _process(dt: float) -> void:
 	_fill_wind(_ch["wind"])
 	_fill_noise(_ch["city"], 0.02, 0.006)
 	_fill_thunder(_ch["thunder"])
+	_fill_siren(_ch["siren"], dt)
 
 func _frames(c: Dictionary) -> int:
 	var pb: AudioStreamGeneratorPlayback = c["pb"]
@@ -150,6 +155,24 @@ func _fill_wind(c: Dictionary) -> void:
 		var s := lp * 4.0 * g
 		buf[i] = Vector2(s, s)
 	c["lp"] = lp; c["gust"] = g; c["phase"] = ph
+	pb.push_buffer(buf)
+
+## two-tone wail: the pitch sweeps up and down about every 3 s
+var _siren_t := 0.0
+func _fill_siren(c: Dictionary, dt: float) -> void:
+	var n := _frames(c)
+	if n <= 0: return
+	var pb: AudioStreamGeneratorPlayback = c["pb"]
+	var ph: float = c["phase"]
+	var buf := PackedVector2Array()
+	buf.resize(n)
+	for i in n:
+		_siren_t += 1.0 / RATE
+		var f := 720.0 + 520.0 * (0.5 + 0.5 * sin(TAU * _siren_t / 3.2))
+		ph = fmod(ph + f / RATE, 1.0)
+		var s := sin(TAU * ph) * 0.6 + sin(TAU * ph * 2.0) * 0.15
+		buf[i] = Vector2(s, s)
+	c["phase"] = ph
 	pb.push_buffer(buf)
 
 func _fill_thunder(c: Dictionary) -> void:

@@ -241,6 +241,21 @@ func _shots(dt: float) -> void:
 	var cam: Camera3D = main.camera
 	var pos = s[1]
 	var look = s[2]
+	if String(s[0]).begins_with("@") and main.services:
+		# "@bus" / "@responder": chase-cam on a service vehicle near the player (spawned if none)
+		var sv = main.services
+		var list: Array = sv.buses() if s[0] == "@bus" else sv.responders()
+		if list.is_empty():
+			if s[0] == "@bus": sv.spawn_bus(true)
+			else: sv.dispatch(["firetruck", "ambulance", "police"][shot_i % 3])
+			list = sv.buses() if s[0] == "@bus" else sv.responders()
+		if not list.is_empty():
+			var c: Dictionary = list[0]
+			var fwd := Vector3(-sin(c["yaw"]), 0, -cos(c["yaw"]))
+			pos = c["pos"] - fwd * 16.0 + fwd.cross(Vector3.UP) * 4.0 + Vector3(0, 5.0, 0)
+			look = c["pos"] + Vector3(0, 1.5, 0)
+		else:
+			pos = null; look = null
 	if pos == null and look != null and shot_wait == 0.0:
 		# street-level shot at a map location: snap to the nearest street and look down it
 		main.streamer.load_now(look)
@@ -256,7 +271,7 @@ func _shots(dt: float) -> void:
 		var fwd := Vector3(-sin(main.cam_yaw), 0, -cos(main.cam_yaw))
 		pos = pl - fwd * 6.0 + Vector3(0, 2.2, 0)
 		look = pl + fwd * 60.0 + Vector3(0, 6, 0)
-	if shot_wait == 0.0:
+	if shot_wait == 0.0 and not String(s[0]).begins_with("@"):
 		main.focus_override = look.lerp(pos, 0.3) * Vector3(1, 0, 1)
 		main.streamer.load_radius_m = 16000.0 if pos.y > 2000 else clamp(pos.y * 2.2, 700.0, 5000.0)
 		main.streamer.load_now(main.focus_override)
@@ -270,7 +285,7 @@ func _shots(dt: float) -> void:
 		await RenderingServer.frame_post_draw
 		busy = false
 		var img := get_viewport().get_texture().get_image()
-		var path: String = out_dir.path_join(s[0] + ".png")
+		var path: String = out_dir.path_join(String(s[0]).replace("@", "") + ".png")
 		img.save_png(path)
 		print("[demo] saved ", path)
 		shot_i += 1
