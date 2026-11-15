@@ -13,6 +13,7 @@ extends Node
 ##   * V cycles the driving camera: chase, far chase, hood, bumper, cockpit.
 
 const Car := preload("res://scripts/car.gd")
+const Signs := preload("res://scripts/signs.gd")
 var main: Node
 var V: Dictionary
 var roster := {}              # id -> model entry
@@ -174,13 +175,9 @@ func _update_signs() -> void:
 		var sp: Vector3 = s["pos"]; sp.y = main.services._ground_y(sp) if main.services else 0.0
 		root.global_position = sp - main.world_offset
 		root.look_at(root.global_position + (s["face"] as Vector3), Vector3.UP)
-		var post := MeshInstance3D.new(); var pm := BoxMesh.new(); pm.size = Vector3(0.12, 3.0, 0.12); post.mesh = pm; post.position.y = 1.5
-		root.add_child(post)
-		var bd := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(2.6, 0.9, 0.08); bd.mesh = bm; bd.position.y = 3.0
-		var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.1, 0.3, 0.6) if not d["used"] else Color(0.85, 0.6, 0.1); bd.material_override = mat
-		root.add_child(bd)
-		var lab := Label3D.new(); lab.text = d["name"] + "\n" + ("NEW CARS" if not d["used"] else "USED CARS - DAILY DEALS"); lab.font_size = 34; lab.pixel_size = 0.0045
-		lab.position = Vector3(0, 3.0, -0.05); lab.rotation.y = PI; root.add_child(lab)
+		var sg: Node3D = Signs.make("New cars" if not d["used"] else "Used cars", d["name"], "Press K to see the cars" if not d["used"] else "Daily deals  ·  press K", Color(0.12, 0.32, 0.65) if not d["used"] else Color(0.85, 0.55, 0.08), 2.8)
+		sg.scale = Vector3.ONE * 1.25
+		root.add_child(sg)
 		_signs[id] = root
 
 func dealer_near(local_pos: Vector3) -> int:

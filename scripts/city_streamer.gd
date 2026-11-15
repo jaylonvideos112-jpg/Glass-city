@@ -26,7 +26,7 @@ const AERIAL_LAYERS := {"lot": true, "grass": true, "parking": true, "industrial
 var _aerial_shader: Shader = preload("res://shaders/aerial.gdshader")
 var _detail_tex: Texture2D = preload("res://textures/parking.png")
 ## ground layers drawn from the aerial photo, and how much photo to keep (the rest is a clean tiled texture)
-const PHOTO_MIX := {"lot": [0.35, "concrete", 0.2], "parking": [0.45, "asphalt", 0.15], "industrial": [0.4, "concrete", 0.2],
+const PHOTO_MIX := {"lot": [0.35, "ground_concrete", 0.12], "parking": [0.45, "asphalt", 0.15], "industrial": [0.4, "ground_concrete", 0.12],
 	"grass": [0.55, "grass", 0.15], "forest_floor": [0.6, "forest_floor", 0.15]}
 var label_font_size := 96
 var lamp_bulb_mat: StandardMaterial3D = null

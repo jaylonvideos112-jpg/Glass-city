@@ -7,6 +7,7 @@ extends Node
 ##     take it out (houses with a garage).
 ##   * Interiors and customising them come later. Saved as world-state section "home".
 
+const Signs := preload("res://scripts/signs.gd")
 var main: Node
 var homes: Array = []
 var home := {}               # {"id", "mode": "rent"|"own", "next_rent_day"}
@@ -122,22 +123,22 @@ func _update_signs() -> void:
 		var sp: Vector3 = s["pos"]; sp.y = main.services._ground_y(sp) if main.services else 0.0
 		root.global_position = sp - main.world_offset
 		root.look_at(root.global_position + (s["face"] as Vector3), Vector3.UP)
-		var post := MeshInstance3D.new(); var pm := BoxMesh.new(); pm.size = Vector3(0.08, 1.4, 0.08); post.mesh = pm; post.position.y = 0.7
-		root.add_child(post)
-		var bd := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(0.9, 0.6, 0.05); bd.mesh = bm; bd.position.y = 1.35
-		var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.75, 0.1, 0.1); bd.material_override = mat
-		root.add_child(bd)
-		var lab := Label3D.new(); lab.font_size = 30; lab.pixel_size = 0.005; lab.modulate = Color(1, 1, 1)
-		lab.position = Vector3(0, 1.35, -0.03); lab.rotation.y = PI; root.add_child(lab)
 		_signs[id] = root
 		_label(id)
 
 func _label(id: int) -> void:
 	if not _signs.has(id): return
 	var h := listing(id)
-	var lab: Label3D = _signs[id].get_child(2)
-	if not home.is_empty() and int(home["id"]) == id: lab.text = "HOME\n" + h["address"]
-	else: lab.text = ("FOR SALE $%dk\n" % int(int(h["price"]) / 1000) if int(h["price"]) > 0 else "") + "FOR RENT $%d/wk" % int(h["rent_week"])
+	var root: Node3D = _signs[id]
+	for c in root.get_children(): c.queue_free()
+	var sg: Node3D
+	if not home.is_empty() and int(home["id"]) == id:
+		sg = Signs.make("Home", h["address"], "E sleep  ·  T cook  ·  G garage", Color(0.2, 0.45, 0.75), 1.6)
+	else:
+		var det := "Rent $%d/wk (R)" % int(h["rent_week"]) + ("  ·  Buy $%dk (B)" % int(int(h["price"]) / 1000) if int(h["price"]) > 0 else "")
+		sg = Signs.make("For sale or rent" if int(h["price"]) > 0 else "For rent", h["address"], det, Color(0.75, 0.12, 0.12), 1.6)
+	sg.scale = Vector3.ONE * 0.8
+	root.add_child(sg)
 
 func sign_near(local_pos: Vector3, max_d := 2.6) -> int:
 	for id in _signs:

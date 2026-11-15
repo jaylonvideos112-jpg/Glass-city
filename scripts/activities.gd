@@ -9,6 +9,7 @@ extends Node
 ##   * Cinemas: T watches a movie (2 h). Fishing spots: T casts; when the bobber dips, press Space.
 ## Places: source_data/activities.json (make_activities.py). Settings: life.json.
 
+const Signs := preload("res://scripts/signs.gd")
 var main: Node
 var L: Dictionary
 var places: Array = []
@@ -280,13 +281,10 @@ func _update_signs() -> void:
 		var root := Node3D.new(); main.world.add_child(root)
 		root.global_position = pos - main.world_offset
 		root.look_at(root.global_position + face, Vector3.UP)
-		var post := MeshInstance3D.new(); var pm := BoxMesh.new(); pm.size = Vector3(0.1, 2.4, 0.1); post.mesh = pm; post.position.y = 1.2
-		root.add_child(post)
-		var col: Color = {"gym": Color(0.2, 0.2, 0.25), "bowling": Color(0.55, 0.1, 0.5), "stadium": Color(0.1, 0.4, 0.15), "cinema": Color(0.5, 0.05, 0.05), "fishing": Color(0.1, 0.4, 0.6)}[p["kind"]]
-		var bd := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(2.0, 0.7, 0.06); bd.mesh = bm; bd.position.y = 2.4
-		var mat := StandardMaterial3D.new(); mat.albedo_color = col; bd.material_override = mat; root.add_child(bd)
-		var lab := Label3D.new(); lab.text = p["name"] + ({"gym": "\nGYM · DAY PASSES", "bowling": "\nBOWLING", "stadium": "\nHOME OF THE SWAMP HENS", "cinema": "\nNOW SHOWING", "fishing": "\nPUBLIC FISHING"}[p["kind"]])
-		lab.font_size = 32; lab.pixel_size = 0.0045; lab.position = Vector3(0, 2.4, -0.04); lab.rotation.y = PI; root.add_child(lab)
+		var col: Color = {"gym": Color(0.25, 0.25, 0.3), "bowling": Color(0.55, 0.12, 0.5), "stadium": Color(0.12, 0.45, 0.18), "cinema": Color(0.6, 0.08, 0.08), "fishing": Color(0.1, 0.42, 0.62)}[p["kind"]]
+		var hdr: String = {"gym": "Gym", "bowling": "Bowling", "stadium": "Ballpark", "cinema": "Cinema", "fishing": "Public fishing"}[p["kind"]]
+		var det: String = {"gym": "Day passes  ·  press T", "bowling": "Lanes open  ·  press T", "stadium": "Home of the Swamp Hens  ·  T", "cinema": "Now showing  ·  press T", "fishing": "Cast a line  ·  press T"}[p["kind"]]
+		root.add_child(Signs.make(hdr, p["name"], det, col, 2.2))
 		_signs[id] = root
 
 func sign_near(local_pos: Vector3, max_d := 3.0) -> int:
