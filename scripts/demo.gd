@@ -241,7 +241,21 @@ func _shots(dt: float) -> void:
 	var cam: Camera3D = main.camera
 	var pos = s[1]
 	var look = s[2]
-	if s[0] == "@chase" and main.police:
+	if s[0] == "@heli" and main.police:
+		main.hud.visible = true
+		if main.police.stars < 4:
+			for i in 2: main.police.report("hit_ped", main.focus_world(), true)
+		main.police._update_heli(dt)
+		shot_wait += 0.0
+		var hp: Vector3 = main.police.heli.global_position + main.world_offset if main.police.heli else main.focus_world() + Vector3(0, 50, 0)
+		var pl2: Vector3 = main.player.global_position + main.world_offset
+		var away: Vector3 = (pl2 - hp); away.y = 0; away = away.normalized() if away.length() > 0.1 else Vector3(1, 0, 0)
+		pos = pl2 + away * 25.0 + Vector3(0, 6.0, 0); look = hp.lerp(pl2, 0.4)
+		if shot_wait < 8.0:
+			shot_wait += dt
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP)
+			return
+	elif s[0] == "@chase" and main.police:
 		# HUD on, 3 stars, camera behind the player looking at the nearest police unit
 		main.hud.visible = true
 		if main.police.stars == 0:

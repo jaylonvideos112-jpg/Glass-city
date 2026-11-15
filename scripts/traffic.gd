@@ -330,6 +330,7 @@ func _physics_process(dt: float) -> void:
 	# spatial buckets for leader search (per directed edge)
 	var on_edge := {}
 	for c in cars:
+		if c.has("free_to"): continue        # off-road police aren't in anyone's lane
 		if not on_edge.has(c["edge"]): on_edge[c["edge"]] = []
 		on_edge[c["edge"]].append(c)
 	_update_pull_over(dt)
@@ -414,6 +415,9 @@ func _leader(c: Dictionary, on_edge: Dictionary) -> Array:
 signal scene_cleared(c)
 
 func _step(c: Dictionary, dt: float, wspeed: float, on_edge: Dictionary) -> void:
+	if c.has("free_to"):
+		_step_free(c, dt)
+		return
 	var D: Dictionary = T["driver"]
 	var e: Dictionary = edges[c["edge"]]
 	var v0: float = e["speed"] * c["pers"] * wspeed
@@ -497,7 +501,42 @@ func _step(c: Dictionary, dt: float, wspeed: float, on_edge: Dictionary) -> void
 		if c.has("path"): c["pi"] = int(c["pi"]) + 1
 		c["next"] = _choose_next(c)
 
+## off the road network: drive straight at a point (police closing in on the player), stopping short of it
+func _step_free(c: Dictionary, dt: float) -> void:
+	var fp: Vector3 = c.get("free_pos", c["pos"])
+	var to: Vector3 = c["free_to"] - fp; to.y = 0
+	var d := to.length()
+	var stand: float = float(c.get("free_stand", 6.0))
+	var want: float = clampf((d - stand) * 0.9, 0.0, 14.0)
+	var v: float = c["v"]
+	v = move_toward(v, want, (4.0 if want > v else 9.0) * dt)
+	c["v"] = v; c["braking"] = want < v - 0.5
+	if d > 0.1:
+		var hd := atan2(-to.x, -to.z)
+		c["free_yaw"] = lerp_angle(float(c.get("free_yaw", c["yaw"])), hd, clampf(dt * 2.5, 0.0, 1.0))
+	var fwd := Vector3(-sin(c["free_yaw"]), 0, -cos(c["free_yaw"]))
+	c["free_pos"] = fp + fwd * v * dt
+
+## back onto the nearest road after driving free
+func snap_to_graph(c: Dictionary) -> void:
+	var fp: Vector3 = c.get("free_pos", c["pos"])
+	var best := -1; var bd := 1e9; var bs := 0.0
+	for k in edges.size():
+		var e: Dictionary = edges[k]
+		if e["cls"] > 6: continue
+		var q := Geometry3D.get_closest_point_to_segment(fp, npos[e["a"]], npos[e["b"]])
+		var dd := Vector2(q.x - fp.x, q.z - fp.z).length()
+		if dd < bd: bd = dd; best = k; bs = (q - npos[e["a"]]).length()
+	c.erase("free_to"); c.erase("free_pos"); c.erase("free_yaw")
+	if best < 0: return
+	c["edge"] = best; c["ea"] = edges[best]["a"]; c["eb"] = edges[best]["b"]; c["s"] = bs; c["lane"] = 0
+	c.erase("path")
+	c["next"] = _choose_next(c)
+
 func _place(c: Dictionary, dt: float, snap: bool) -> void:
+	if c.has("free_pos"):
+		_place_free(c, dt)
+		return
 	var e: Dictionary = edges[c["edge"]]
 	var p := lane_point(e, c["s"], c["lane"])
 	if c.get("pull", 0.0) > 0.0:
@@ -523,6 +562,21 @@ func _place(c: Dictionary, dt: float, snap: bool) -> void:
 	var k := 1.0 if snap else clampf(dt * 10.0, 0.0, 1.0)
 	c["pos"] = target if snap else (c["pos"] as Vector3).lerp(target, k)
 	c["yaw"] = yaw if snap else lerp_angle(c["yaw"], yaw, clampf(dt * 8.0, 0.0, 1.0))
+	body.global_transform = Transform3D(Basis(Vector3.UP, c["yaw"]), c["pos"] - main.world_offset)
+
+func _place_free(c: Dictionary, dt: float) -> void:
+	var body: AnimatableBody3D = c["node"]
+	if not is_instance_valid(body): return
+	var p: Vector3 = c["free_pos"]
+	c["ray_t"] -= dt
+	if c["ray_t"] <= 0.0:
+		c["ray_t"] = 0.2
+		var sp: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
+		var q := PhysicsRayQueryParameters3D.create(p - main.world_offset + Vector3(0, 30, 0), p - main.world_offset + Vector3(0, -30, 0), 1)
+		var hit := sp.intersect_ray(q)
+		if not hit.is_empty(): c["y"] = hit["position"].y + main.world_offset.y
+	c["pos"] = Vector3(p.x, float(c["y"]), p.z)
+	c["yaw"] = float(c["free_yaw"])
 	body.global_transform = Transform3D(Basis(Vector3.UP, c["yaw"]), c["pos"] - main.world_offset)
 
 func _process(_dt: float) -> void:

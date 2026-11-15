@@ -1,5 +1,18 @@
 # Changelog
 
+## Police: traffic stops, closing in, helicopter (2026-11-15)
+* **Traffic stops:** a patrol car that sees you more than 15 mph over the limit, or running a red light, lights up
+  and follows you ("Police: pull over!"). Stop within 30 m for 3 s; the officer checks your license (4 s), then it's a
+  warning (30 %) or a ticket paid from your money: speeding $75 + $6 per mph beyond 10 over, red light $150. Drive
+  off (130 m away, or not stopped in 25 s, or leaving mid-check) = 1 star for failure to stop, and that car chases you.
+  1 minute cooldown between stops. During a chase a red light still adds a star.
+* **Closing in:** units within 50 m of you that can see you leave the road and drive straight at you, stopping
+  about 6 m away; they rejoin the roads when the chase ends or you get 90 m away (`traffic.gd` free-driving mode).
+* **Helicopter** at 4+ stars: circles you (or where you were last seen) at 55 m, sees you from 130 m, so it's harder
+  to lose; searchlight at night.
+* Settings in `police.json` (`traffic_stop`, `helicopter`, `approach_*`). 2 new tests. Far-city worker threads no
+  longer touch the streamer node (a shutdown crash).
+
 ## Money and wanted level (2026-11-15)
 * **Money (`scripts/money.gd`, `source_data/economy.json`):** cash plus a digital wallet in a made-up payment app
   (placeholder name "GlassPay"). You start with $120 cash and $400 in the app. Paying takes cash first, then the app.

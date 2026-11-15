@@ -7,6 +7,9 @@ extends Node
 ##   * Escape: stay out of sight of every unit for search_s (longer at more stars); the stars blink while they search.
 ##   * Busted: a unit stops by you while you're stopped/on foot for bust_s -> one night in jail (Bible): released at
 ##     8 am outside the nearest police station, fined per star.
+##   * Traffic stops: a patrol car that sees you speeding or running a red light lights up and follows you. Stop
+##     and you get a ticket (or a warning); drive off and it becomes a 1-star chase ("failure to stop").
+##   * Near you, units leave the road and drive straight at you; a helicopter joins at 4+ stars.
 ## Settings: source_data/police.json. Stars aren't saved (a fresh start after loading, like GTA).
 
 var main: Node
@@ -23,6 +26,12 @@ var stations: Array = []
 var rng := RandomNumberGenerator.new()
 var busted_count := 0
 var crimes: Array = []             # recent [kind, witnessed_by]
+var stop: Dictionary = {}          # active traffic stop {cop, reason, over_mph, t, still_t, phase, talk_t}
+var _stop_cd := 0.0
+var _speed_t := 0.0
+var heli: Node3D = null
+var _heli_ang := 0.0
+var tickets := 0
 
 func _ready() -> void:
 	P = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/police.json"))
@@ -96,6 +105,13 @@ func _physics_process(dt: float) -> void:
 	if _red_t <= 0.0:
 		_red_t = 0.25
 		_check_red_light()
+	_stop_cd = maxf(0.0, _stop_cd - dt)
+	_speed_t -= dt
+	if _speed_t <= 0.0:
+		_speed_t = 0.3
+		_check_speeding()
+	if not stop.is_empty(): _run_stop(dt)
+	_update_heli(dt)
 	if stars == 0: return
 	_manage_units(dt)
 	# seen?
@@ -104,6 +120,8 @@ func _physics_process(dt: float) -> void:
 	var sight: float = float(P["sight_m"])
 	for u in units():
 		if (u["pos"] - pw).length() < sight: seen = true; break
+	if heli != null and Vector2(heli.global_position.x + main.world_offset.x - pw.x, heli.global_position.z + main.world_offset.z - pw.z).length() < float(P["helicopter"]["sight_m"]):
+		seen = true
 	if seen:
 		last_seen = pw; _unseen_t = 0.0; searching = false
 	else:
@@ -147,8 +165,10 @@ func _check_red_light() -> void:
 			if e["b"] != n or e["dir"].dot(vel.normalized()) < 0.85: continue
 			if t.control_for(e, n) == "stop" and _crime_t <= 0.0:
 				_crime_t = 4.0
-				var w := witnessed(cp)
-				if w == "police": report("run_red", cp, true)
+				var cop := _patrol_near(cp, float(P["traffic_stop"]["witness_m"]))
+				if not cop.is_empty():
+					if stars > 0: report("run_red", cp, true)
+					else: start_stop(cop, "run_red", 0.0)
 			return
 		return
 
@@ -156,17 +176,32 @@ func _check_red_light() -> void:
 func _manage_units(dt: float) -> void:
 	var want: int = stars + (1 if stars >= 3 else 0)
 	var have := units()
+	for u in have:
+		if _unseen_t < 1.0: _approach(u, player_world(), float(P["approach_stand_m"]))
+		elif u.has("free_to"): u["free_to"] = last_seen
 	if have.size() < want and rng.randf() < dt * 1.5: _spawn_unit()
 	_repath_t -= dt
 	if _repath_t <= 0.0:
 		_repath_t = 2.0
 		var target: int = _nearest_node(last_seen)
 		for u in have:
+			if u.has("free_to"): continue
 			var e: Dictionary = traffic().edges[u["edge"]]
 			var pth: Array = main.services.route_path(e["b"], target, 3000) if target >= 0 else []
 			if pth.size() >= 2:
 				u["path"] = pth; u["pi"] = 0; u["next"] = traffic()._choose_next(u)
 			u["target"] = target          # stop when they get there (they look around / wait)
+
+## units close to a player they can see leave the road and drive straight at them
+func _approach(u: Dictionary, target: Vector3, stand: float) -> void:
+	var d: float = (u["pos"] - target).length()
+	if not u.has("free_to"):
+		if d < float(P["approach_m"]):
+			u["free_pos"] = u["pos"]; u["free_yaw"] = u["yaw"]; u["free_to"] = target; u["free_stand"] = stand
+	elif d > float(P["approach_release_m"]):
+		traffic().snap_to_graph(u)
+	else:
+		u["free_to"] = target; u["free_stand"] = stand
 
 func _nearest_node(p: Vector3) -> int:
 	var best := -1; var bd := 1e9
@@ -196,6 +231,7 @@ func _spawn_unit() -> Dictionary:
 
 func _release_units() -> void:
 	for u in units():
+		if u.has("free_to"): traffic().snap_to_graph(u)
 		u.erase("chase"); u.erase("keep"); u.erase("target"); u.erase("path")
 		u["siren"] = false
 
@@ -233,3 +269,153 @@ func bust() -> void:
 		main.last_safe = main.player.global_position + main.world_offset
 	if main.hud: main.hud.flash("BUSTED - a night in jail, fined $%d" % paid)
 	if main.stats: main.stats.times_busted += 1
+
+# ------------------------------------------------------------------ traffic stops
+func _patrol_near(p: Vector3, r: float) -> Dictionary:
+	for c in traffic().cars:
+		if c["type"] == "police" and not c.get("chase", false) and not c.get("siren", false) and (c["pos"] - p).length() < r: return c
+	return {}
+
+## the speed limit of the road you're on (m/s), or -1 off-road
+func speed_limit_here() -> float:
+	var car = main.current_car
+	if car == null: return -1.0
+	var t = traffic()
+	var cp: Vector3 = car.global_position + main.world_offset
+	var vel: Vector3 = car.linear_velocity; vel.y = 0
+	var best := -1.0; var bd := 9.0
+	for e in t.edges:
+		var a: Vector3 = t.npos[e["a"]]
+		if Vector2(a.x - cp.x, a.z - cp.z).length() > float(e["len"]) + 10.0: continue
+		var q := Geometry3D.get_closest_point_to_segment(cp, a, t.npos[e["b"]])
+		var d := Vector2(q.x - cp.x, q.z - cp.z).length()
+		if d < bd and (vel.length() < 1.0 or e["dir"].dot(vel.normalized()) > 0.6): bd = d; best = float(e["speed"])
+	return best
+
+func _check_speeding() -> void:
+	var car = main.current_car
+	if car == null or stars > 0 or not stop.is_empty() or _stop_cd > 0.0: return
+	var lim := speed_limit_here()
+	if lim <= 0.0: return
+	var over: float = car.speed_mps() - lim
+	if over < float(P["traffic_stop"]["speeding_over_mps"]): return
+	var cp: Vector3 = car.global_position + main.world_offset
+	var cop := _patrol_near(cp, float(P["traffic_stop"]["witness_m"]))
+	if not cop.is_empty(): start_stop(cop, "speeding", over * 2.237)
+
+func start_stop(cop: Dictionary, reason: String, over_mph: float) -> void:
+	if not stop.is_empty(): return
+	cop["siren"] = true; cop["keep"] = true; cop["stopping"] = true
+	if not cop.has("beacon"):
+		var l := OmniLight3D.new(); l.omni_range = 14.0; l.light_energy = 2.5; l.position = Vector3(0, 2.0, 0)
+		cop["node"].add_child(l); cop["beacon"] = l
+	stop = {"cop": cop, "reason": reason, "over_mph": over_mph, "t": 0.0, "still_t": 0.0, "phase": "signal", "talk_t": 0.0}
+	if main.hud: main.hud.flash("Police: pull over!  (%s)" % ("speeding, %d mph over" % int(over_mph) if reason == "speeding" else "ran a red light"))
+
+func ticket_amount(reason: String, over_mph: float) -> int:
+	var T: Dictionary = P["traffic_stop"]["tickets"]
+	if reason == "speeding": return int(T["speeding_base"]) + int(T["speeding_per_mph"]) * int(maxf(over_mph - 10.0, 0.0))
+	return int(T.get(reason, 100))
+
+func _run_stop(dt: float) -> void:
+	var TS: Dictionary = P["traffic_stop"]
+	var cop: Dictionary = stop["cop"]
+	if not traffic().cars.has(cop): stop = {}; return
+	stop["t"] += dt
+	var pw := player_world()
+	var d: float = (cop["pos"] - pw).length()
+	match stop["phase"]:
+		"signal":
+			# follow you: straight at you when close, else along the roads
+			_approach(cop, pw, float(TS["follow_stand_m"]))
+			if not cop.has("free_to"):
+				_repath_t -= dt
+				if _repath_t <= 0.0:
+					_repath_t = 1.5
+					var tn := _nearest_node(pw)
+					var e: Dictionary = traffic().edges[cop["edge"]]
+					var pth: Array = main.services.route_path(e["b"], tn, 2000)
+					if pth.size() >= 2: cop["path"] = pth; cop["pi"] = 0; cop["next"] = traffic()._choose_next(cop)
+			if player_speed() < 1.0 and d < 30.0: stop["still_t"] += dt
+			else: stop["still_t"] = 0.0
+			if stop["still_t"] > float(TS["stop_s"]):
+				stop["phase"] = "talk"
+				if main.hud: main.hud.flash("The officer is checking your license...")
+			elif d > float(TS["flee_m"]) or stop["t"] > float(TS["flee_s"]):
+				_end_stop()
+				report("flee_stop", pw, true)
+				if main.hud: main.hud.flash("You didn't stop for the police!")
+		"talk":
+			stop["talk_t"] += dt
+			if player_speed() > 3.0:
+				_end_stop(); report("flee_stop", pw, true)
+			elif stop["talk_t"] > float(TS["talk_s"]):
+				resolve_stop()
+
+## the officer's decision: a warning, or a ticket paid from your money
+func resolve_stop() -> String:
+	if stop.is_empty(): return ""
+	var out := ""
+	if rng.randf() < float(P["traffic_stop"]["warning_chance"]):
+		out = "warning"
+		if main.hud: main.hud.flash("Let off with a warning. Drive safe.")
+	else:
+		var amt := ticket_amount(stop["reason"], stop["over_mph"])
+		var paid: int = main.money.fine(amt, "Ticket: " + stop["reason"]) if main.money else 0
+		tickets += 1
+		out = "ticket"
+		if main.hud: main.hud.flash("Ticket: %s - $%d" % ["speeding" if stop["reason"] == "speeding" else "red light", paid])
+	_end_stop()
+	return out
+
+func _end_stop() -> void:
+	var cop: Dictionary = stop.get("cop", {})
+	stop = {}
+	_stop_cd = float(P["traffic_stop"]["cooldown_s"])
+	if traffic().cars.has(cop):
+		if cop.has("free_to"): traffic().snap_to_graph(cop)
+		cop["siren"] = false; cop.erase("keep"); cop.erase("stopping"); cop.erase("path"); cop.erase("target")
+		if stars > 0: cop["chase"] = true; cop["siren"] = true; cop["keep"] = true   # fled: this one is now chasing
+
+# ------------------------------------------------------------------ helicopter
+func _make_heli() -> Node3D:
+	var root := Node3D.new(); root.name = "PoliceHelicopter"
+	var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.12, 0.14, 0.2); mat.roughness = 0.5
+	var stripe := StandardMaterial3D.new(); stripe.albedo_color = Color(0.9, 0.9, 0.9)
+	var parts := [[Vector3(1.8, 1.6, 4.0), Vector3(0, 0, 0), mat], [Vector3(0.35, 0.35, 4.5), Vector3(0, 0.3, 4.0), mat],
+		[Vector3(1.82, 0.25, 2.5), Vector3(0, -0.2, -0.2), stripe], [Vector3(0.1, 1.2, 0.8), Vector3(0, 0.9, 6.0), mat],
+		[Vector3(0.12, 0.12, 3.0), Vector3(-0.8, -1.1, 0), mat], [Vector3(0.12, 0.12, 3.0), Vector3(0.8, -1.1, 0), mat]]
+	for pt in parts:
+		var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = pt[0]; mi.mesh = bm; mi.position = pt[1]; mi.material_override = pt[2]
+		root.add_child(mi)
+	var rotor := MeshInstance3D.new(); var rm := BoxMesh.new(); rm.size = Vector3(10.0, 0.06, 0.35); rotor.mesh = rm
+	rotor.position = Vector3(0, 1.05, 0); rotor.name = "Rotor"; rotor.material_override = mat; root.add_child(rotor)
+	var spot := SpotLight3D.new(); spot.name = "Searchlight"; spot.spot_range = 120.0; spot.spot_angle = 9.0; spot.light_energy = 6.0
+	spot.position = Vector3(0, -1.0, -1.5); root.add_child(spot)
+	main.world.add_child(root)
+	return root
+
+func _update_heli(dt: float) -> void:
+	var H: Dictionary = P["helicopter"]
+	if stars < int(H["from_stars"]):
+		if heli != null:
+			heli.queue_free(); heli = null
+		return
+	var pw := player_world()
+	if heli == null:
+		heli = _make_heli()
+		var a := rng.randf() * TAU
+		heli.global_position = pw + Vector3(cos(a) * 400.0, float(H["altitude_m"]) + 20.0, sin(a) * 400.0) - main.world_offset
+	_heli_ang += dt * 0.35
+	var aim: Vector3 = pw if not searching else last_seen
+	var orbit: Vector3 = aim + Vector3(cos(_heli_ang), 0, sin(_heli_ang)) * float(H["orbit_m"])
+	var target: Vector3 = Vector3(orbit.x, aim.y + float(H["altitude_m"]), orbit.z) - main.world_offset
+	var to: Vector3 = target - heli.global_position
+	var step: float = float(H["speed_mps"]) * dt
+	heli.global_position += to.normalized() * minf(step, to.length())
+	var flat := Vector3(to.x, 0, to.z)
+	if flat.length() > 0.5: heli.rotation.y = lerp_angle(heli.rotation.y, atan2(-flat.x, -flat.z), dt * 2.0)
+	heli.get_node("Rotor").rotation.y += dt * 25.0
+	var spot: SpotLight3D = heli.get_node("Searchlight")
+	spot.visible = main.tod.night > 0.3 if main.tod else false
+	if spot.visible: spot.look_at(aim - main.world_offset, Vector3.UP)

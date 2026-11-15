@@ -63,6 +63,8 @@ func _run() -> void:
 		["npc_schedules_shape_who_is_out", t_schedules],
 		["money_cash_wallet_atm", t_money],
 		["wanted_level_chase_escape_bust", t_wanted],
+		["traffic_stop_ticket_or_flee", t_traffic_stop],
+		["police_close_in_offroad_and_helicopter", t_police_heli],
 		["emergency_responds_with_siren", t_dispatch],
 	]
 	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
@@ -138,6 +140,65 @@ func t_wanted() -> Array:
 	if fined != 300: return [false, "fine %d, expected 300" % fined]
 	if not at_station: return [false, "not released at a police station"]
 	return [true, "1 star -> %d unit(s) (routed: %s); lost them; busted = 8 am at the station, fined $%d" % [got_units, has_route, fined]]
+
+func _spawn_cop_near() -> Dictionary:
+	var tr = main.traffic
+	var f: Vector3 = main.focus_world()
+	for i in tr.edges.size():
+		var e: Dictionary = tr.edges[i]
+		var d: float = (tr.npos[e["a"]] - f).length()
+		if d > 25.0 and d < 70.0 and e["cls"] <= 5 and e["len"] > 15.0 and not tr._occupied(i, 0.0, 12.0):
+			return tr._spawn_on(i, 0.0, "police")
+	return {}
+
+func t_traffic_stop() -> Array:
+	var po = main.police
+	var cop := _spawn_cop_near()
+	if cop.is_empty(): return [false, "no road to put a patrol car on"]
+	var c0: int = main.money.cash; var w0: int = main.money.wallet
+	main.money.cash = 0; main.money.wallet = 1000
+	po.rng.seed = 3     # deterministic warning/ticket roll
+	po.start_stop(cop, "speeding", 25.0)
+	if po.stop.is_empty() or not cop.get("siren", false): return [false, "patrol didn't light up"]
+	var amt: int = po.ticket_amount("speeding", 25.0)
+	var res: String = po.resolve_stop()
+	var paid: int = 1000 - main.money.wallet
+	if res == "ticket" and paid != amt: return [false, "ticket $%d but paid $%d" % [amt, paid]]
+	if res == "warning" and paid != 0: return [false, "warning but paid $%d" % paid]
+	if cop.get("siren", false): return [false, "cop kept the siren on after the stop"]
+	# now drive off during a stop
+	po.start_stop(cop, "run_red", 0.0)
+	po.stop["t"] = 999.0
+	po._run_stop(0.016)
+	var fled_stars: int = po.stars
+	po.lose_them()
+	main.money.cash = c0; main.money.wallet = w0
+	if fled_stars != 1: return [false, "fleeing a stop gave %d stars" % fled_stars]
+	return [true, "pulled over for 25 mph over: %s ($%d); fleeing a stop = 1 star" % [res, paid]]
+
+func t_police_heli() -> Array:
+	var po = main.police; var tr = main.traffic
+	var cop := _spawn_cop_near()
+	if cop.is_empty(): return [false, "no road to put a unit on"]
+	cop["chase"] = true; cop["siren"] = true; cop["keep"] = true
+	var pw: Vector3 = main.focus_world()
+	po._approach(cop, pw, 6.0)
+	if not cop.has("free_to"): return [false, "unit %.0f m away didn't leave the road" % (cop["pos"] - pw).length()]
+	var d0: float = (cop["pos"] - pw).length()
+	for i in 240: await _frames(1)
+	var d1: float = (cop["pos"] - pw).length()
+	po.stars = 4
+	po._update_heli(0.016)
+	var heli_ok: bool = po.heli != null and is_instance_valid(po.heli)
+	po.lose_them()
+	po._update_heli(0.016)
+	var gone: bool = po.heli == null
+	var back_on_road: bool = not cop.has("free_to")
+	if d1 > d0 - 5.0 and d1 > 8.0: return [false, "unit didn't close in off-road (%.0f -> %.0f m)" % [d0, d1]]
+	if not heli_ok: return [false, "no helicopter at 4 stars"]
+	if not gone: return [false, "helicopter stayed after losing them"]
+	if not back_on_road: return [false, "unit not back on the road after the chase"]
+	return [true, "unit drove straight in %.0f -> %.0f m; helicopter at 4 stars, gone after; back on the road" % [d0, d1]]
 
 func t_schedules() -> Array:
 	var pd = main.peds

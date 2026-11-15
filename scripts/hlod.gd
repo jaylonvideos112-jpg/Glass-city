@@ -28,6 +28,7 @@ const MAX_INFLIGHT := 2
 
 func setup(s: Node3D) -> void:
 	streamer = s
+	_cs = s.chunk_size
 	_mat = ShaderMaterial.new()
 	_mat.shader = load("res://shaders/hlod.gdshader")
 	if OS.get_cmdline_user_args().has("--hlod-std"):
@@ -112,18 +113,28 @@ func update(world_pos: Vector3) -> void:
 			if regions[r] != null: regions[r].queue_free()
 			regions.erase(r)
 
+const Streamer := preload("res://scripts/city_streamer.gd")
+var _cs := 200.0     # chunk size, copied in setup() so worker threads never touch the streamer node
+
+static func _read_chunk(k: Vector2i) -> Dictionary:
+	var bytes := FileAccess.get_file_as_bytes(Streamer.DATA_DIR + "chunks/%d_%d.bin" % [k.x, k.y])
+	if bytes.size() > 8 and bytes.slice(0, 4).get_string_from_ascii() == "TCZ1":
+		var size := bytes.decode_u32(4)
+		bytes = bytes.slice(8).decompress(size, FileAccess.COMPRESSION_DEFLATE)
+	var d = bytes_to_var(bytes) if bytes.size() > 0 else null
+	return d if d is Dictionary else {}
+
 func _decode(r: Vector2i, ks: Array[Vector2i]) -> void:
-	if not is_instance_valid(streamer): return      # shutting down
-	var cs: float = streamer.chunk_size
+	var cs: float = _cs
 	var v := PackedVector3Array()
 	var n := PackedVector3Array()
 	var col := PackedColorArray()
 	for k in ks:
-		var d: Dictionary = streamer.read_chunk(k)
+		var d: Dictionary = _read_chunk(k)
 		if d.is_empty(): continue
 		var o := Vector3(k.x * cs, 0, -k.y * cs)
 		var aer: Image = null           # real aerial photo, shrunk: ground colour per vertex like aerial.gdshader
-		var jp: String = streamer.DATA_DIR + "aerial/%d_%d.jpg" % [k.x, k.y]
+		var jp: String = Streamer.DATA_DIR + "aerial/%d_%d.jpg" % [k.x, k.y]
 		if FileAccess.file_exists(jp):
 			aer = Image.new()
 			if aer.load_jpg_from_buffer(FileAccess.get_file_as_bytes(jp)) == OK: aer.resize(AER_RES, AER_RES, Image.INTERPOLATE_BILINEAR)
@@ -141,7 +152,7 @@ func _decode(r: Vector2i, ks: Array[Vector2i]) -> void:
 			n.append_array(layer["n"])
 			var cc := PackedColorArray()
 			cc.resize(cnt)
-			if aer != null and streamer.AERIAL_LAYERS.has(mat):
+			if aer != null and Streamer.AERIAL_LAYERS.has(mat):
 				for i in cnt:
 					var px := clampi(int(lv[i].x / cs * AER_RES), 0, AER_RES - 1)
 					var py := clampi(int((lv[i].z + cs) / cs * AER_RES), 0, AER_RES - 1)
