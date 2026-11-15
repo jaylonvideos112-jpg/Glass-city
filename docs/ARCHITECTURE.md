@@ -100,3 +100,9 @@ dwell, siren behaviour and scene arrival (signal `scene_cleared`), `_update_pull
 ## NPC schedules
 `pedestrians.gd`: `area_at()`, `role_weights(area, hour)`, `goal_for(role, hour)`, `goal_point(goal, from)`; data in
 `source_data/npc_schedules.json`.
+
+## Economy and life systems
+`money.gd` (cash/wallet/ATMs), `police.gd` (crimes, stars, units, traffic stops, helicopter), `jobs.gd`,
+`business.gd`, `homes.gd`, `stats.gd` — each a child of main, each registered with `world_state` as a section.
+Keys on foot: E interact (task, sign, ATM, bar, home sleep, car), R deposit / rent, B buy / collect, N auto-deposit,
+G garage, J job board. Workplace/home signs are placed at the nearest curb of the traffic graph within ~240 m.

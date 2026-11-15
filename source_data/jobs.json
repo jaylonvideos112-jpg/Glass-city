@@ -1,0 +1,23 @@
+{
+  "_doc": "Basic jobs (Bible section 9; scripts/jobs.gd). One job at a time. Hours are game hours (start, end); pay per hour worked plus a bonus per task; the paycheck goes to the wallet at the end of the shift. activity: stock/labor/serve = marked spots around the workplace, register = serve customers at the counter spot, deliver = drive parcels to addresses.",
+  "jobs": {
+    "grocery":     {"title": "Grocery Stocker",   "pay": 14, "shift": [7, 15],  "activity": "stock",    "bonus": 4},
+    "convenience": {"title": "Store Cashier",     "pay": 13, "shift": [14, 22], "activity": "register", "bonus": 3},
+    "gas_station": {"title": "Gas Station Attendant", "pay": 13, "shift": [6, 14], "activity": "register", "bonus": 3},
+    "fast_food":   {"title": "Crew Member",       "pay": 13, "shift": [11, 19], "activity": "register", "bonus": 3},
+    "restaurant":  {"title": "Server",            "pay": 11, "shift": [16, 23], "activity": "serve",    "bonus": 8},
+    "clothing":    {"title": "Sales Associate",   "pay": 14, "shift": [10, 18], "activity": "stock",    "bonus": 4},
+    "retail":      {"title": "Floor Associate",   "pay": 14, "shift": [9, 17],  "activity": "stock",    "bonus": 4},
+    "auto_shop":   {"title": "Mechanic Helper",   "pay": 16, "shift": [8, 16],  "activity": "labor",    "bonus": 5},
+    "delivery":    {"title": "Delivery Driver",   "pay": 16, "shift": [8, 16],  "activity": "deliver",  "bonus": 12},
+    "warehouse":   {"title": "Warehouse Worker",  "pay": 17, "shift": [6, 14],  "activity": "labor",    "bonus": 5},
+    "factory":     {"title": "Line Worker",       "pay": 18, "shift": [7, 15],  "activity": "labor",    "bonus": 5}
+  },
+  "clock_in_early_h": 0.5,
+  "late_strike_h": 1.0,
+  "strikes_to_fire": 2,
+  "work_radius_m": 70,
+  "task_gap_s": 15,
+  "deliver_m": [300, 900],
+  "board_size": 6
+}

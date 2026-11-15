@@ -386,14 +386,17 @@ func _occupied(eid: int, s: float, gap: float) -> bool:
 func _leader(c: Dictionary, on_edge: Dictionary) -> Array:
 	var e: Dictionary = edges[c["edge"]]
 	var best_gap := 1e9; var best_v := 0.0
+	var siren: bool = c.get("siren", false)
 	for o in on_edge.get(c["edge"], []):
 		if o == c: continue
+		if siren and float(o.get("pull", 0.0)) > 0.5: continue    # they've moved over: drive past
 		var ds: float = o["s"] - c["s"]
 		if ds > 0.0 and (o["lane"] == c["lane"] or not e["oneway"]):
 			var gap: float = ds - (o["len"] + c["len"]) * 0.5
 			if gap < best_gap: best_gap = gap; best_v = o["v"]
 	if c["next"] >= 0:
 		for o in on_edge.get(c["next"], []):
+			if siren and float(o.get("pull", 0.0)) > 0.5: continue
 			var gap2: float = (e["len"] - c["s"]) + o["s"] - (o["len"] + c["len"]) * 0.5
 			if gap2 < best_gap: best_gap = gap2; best_v = o["v"]
 	# the player (on foot or driving) and the player-usable cars (parked or driven) in our lane ahead

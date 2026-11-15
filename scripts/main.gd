@@ -40,6 +40,9 @@ var services: Node = null
 var stats: Node = null
 var money: Node = null
 var police: Node = null
+var jobs: Node = null
+var business: Node = null
+var homes: Node = null
 var peds: Node = null
 var input_enabled := true
 var env: Environment
@@ -113,6 +116,12 @@ func _ready() -> void:
 	money = load("res://scripts/money.gd").new(); money.name = "Money"; money.main = self; add_child(money)
 	world_state.register("money", money)
 	police = load("res://scripts/police.gd").new(); police.name = "Police"; police.main = self; add_child(police)
+	jobs = load("res://scripts/jobs.gd").new(); jobs.name = "Jobs"; jobs.main = self; add_child(jobs)
+	world_state.register("job", jobs)
+	business = load("res://scripts/business.gd").new(); business.name = "Business"; business.main = self; add_child(business)
+	world_state.register("business", business)
+	homes = load("res://scripts/homes.gd").new(); homes.name = "Homes"; homes.main = self; add_child(homes)
+	world_state.register("home", homes)
 	if OS.get_cmdline_user_args().has("--load-world") or (world_state.enabled and not OS.get_cmdline_user_args().has("--new-game")):
 		world_state.load_file()
 	player.collision_mask |= 2      # bump into traffic
@@ -216,6 +225,8 @@ func _unhandled_input(e: InputEvent) -> void:
 		cam_yaw -= e.relative.x * 0.0035
 		cam_pitch = clamp(cam_pitch - e.relative.y * 0.0035, -1.2, 0.5)
 	if e.is_action_pressed("enter"):
+		if current_car == null and jobs and jobs.try_interact(player.global_position):
+			return
 		if current_car == null and money and money.try_withdraw(player.global_position):
 			return
 		if current_car == null and bars.try_interact(player):

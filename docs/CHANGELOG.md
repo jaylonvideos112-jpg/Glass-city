@@ -1,5 +1,23 @@
 # Changelog
 
+## Jobs, businesses, homes (2026-11-15)
+* **Jobs (`scripts/jobs.gd`, `source_data/jobs.json`):** 11 basic jobs (stocker, cashier, attendant, crew member,
+  server, sales associate, mechanic helper, delivery driver, warehouse worker, line worker...) at 706 real workplaces
+  with made-up names (`source_data/workplaces.json` from `make_workplaces.py`). Apply in person at the "Now hiring"
+  sign (E) or on the phone job board (J, then 1-6; 0 quits). Clock in with E at the sign during your shift. On shift
+  you earn the hourly rate near work plus a bonus per task: a yellow beam marks the spot (restock, move a load, take
+  an order, serve a customer, or drive a parcel 300-900 m away). Paycheck to your wallet at the end of the shift;
+  missing a shift by an hour is a strike, 2 strikes = fired. HUD line under the stars. No construction sites in the
+  map data yet.
+* **Businesses (`scripts/business.gd`, `source_data/business.json`):** buy any of those workplaces at its sign (B).
+  Price from kind, size and location (downtown +35 %); about 2 %/day income, +/-25 %. Auto-deposit to the wallet, or
+  turn it off (N) and collect in person (B).
+* **Homes (`scripts/homes.gd`, `source_data/homes.json` from `make_homes.py`):** 220 real houses/apartments with
+  made-up addresses and For Rent / For Sale signs. R rents (charged every 7 game days; can't pay = evicted), B buys.
+  At your home: E sleeps until 8 AM and saves; G stores the car next to you in the garage or takes it out.
+* Saved sections `job`, `business`, `home`. 3 new tests. Sirens drive past cars that have pulled over; pedestrians
+  only wait for moving cars on the street they're crossing; steadier service/police tests.
+
 ## Police: traffic stops, closing in, helicopter (2026-11-15)
 * **Traffic stops:** a patrol car that sees you more than 15 mph over the limit, or running a red light, lights up
   and follows you ("Police: pull over!"). Stop within 30 m for 3 s; the officer checks your license (4 s), then it's a

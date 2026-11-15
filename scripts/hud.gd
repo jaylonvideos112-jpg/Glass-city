@@ -13,6 +13,7 @@ var help_label: Label
 var radar: Control
 var money_label: Label
 var wanted_label: Label
+var job_label: Label
 var flash_t := 0.0
 var cur_street := ""
 
@@ -57,6 +58,8 @@ func _ready() -> void:
 	money_label.modulate = Color(0.55, 0.95, 0.55)
 	wanted_label = _label(34, Vector2(30, 56))
 	wanted_label.modulate = Color(1.0, 0.85, 0.3)
+	job_label = _label(18, Vector2(30, 102))
+	job_label.modulate = Color(0.85, 0.92, 1.0)
 	prompt_label = _label(22, Vector2.ZERO)
 	prompt_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	prompt_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -122,6 +125,7 @@ func _process(dt: float) -> void:
 		date_label.text = "%s  ·  %s" % [main.tod.date_string(), main.weather.label() if main.weather else ""]
 	if main.get("money") and main.money:
 		money_label.text = "$%d   %s $%d" % [main.money.cash, main.money.app_name, main.money.wallet]
+	if main.get("jobs") and main.jobs: job_label.text = main.jobs.status_line()
 	if main.get("police") and main.police:
 		var n: int = main.police.stars
 		var blink: bool = main.police.searching and fmod(Time.get_ticks_msec() / 400.0, 2.0) < 1.0
@@ -132,7 +136,12 @@ func _process(dt: float) -> void:
 		prompt_label.text = ""
 	else:
 		speed_label.text = ""
-		var bp: String = main.money.prompt(main.player.global_position) if main.get("money") and main.money else ""
+		var bp: String = main.jobs.prompt(main.player.global_position) if main.get("jobs") and main.jobs else ""
+		if bp == "" and main.get("homes") and main.homes: bp = main.homes.prompt(main.player.global_position)
+		if main.get("business") and main.business:
+			var bz: String = main.business.prompt(main.player.global_position)
+			if bz != "": bp = (bp + "\n" + bz) if bp != "" else bz
+		if bp == "": bp = main.money.prompt(main.player.global_position) if main.get("money") and main.money else ""
 		if bp == "": bp = main.bars.prompt(main.player.global_position) if main.bars else ""
 		if bp != "": prompt_label.text = bp
 		else: prompt_label.text = "Press E to get in" if (main.nearest_car() != null and not main.bars.inside) else ""

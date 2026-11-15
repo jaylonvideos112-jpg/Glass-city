@@ -291,11 +291,14 @@ func _can_cross(eid: int, n: int) -> bool:
 				var back: int = tr._find_edge(o["b"], n)
 				if back >= 0 and tr.control_for(tr.edges[back], n) != "stop": return false
 		return true
-	# otherwise: no car close to the node on any road
+	# otherwise: no moving car coming at this corner on the street we're crossing (or turning into it)
 	var np: Vector3 = tr.npos[n]
 	for c in tr.cars:
-		if float(c.get("dwell", 0.0)) > 0.0: continue     # a bus at its stop / responder on scene isn't coming through
-		if (c["pos"] - np).length() < float(P["crossing_clear_m"]): return false
+		if float(c.get("dwell", 0.0)) > 0.0 or float(c["v"]) < 0.8: continue   # stopped / waiting cars let you go
+		if (c["pos"] - np).length() > float(P["crossing_clear_m"]): continue
+		var ce: Dictionary = tr.edges[c["edge"]]
+		var on_street: bool = (ce["a"] == e["a"] and ce["b"] == e["b"]) or (ce["a"] == e["b"] and ce["b"] == e["a"])
+		if on_street or ce["b"] == n or c.get("next", -1) == eid: return false
 	return true
 
 func _at_node(p: Dictionary) -> void:

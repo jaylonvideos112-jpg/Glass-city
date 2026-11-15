@@ -1,0 +1,10 @@
+{
+  "_doc": "Business ownership (scripts/business.gd). price = base x size factor x location factor (downtown_factor at the centre, 1.0 from downtown_falloff_m out); income per game day = price x daily_yield, +/- daily_swing.",
+  "base_price": {"convenience": 45000, "gas_station": 80000, "fast_food": 90000, "restaurant": 120000, "grocery": 250000,
+                 "clothing": 110000, "retail": 70000, "auto_shop": 95000, "delivery": 150000, "warehouse": 300000, "factory": 500000},
+  "downtown_factor": 1.35,
+  "downtown_falloff_m": 4000,
+  "daily_yield": 0.02,
+  "daily_swing": 0.25,
+  "auto_deposit_default": true
+}

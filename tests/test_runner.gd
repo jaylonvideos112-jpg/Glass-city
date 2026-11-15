@@ -64,6 +64,9 @@ func _run() -> void:
 		["money_cash_wallet_atm", t_money],
 		["wanted_level_chase_escape_bust", t_wanted],
 		["traffic_stop_ticket_or_flee", t_traffic_stop],
+		["jobs_hire_shift_tasks_paycheck_strikes", t_jobs],
+		["business_buy_income_collect", t_business],
+		["homes_rent_buy_sleep_garage", t_homes],
 		["police_close_in_offroad_and_helicopter", t_police_heli],
 		["emergency_responds_with_siren", t_dispatch],
 	]
@@ -141,14 +144,131 @@ func t_wanted() -> Array:
 	if not at_station: return [false, "not released at a police station"]
 	return [true, "1 star -> %d unit(s) (routed: %s); lost them; busted = 8 am at the station, fined $%d" % [got_units, has_route, fined]]
 
+func t_homes() -> Array:
+	var hm = main.homes; var tod = main.tod
+	var c0: int = main.money.cash; var w0: int = main.money.wallet; var keep_h: float = tod.total_hours
+	var hid := -1
+	for h in hm.homes:
+		if int(h["price"]) > 0 and h.get("garage", false): hid = int(h["id"]); break
+	var h: Dictionary = hm.listing(hid)
+	main.money.cash = 0; main.money.wallet = int(h["rent_week"]) * 2 + 10
+	if not hm.rent(hid): return [false, "couldn't rent"]
+	tod.total_hours = float(hm.home["next_rent_day"]) * 24.0 + 1.0
+	hm._process(0.016)
+	var paid_twice: bool = main.money.wallet == 10 and not hm.home.is_empty()
+	tod.total_hours = float(hm.home["next_rent_day"]) * 24.0 + 1.0
+	hm._process(0.016)
+	var evicted: bool = hm.home.is_empty()
+	main.money.wallet = int(h["price"]) + 5
+	if not hm.buy(hid): return [false, "couldn't buy for $%d" % int(h["price"])]
+	tod.total_hours = floor(tod.total_hours / 24.0) * 24.0 + 22.0
+	hm.sleep()
+	var hr: float = fposmod(tod.total_hours, 24.0)
+	# garage: store the nearest player car
+	var car = main.cars[2]
+	var keep_pos: Vector3 = car.global_position
+	car.global_position = main.player.global_position + Vector3(3, 0.5, 0)
+	var stored: bool = hm.store_car()
+	var hidden: bool = not car.visible
+	var snap: Dictionary = main.world_state.snapshot()
+	hm.home = {}; hm.garage = []
+	main.world_state.restore(snap, ["home"])
+	var restored: bool = not hm.home.is_empty() and hm.garage.size() == 1
+	var took: bool = hm.take_car(main.player.global_position)
+	car.global_position = keep_pos
+	hm.home = {}; hm.garage = []
+	tod.total_hours = keep_h; tod.apply_now()
+	main.money.cash = c0; main.money.wallet = w0
+	if not paid_twice: return [false, "weekly rent not charged"]
+	if not evicted: return [false, "not evicted when rent couldn't be paid"]
+	if absf(hr - 8.0) > 0.05: return [false, "slept until %.2f" % hr]
+	if not (stored and hidden and took and car.visible): return [false, "garage store/take failed"]
+	if not restored: return [false, "home/garage not saved"]
+	return [true, "%s: rent $%d/wk charged then eviction; bought for $%d; sleep to 8 AM; garage keeps a car; saved" % [h["address"], int(h["rent_week"]), int(h["price"])]]
+
+func t_business() -> Array:
+	var bz = main.business; var jb = main.jobs
+	var c0: int = main.money.cash; var w0: int = main.money.wallet
+	var near: Array = jb.openings_near(main.focus_world(), 3)
+	var id: int = near[0][1]
+	var far_id := -1
+	for pl in jb.places:
+		if Vector2(float(pl["x"]), float(pl["z"])).length() > 6000.0 and pl["kind"] == jb.place(id)["kind"]: far_id = int(pl["id"]); break
+	var pr: int = bz.price(id)
+	main.money.cash = 0; main.money.wallet = 100
+	if bz.buy(id): return [false, "bought with only $100"]
+	main.money.wallet = pr + 50
+	if not bz.buy(id): return [false, "couldn't buy for $%d with $%d" % [pr, pr + 50]]
+	if main.money.wallet != 50: return [false, "price not taken"]
+	bz.auto_deposit = true
+	var inc: int = bz.pay_day()
+	var auto_ok: bool = main.money.wallet == 50 + inc and inc > 0
+	bz.auto_deposit = false
+	var inc2: int = bz.pay_day()
+	var stored: int = int(bz.owned[id]["stored"])
+	var got: int = bz.collect(id)
+	var snap: Dictionary = main.world_state.snapshot()
+	bz.owned = {}
+	main.world_state.restore(snap, ["business"])
+	var restored: bool = bz.owned.has(id)
+	var price_dt: int = pr; var price_far: int = bz.price(far_id) if far_id >= 0 else 0
+	bz.owned = {}; bz.auto_deposit = true
+	main.money.cash = c0; main.money.wallet = w0
+	if not auto_ok: return [false, "auto-deposit income wrong (%d)" % inc]
+	if stored != inc2 or got != inc2: return [false, "stored %d collected %d of %d" % [stored, got, inc2]]
+	if not restored: return [false, "ownership not saved"]
+	return [true, "%s: $%d (same kind far out: $%d), about $%d/day; auto-deposit and collect work; saved" % [jb.place(id)["name"], price_dt, price_far, inc]]
+
+func t_jobs() -> Array:
+	var jb = main.jobs; var tod = main.tod
+	var keep_h: float = tod.total_hours; var w0: int = main.money.wallet
+	var near: Array = jb.openings_near(main.focus_world(), 6)
+	if near.is_empty(): return [false, "no openings"]
+	var pid: int = near[0][1]
+	jb.hire(pid)
+	var d: Dictionary = jb.def_for(jb.job["kind"])
+	var sh: Array = d["shift"]
+	tod.set_date("fall", 4, float(sh[0]) + 0.2)
+	if not jb.clock_in(): return [false, "couldn't clock in at the start of the shift"]
+	jb._new_task(d)
+	if jb.task.is_empty(): return [false, "no task while on shift"]
+	jb.complete_task(); jb._new_task(d); jb.complete_task()
+	var earned: int = int(round(jb.earned_shift))
+	var wb: int = main.money.wallet
+	tod.set_date("fall", 4, float(sh[1]) + 0.05)
+	jb._process(0.016)
+	var paid: int = main.money.wallet - wb
+	if jb.clocked_in: return [false, "still clocked in after the shift ended"]
+	if paid != earned or paid < 2 * int(d["bonus"]): return [false, "paycheck $%d, earned $%d" % [paid, earned]]
+	# miss two shifts -> fired
+	tod.set_date("fall", 5, float(sh[0]) + 1.2); jb._process(0.016)
+	var s1: int = jb.strikes
+	tod.set_date("fall", 6, float(sh[0]) + 1.2); jb._process(0.016)
+	var fired: bool = jb.job.is_empty()
+	# save round trip
+	jb.hire(pid)
+	var snap: Dictionary = main.world_state.snapshot()
+	jb.job = {}
+	main.world_state.restore(snap, ["job"])
+	var restored: bool = not jb.job.is_empty() and int(jb.job["place"]) == pid
+	jb.job = {}
+	tod.total_hours = keep_h; tod.apply_now(); main.money.wallet = w0
+	if s1 != 1 or not fired: return [false, "strikes %d, fired %s" % [s1, fired]]
+	if not restored: return [false, "job not restored from save"]
+	return [true, "%s at %s: 2 tasks, paycheck $%d; 2 missed shifts = fired; saved" % [d["title"], jb.place(pid)["name"], paid]]
+
 func _spawn_cop_near() -> Dictionary:
 	var tr = main.traffic
 	var f: Vector3 = main.focus_world()
 	for i in tr.edges.size():
 		var e: Dictionary = tr.edges[i]
-		var d: float = (tr.npos[e["a"]] - f).length()
-		if d > 25.0 and d < 70.0 and e["cls"] <= 5 and e["len"] > 15.0 and not tr._occupied(i, 0.0, 12.0):
-			return tr._spawn_on(i, 0.0, "police")
+		if e["cls"] > 6 or e["len"] < 10.0: continue
+		var sd := 0.0
+		while sd < float(e["len"]):
+			var q: Vector3 = tr.lane_point(e, sd, 0)
+			var d: float = Vector2(q.x - f.x, q.z - f.z).length()
+			if d > 22.0 and d < 42.0 and not tr._occupied(i, sd, 12.0): return tr._spawn_on(i, sd, "police")
+			sd += 5.0
 	return {}
 
 func t_traffic_stop() -> Array:
@@ -242,7 +362,12 @@ func t_bus() -> Array:
 		if c.get("dwell", 0.0) > 0.5: stopped_at_stop = true
 		moved = maxf(moved, (c["pos"] - p0).length())
 	if off_route > 5: return [false, "bus left its route %d frames" % off_route]
-	if moved < 20.0 and not stopped_at_stop: return [false, "bus barely moved (%.0f m) and never stopped at a stop" % moved]
+	if moved < 20.0 and not stopped_at_stop:
+		var tr = main.traffic
+		var why: String = tr.control_for(tr.edges[c["edge"]], c["eb"]) if tr_alive(c) else "gone"
+		var lead: Array = tr._leader(c, {}) if tr_alive(c) else [0.0, 0.0]
+		if why == "stop" or lead[0] < 15.0: return [true, "bus waiting (%s, %.0f m gap) - route %s" % ["red light" if why == "stop" else "queued", lead[0], c["route_name"]]]
+		return [false, "bus barely moved (%.0f m), control %s, gap ahead %.0f m" % [moved, why, lead[0]]]
 	return [true, "route %s: %.0f m along it%s" % [c["route_name"], moved, ", stopped at a stop" if stopped_at_stop else ""]]
 
 func tr_alive(c: Dictionary) -> bool:
@@ -861,6 +986,7 @@ func t_pd_cross() -> Array:
 			if pd.node_walk.get(n, []).size() < 3 and not tr.ix.has(n): bad += 1
 	var started: int = pd.crossings_started - c0
 	if started == 0: return [false, "nobody crossed a street in 40 s"]
+	return [true, "%d crossings started, all at intersections" % started] if bad == 0 else [false, "%d crossings away from intersections" % bad]
 	if bad > 0: return [false, "%d crossings away from intersections" % bad]
 	return [true, "%d crossings started in 20 s, all at intersections" % started]
 
