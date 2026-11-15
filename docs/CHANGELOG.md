@@ -1,5 +1,13 @@
 # Changelog
 
+## Rough edges (2026-11-15)
+* Traffic count now scales with how much road is near you (`traffic.json` `budget.cars_per_road_km`), so a lone
+  country road no longer gets every car in the budget (it jammed).
+* Far city has its own shader (`shaders/hlod.gdshader`): lit windows at night (window grid by floor and bay,
+  occupancy by hour, like the near facades), slightly brighter to match the detailed materials, and guards against
+  zero normals in merged meshes (they made coloured speckles).
+* `--hour=H` for demo/screenshot runs.
+
 ## Performance, countryside, data, driving feel, audio, world state (2026-11-15)
 * **Far city (HLOD), `scripts/hlod.gd`:** past the detailed streets the city is drawn as one merged low-detail mesh per
   400 m region (no porches, curbs, lines or shadows; ground coloured from the aerial photos), out to 3.2 km. Detail

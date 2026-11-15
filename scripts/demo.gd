@@ -35,6 +35,7 @@ func _ready() -> void:
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--out="): out_dir = a.substr(6)
 		if a.begins_with("--seconds="): seconds = float(a.substr(10))
+		if a.begins_with("--hour="): main.tod.set_hour(float(a.substr(7)))
 		if a.begins_with("--shotlist="):
 			var j = JSON.parse_string(FileAccess.get_file_as_string(a.substr(11)))
 			shots = []

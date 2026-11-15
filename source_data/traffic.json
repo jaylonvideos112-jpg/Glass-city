@@ -1,25 +1,257 @@
 {
   "_doc": "Ambient traffic (Bible section 5 and 8). Shares follow ordinary Toledo traffic: mostly sedans, SUVs, pickups and minivans, older cars common, sports/luxury rare. Makers and models are fictional. Sizes in metres (length, width, height).",
-  "budget": {"max_cars": 60, "spawn_min_m": 90, "spawn_max_m": 230, "despawn_m": 280, "full_sim_m": 300},
-  "density_by_hour": [0.12, 0.08, 0.06, 0.05, 0.07, 0.2, 0.55, 0.95, 1.0, 0.7, 0.6, 0.65, 0.75, 0.7, 0.7, 0.8, 0.95, 1.0, 0.85, 0.65, 0.5, 0.4, 0.3, 0.2],
-  "weekend_factor": 0.75,
-  "weather_density": {"clear": 1.0, "partly": 1.0, "overcast": 0.95, "rain": 0.85, "storm": 0.7, "fog": 0.85, "snow": 0.6},
-  "weather_speed": {"clear": 1.0, "partly": 1.0, "overcast": 1.0, "rain": 0.88, "storm": 0.78, "fog": 0.8, "snow": 0.65},
-  "signals": {"green_s": 22.0, "yellow_s": 3.5, "all_red_s": 1.5, "stop_wait_s": 1.2},
-  "driver": {"lane_width": 3.3, "min_gap_m": 2.5, "headway_s": 1.4, "accel": 2.2, "decel": 3.5, "speed_jitter": 0.12, "stop_line_m": 7.0},
-  "vehicles": [
-    {"id": "sedan",     "name": "Declasse Meridian",  "share": 0.30, "size": [4.7, 1.85, 1.45], "cabin": [0.45, 0.55], "body": "sedan"},
-    {"id": "sedan_old", "name": "Albany Prairie",     "share": 0.10, "size": [4.9, 1.85, 1.42], "cabin": [0.45, 0.52], "body": "sedan"},
-    {"id": "compact",   "name": "Karin Pebble",       "share": 0.08, "size": [4.2, 1.75, 1.45], "cabin": [0.4, 0.6], "body": "hatch"},
-    {"id": "suv",       "name": "Vapid Ridgeback",    "share": 0.20, "size": [4.8, 1.95, 1.8], "cabin": [0.3, 0.72], "body": "suv"},
-    {"id": "pickup",    "name": "Bravado Boulder",    "share": 0.13, "size": [5.6, 2.0, 1.9], "cabin": [0.32, 0.38], "body": "pickup"},
-    {"id": "minivan",   "name": "Vapid Schoolrun",    "share": 0.07, "size": [5.1, 1.98, 1.78], "cabin": [0.22, 0.75], "body": "suv"},
-    {"id": "workvan",   "name": "Brute Hauler",       "share": 0.05, "size": [5.6, 2.05, 2.4], "cabin": [0.18, 0.25], "body": "van"},
-    {"id": "boxtruck",  "name": "Brute Mover 16",     "share": 0.025, "size": [7.4, 2.4, 3.3], "cabin": [0.0, 0.22], "body": "box"},
-    {"id": "bus",       "name": "Glass City Transit", "share": 0.012, "size": [12.2, 2.6, 3.2], "cabin": [0.05, 0.9], "body": "bus"},
-    {"id": "sports",    "name": "Grotti Vento",       "share": 0.013, "size": [4.5, 1.95, 1.2], "cabin": [0.45, 0.4], "body": "sedan"},
-    {"id": "police",    "name": "Toledo Police Cruiser", "share": 0.01, "size": [5.0, 1.9, 1.5], "cabin": [0.45, 0.52], "body": "sedan", "livery": "police"}
+  "budget": {
+    "max_cars": 60,
+    "spawn_min_m": 90,
+    "spawn_max_m": 230,
+    "despawn_m": 280,
+    "full_sim_m": 300,
+    "cars_per_road_km": 9,
+    "_doc_cars_per_road_km": "peak cars per km of drivable road within spawn_max_m of the player; caps max_cars so a lone country road doesn't get every car"
+  },
+  "density_by_hour": [
+    0.12,
+    0.08,
+    0.06,
+    0.05,
+    0.07,
+    0.2,
+    0.55,
+    0.95,
+    1.0,
+    0.7,
+    0.6,
+    0.65,
+    0.75,
+    0.7,
+    0.7,
+    0.8,
+    0.95,
+    1.0,
+    0.85,
+    0.65,
+    0.5,
+    0.4,
+    0.3,
+    0.2
   ],
-  "paint": ["#1b1c1e", "#e8e8e6", "#9a9da1", "#5a5e63", "#7e1a1a", "#1d3557", "#c9c5bc", "#2f4f3a", "#6b4a2b", "#b8b1a2", "#3a3f6b", "#a03028", "#d9d4c7", "#40464c"],
+  "weekend_factor": 0.75,
+  "weather_density": {
+    "clear": 1.0,
+    "partly": 1.0,
+    "overcast": 0.95,
+    "rain": 0.85,
+    "storm": 0.7,
+    "fog": 0.85,
+    "snow": 0.6
+  },
+  "weather_speed": {
+    "clear": 1.0,
+    "partly": 1.0,
+    "overcast": 1.0,
+    "rain": 0.88,
+    "storm": 0.78,
+    "fog": 0.8,
+    "snow": 0.65
+  },
+  "signals": {
+    "green_s": 22.0,
+    "yellow_s": 3.5,
+    "all_red_s": 1.5,
+    "stop_wait_s": 1.2
+  },
+  "driver": {
+    "lane_width": 3.3,
+    "min_gap_m": 2.5,
+    "headway_s": 1.4,
+    "accel": 2.2,
+    "decel": 3.5,
+    "speed_jitter": 0.12,
+    "stop_line_m": 7.0
+  },
+  "vehicles": [
+    {
+      "id": "sedan",
+      "name": "Declasse Meridian",
+      "share": 0.3,
+      "size": [
+        4.7,
+        1.85,
+        1.45
+      ],
+      "cabin": [
+        0.45,
+        0.55
+      ],
+      "body": "sedan"
+    },
+    {
+      "id": "sedan_old",
+      "name": "Albany Prairie",
+      "share": 0.1,
+      "size": [
+        4.9,
+        1.85,
+        1.42
+      ],
+      "cabin": [
+        0.45,
+        0.52
+      ],
+      "body": "sedan"
+    },
+    {
+      "id": "compact",
+      "name": "Karin Pebble",
+      "share": 0.08,
+      "size": [
+        4.2,
+        1.75,
+        1.45
+      ],
+      "cabin": [
+        0.4,
+        0.6
+      ],
+      "body": "hatch"
+    },
+    {
+      "id": "suv",
+      "name": "Vapid Ridgeback",
+      "share": 0.2,
+      "size": [
+        4.8,
+        1.95,
+        1.8
+      ],
+      "cabin": [
+        0.3,
+        0.72
+      ],
+      "body": "suv"
+    },
+    {
+      "id": "pickup",
+      "name": "Bravado Boulder",
+      "share": 0.13,
+      "size": [
+        5.6,
+        2.0,
+        1.9
+      ],
+      "cabin": [
+        0.32,
+        0.38
+      ],
+      "body": "pickup"
+    },
+    {
+      "id": "minivan",
+      "name": "Vapid Schoolrun",
+      "share": 0.07,
+      "size": [
+        5.1,
+        1.98,
+        1.78
+      ],
+      "cabin": [
+        0.22,
+        0.75
+      ],
+      "body": "suv"
+    },
+    {
+      "id": "workvan",
+      "name": "Brute Hauler",
+      "share": 0.05,
+      "size": [
+        5.6,
+        2.05,
+        2.4
+      ],
+      "cabin": [
+        0.18,
+        0.25
+      ],
+      "body": "van"
+    },
+    {
+      "id": "boxtruck",
+      "name": "Brute Mover 16",
+      "share": 0.025,
+      "size": [
+        7.4,
+        2.4,
+        3.3
+      ],
+      "cabin": [
+        0.0,
+        0.22
+      ],
+      "body": "box"
+    },
+    {
+      "id": "bus",
+      "name": "Glass City Transit",
+      "share": 0.012,
+      "size": [
+        12.2,
+        2.6,
+        3.2
+      ],
+      "cabin": [
+        0.05,
+        0.9
+      ],
+      "body": "bus"
+    },
+    {
+      "id": "sports",
+      "name": "Grotti Vento",
+      "share": 0.013,
+      "size": [
+        4.5,
+        1.95,
+        1.2
+      ],
+      "cabin": [
+        0.45,
+        0.4
+      ],
+      "body": "sedan"
+    },
+    {
+      "id": "police",
+      "name": "Toledo Police Cruiser",
+      "share": 0.01,
+      "size": [
+        5.0,
+        1.9,
+        1.5
+      ],
+      "cabin": [
+        0.45,
+        0.52
+      ],
+      "body": "sedan",
+      "livery": "police"
+    }
+  ],
+  "paint": [
+    "#1b1c1e",
+    "#e8e8e6",
+    "#9a9da1",
+    "#5a5e63",
+    "#7e1a1a",
+    "#1d3557",
+    "#c9c5bc",
+    "#2f4f3a",
+    "#6b4a2b",
+    "#b8b1a2",
+    "#3a3f6b",
+    "#a03028",
+    "#d9d4c7",
+    "#40464c"
+  ],
   "bus_paint": "#f2c230"
 }

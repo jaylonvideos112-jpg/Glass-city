@@ -19,7 +19,8 @@ var pending := {}         # Vector2i -> task id
 var decoded := {}         # Vector2i -> Dictionary of arrays, or {} for empty
 var colors := {}          # material name -> Color
 var _mutex := Mutex.new()
-var _mat: StandardMaterial3D
+var _std: StandardMaterial3D = null   # debug: --hlod-std
+var _mat: ShaderMaterial    # shaders/hlod.gdshader; time_of_day.gd sets night/occupancy
 var _t := 0.0
 var _focus := Vector3.INF
 var queue: Array[Vector2i] = []    # regions waiting to be built, nearest first
@@ -27,15 +28,17 @@ const MAX_INFLIGHT := 2
 
 func setup(s: Node3D) -> void:
 	streamer = s
-	_mat = StandardMaterial3D.new()
-	_mat.vertex_color_use_as_albedo = true
-	_mat.roughness = 0.92
-	_mat.vertex_color_is_srgb = true
+	_mat = ShaderMaterial.new()
+	_mat.shader = load("res://shaders/hlod.gdshader")
+	if OS.get_cmdline_user_args().has("--hlod-std"):
+		_std = StandardMaterial3D.new(); _std.vertex_color_use_as_albedo = true; _std.vertex_color_is_srgb = true; _std.roughness = 0.92
 	for k in streamer.materials:
 		colors[k] = _avg_color(streamer.materials[k])
 
+## alpha 1 = building wall (lit windows at night in the far city)
 func _avg_color(m: Material) -> Color:
 	if m is StandardMaterial3D:
+		var wall := 1.0 if m.emission_texture != null else 0.0
 		var c: Color = m.albedo_color
 		var t: Texture2D = m.albedo_texture
 		if t != null:
@@ -44,9 +47,9 @@ func _avg_color(m: Material) -> Color:
 				if img.is_compressed(): img.decompress()
 				img.resize(1, 1, Image.INTERPOLATE_BILINEAR)
 				c *= img.get_pixel(0, 0)
-		c.a = 1.0
-		return c
-	return Color(0.62, 0.62, 0.64)    # facade shader buildings
+		c.a = wall
+		return _clamp01(c)
+	return Color(0.62, 0.62, 0.64, 1.0)    # facade shader buildings
 
 const AER_RES := 16
 
@@ -56,7 +59,13 @@ static func _aerial_look(c: Color) -> Color:
 	var r := Vector3(pow(a.r, 1.18), pow(a.g, 1.18), pow(a.b, 1.18)) * 0.82
 	var l := r.dot(Vector3(0.299, 0.587, 0.114))
 	r = Vector3(l, l, l).lerp(r, 1.18) * 0.92
-	return Color(maxf(r.x, 0), maxf(r.y, 0), maxf(r.z, 0)).linear_to_srgb()
+	var o := Color(maxf(r.x, 0), maxf(r.y, 0), maxf(r.z, 0)).linear_to_srgb()
+	o.a = 0.0
+	return _clamp01(o)
+
+## vertex colours are stored as 8-bit: anything outside 0..1 wraps around into bright speckles
+static func _clamp01(c: Color) -> Color:
+	return Color(clampf(c.r, 0, 1), clampf(c.g, 0, 1), clampf(c.b, 0, 1), clampf(c.a, 0, 1))
 
 static func region_of(k: Vector2i) -> Vector2i:
 	return Vector2i(floori(float(k.x) / REGION), floori(float(k.y) / REGION))
@@ -175,7 +184,7 @@ func _process(dt: float) -> void:
 			arrays[Mesh.ARRAY_COLOR] = d["c"]
 			var mesh := ArrayMesh.new()
 			mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-			mesh.surface_set_material(0, _mat)
+			mesh.surface_set_material(0, _std if _std else _mat)
 			var mi := MeshInstance3D.new()
 			mi.mesh = mesh
 			mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

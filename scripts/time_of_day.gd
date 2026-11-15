@@ -225,6 +225,10 @@ func apply_now() -> void:
 	if fac:
 		fac.set_shader_parameter("night", night)
 		fac.set_shader_parameter("occupancy", occupancy)
+	var hl = main.streamer.hlod if main.streamer else null
+	if hl != null and hl._mat != null:
+		hl._mat.set_shader_parameter("night", night)
+		hl._mat.set_shader_parameter("occupancy", occupancy)
 	var e := night * (0.25 + 0.5 * occupancy)
 	for m in _night_mats:
 		m.emission_energy_multiplier = e * 0.9

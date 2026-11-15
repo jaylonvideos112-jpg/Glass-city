@@ -268,7 +268,22 @@ func target_count() -> int:
 	var d: float = T["density_by_hour"][h]
 	if tod.weekday_name() in ["Saturday", "Sunday"]: d *= float(T["weekend_factor"])
 	d *= float(T["weather_density"].get(main.weather.state, 1.0)) if main.weather else 1.0
-	return int(round(float(T["budget"]["max_cars"]) * d))
+	var cap := float(T["budget"]["max_cars"])
+	if T["budget"].has("cars_per_road_km"): cap = minf(cap, maxf(2.0, _road_km_near * float(T["budget"]["cars_per_road_km"])))
+	return int(round(cap * d))
+
+## km of drivable road within spawn range of the focus (refreshed once a second)
+var _road_km_near := 999.0
+var _road_km_t := 0.0
+func _update_road_km(focus: Vector3) -> void:
+	var r: float = float(T["budget"]["spawn_max_m"])
+	var tot := 0.0
+	for e in edges:
+		if e["cls"] > 6: continue
+		var a: Vector3 = npos[e["a"]]
+		var dd := Vector2(a.x - focus.x, a.z - focus.z).length()
+		if dd < r: tot += float(e["len"]) * (1.0 if e["oneway"] else 0.5)   # two-way roads appear as two edges
+	_road_km_near = tot / 1000.0
 
 func _physics_process(dt: float) -> void:
 	if not enabled: return
@@ -279,6 +294,10 @@ func _physics_process(dt: float) -> void:
 		rebuild_graph()
 	if edges.is_empty(): return
 	var focus: Vector3 = main.focus_world()
+	_road_km_t -= dt
+	if _road_km_t <= 0.0:
+		_road_km_t = 1.0
+		_update_road_km(focus)
 	_manage_population(focus)
 	var wspeed: float = T["weather_speed"].get(main.weather.state, 1.0) if main.weather else 1.0
 	if main.tod and main.tod.has_method("ai_speed_factor"): wspeed *= main.tod.ai_speed_factor()   # wet/snowy roads
