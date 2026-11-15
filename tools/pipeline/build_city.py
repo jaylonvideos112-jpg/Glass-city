@@ -323,6 +323,8 @@ def traffic_jobs(e, t, pts):
         node_classes[nid].append((cls, i in (0, len(nodes) - 1)))
         node_xy[nid] = pts[i]
 
+_smp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source_data", "street_names.json")
+STREET_MAP = {k: v for k, v in json.load(open(_smp)).items() if not k.startswith("_")} if os.path.exists(_smp) else {}
 road_polys, side_polys, bridge_ways = [], [], []
 street_lines = []
 seg_jobs = defaultdict(list)       # region -> centerline / street / lamp / streettree jobs
@@ -353,7 +355,7 @@ for e in els:
     else:
         side_polys.append(line.buffer(w / 2, quad_segs=2))
     center = drivable and hw in ("primary", "secondary", "tertiary", "trunk") and t.get("oneway") != "yes"
-    name = t.get("name") if drivable else None
+    name = STREET_MAP.get(t.get("name"), t.get("name")) if drivable else None   # parody street names
     acc_l = acc_t = 0.0
     lamp_step = 50.0 if hw in RESID else 36.0
     for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
@@ -397,6 +399,9 @@ except ValueError: _sigd = {}
 if _sigd:
     for _e in _sigd.get("elements", []):
         _sig[_e["id"]] = {"traffic_signals": "signal", "stop": "stop", "give_way": "yield"}.get(_e.get("tags", {}).get("highway"), "")
+for _e in els:   # signal/stop nodes fetched with the map tiles (newer tiles include them)
+    if _e["type"] == "node" and _e.get("tags", {}).get("highway") in ("traffic_signals", "stop", "give_way"):
+        _sig[_e["id"]] = {"traffic_signals": "signal", "stop": "stop", "give_way": "yield"}[_e["tags"]["highway"]]
 IX_SOURCE = "osm" if _sig else "inferred"
 for nid, lst in node_classes.items():
     approaches = sum(1 if end else 2 for _, end in lst)
@@ -679,6 +684,8 @@ PARODY = {
     "jeep": "Jeepers Assembly", "stellantis": "Stellantine Assembly", "walmart": "ValuMart", "kroger": "Krogan's",
     "meijer": "Mayer's", "costco": "CostKo", "home depot": "Home Despot", "lowe's": "Lowly's", "target": "Targit",
 }
+SCHOOLS_PATH = os.environ.get("SCHOOLS", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source_data", "school_names.json"))
+SCHOOLS = json.load(open(SCHOOLS_PATH)) if os.path.exists(SCHOOLS_PATH) else {}
 GOV_OK = ("courthouse", "county", "city", "government", "federal", "library", "church", "cathedral", "museum",
           "safety building", "post office", "school", "university", "station", "civic", "hospital", "zoo", "college", "stadium", "arena")
 BRANDY = ("credit union", "bank", "inc", "llc", "hotel", "store", "market", "restaurant", "bar ", "grill")
@@ -1320,6 +1327,12 @@ def do_building(e, g, cp, is_part):
         big = g.area > 1500 or h > 25
         if shown is None and big and any(k in low for k in GOV_OK) and not any(b in low for b in BRANDY) and not t.get("brand") and not t.get("shop"):
             shown = nm
+        # schools and colleges: owner-chosen fictional names (source_data/school_names.json); "_closed" = no label
+        if nm in SCHOOLS: shown = SCHOOLS[nm] if SCHOOLS[nm] != "_closed" else None
+        elif shown:
+            for k, v in SCHOOLS.get("_replace", {}).items(): shown = shown.replace(k, v)
+            if shown == nm and any(w in low for w in ("school", "academy", "college", "university")):
+                shown = None   # a school nobody has named yet: hide its real name until it gets one
         if shown and shown not in labels_done and g.area > 400:
             labels_done.add(shown)
             c = chunk_at(cp.x, cp.y)
@@ -1330,9 +1343,9 @@ def find_spawn():
     by_name = defaultdict(list)
     for rk, jobs in seg_jobs.items():
         for j in jobs:
-            if j[0] == "st" and j[1] in ("North Summit Street", "Summit Street", "Madison Avenue"):
+            if j[0] == "st" and j[1] in [STREET_MAP.get(x, x) for x in ("North Summit Street", "Summit Street", "Madison Avenue")]:
                 by_name[j[1]].append(LineString([(j[2], j[3]), (j[4], j[5])]))
-    for n1, n2 in (("North Summit Street", "Madison Avenue"), ("Summit Street", "Madison Avenue")):
+    for n1, n2 in ((STREET_MAP.get(a, a), STREET_MAP.get(b, b)) for a, b in (("North Summit Street", "Madison Avenue"), ("Summit Street", "Madison Avenue"))):
         if by_name[n1] and by_name[n2]:
             i = unary_union(by_name[n1]).intersection(unary_union(by_name[n2]))
             if not i.is_empty:

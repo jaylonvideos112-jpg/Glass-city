@@ -42,6 +42,9 @@
     in the shader (one draw call each). About half put up umbrellas in the rain.
   * Density by hour, weekday, weather and area (downtown vs. elsewhere); `source_data/pedestrians.json`.
   * 5 pedestrian tests.
+* **Names:** all 184 schools in the full region have fictional names (`source_data/school_names.json`); University of
+  Toledo is the University of Glass City. Every street has a parody name (`source_data/street_names.json`, 4,416
+  names); numbered streets and routes keep their numbers.
 * Test harness now fails a test that crashes instead of silently skipping it.
 * Fix: window emission masks lit whole walls (Godot's emission ADD operator); now MULTIPLY.
 

@@ -29,7 +29,8 @@ def q(s, w, n, e):
  way["natural"~"wood|scrub|wetland"]{b};
  way["amenity"="parking"]{b};
  way["railway"="rail"]{b};
- node["place"~"neighbourhood|suburb|quarter|village|hamlet"]{b};
+ node["place"~"neighbourhood|suburb|quarter|village|hamlet|town"]{b};
+ node["highway"~"^(traffic_signals|stop|give_way)$"]{b};
 );
 out geom;"""
 
@@ -44,7 +45,7 @@ while True:
     i, j = todo[0]
     s, w = S + i * dlat, W + j * dlon
     path = f"{OUT}/{i}_{j}.json"; tmp = path + f".tmp{WI}"
-    r = subprocess.run(["curl", "-sS", "-m", "300", "-A", "ToledoGameBuilder/0.2", "-G",
+    r = subprocess.run(["curl", "-sS", "-m", "300", "-A", "GlassCityBuilder/0.3", "-G",
                         "--data-urlencode", "data=" + q(s, w, s + dlat, w + dlon),
                         URLS[attempt % 2], "-o", tmp, "-w", "%{http_code}"], capture_output=True, text=True)
     attempt += 1
