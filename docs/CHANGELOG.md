@@ -12,7 +12,7 @@
   watch the Glass City Swamp Hens (minor-league baseball, evenings on game days); cinemas (4) - a movie; fishing
   (20 spots on the river and creeks) - cast, wait for the bite, Space; 7 local species, biggest catches logged,
   fish can be cooked at home.
-* 2 new tests (52 game tests in all).
+* 2 new tests (50 game tests + 9 data tests in all).
 
 ## Vehicles: roster, ownership, dealers, stealing, damage, shops, camera views (2026-11-15)
 * **Roster (`source_data/vehicles.json`):** 18 made-up models from 10 made-up makes (Halden, Corvane, Takumi, Hanzo,
