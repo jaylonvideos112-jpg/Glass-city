@@ -18,6 +18,7 @@ var _heads: Array[SpotLight3D] = []
 var _hl_mat: StandardMaterial3D
 var _tl_mat: StandardMaterial3D
 var wheels: Array[VehicleWheel3D] = []
+static var surface_grip := 1.0    # set each frame by main.gd from time_of_day.road_grip() (wet/snowy roads)
 
 func _ready() -> void:
 	mass = 1350.0
@@ -142,7 +143,7 @@ func _physics_process(_dt: float) -> void:
 		engine_force = 0.0
 		brake = 1.5
 	for w in wheels:
-		w.wheel_friction_slip = 1.3 if (handbrake and not w.use_as_steering) else 2.6
+		w.wheel_friction_slip = (1.3 if (handbrake and not w.use_as_steering) else 2.6) * surface_grip
 	_update_lights()
 	if handbrake:
 		brake = max(brake, 30.0)

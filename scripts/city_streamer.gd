@@ -28,6 +28,8 @@ var _detail_tex: Texture2D = preload("res://textures/parking.png")
 var label_font_size := 96
 var lamp_bulb_mat: StandardMaterial3D = null
 var bars: Node = null   # bars.gd: builds bar exteriors and handles enter/exit
+const Hlod := preload("res://scripts/hlod.gd")
+var hlod: Node3D = null   # far-distance low-detail city (hlod.gd); off with --no-hlod
 
 func _ready() -> void:
 	var f := FileAccess.open(DATA_DIR + "manifest.json", FileAccess.READ)
@@ -36,6 +38,11 @@ func _ready() -> void:
 	for c in manifest["chunks"]:
 		available[Vector2i(int(c[0]), int(c[1]))] = true
 	_make_materials()
+	if not OS.get_cmdline_user_args().has("--no-hlod"):
+		hlod = Hlod.new(); hlod.name = "HLOD"
+		add_child(hlod)
+		hlod.position = -world_offset
+		hlod.setup(self)
 
 # ------------------------------------------------------------------ materials
 func _tex_mat(tex: String, tint := Color.WHITE, rough := 0.9) -> StandardMaterial3D:
@@ -107,6 +114,10 @@ func _make_materials() -> void:
 	materials["shingle"] = _tex_mat("shingle")
 	materials["metal"] = _tex_mat("metal", Color.WHITE, 0.6)
 	materials["forest_floor"] = _tex_mat("forest_floor")
+	# made-up countryside crop fields: wheat, corn, soy, hay, plowed (crop rows texture, tinted)
+	var crop_tints := [Color(0.93, 0.82, 0.5), Color(0.55, 0.74, 0.34), Color(0.4, 0.6, 0.3), Color(0.8, 0.8, 0.5), Color(0.56, 0.43, 0.31)]
+	for i in crop_tints.size():
+		materials["field%d" % i] = _tex_mat("field", crop_tints[i])
 	materials["industrial"] = _tex_mat("industrial")
 	for n in ["copper_green", "shingle_red", "storefront", "limestone", "granite_black", "yamasaki", "terracotta", "sandstone", "marble", "seats", "porch"]:
 		materials[n] = _tex_mat(n)
@@ -156,13 +167,17 @@ func update_focus(world_pos: Vector3) -> void:
 				continue
 			var center := chunk_world_origin(k) + Vector3(chunk_size * 0.5, 0, -chunk_size * 0.5)
 			if Vector2(center.x - world_pos.x, center.z - world_pos.z).length() < load_radius_m + chunk_size * 0.7:
-				want.append(k)
+				# load whole HLOD regions, so a region is either all-detail or all-far (no holes, no overlap)
+				for k2 in hlod.region_chunks(Hlod.region_of(k)) if hlod != null else [k]:
+					if not loaded.has(k2) and not pending.has(k2) and not want.has(k2): want.append(k2)
 	want.sort_custom(func(a, b): return (a - ck).length_squared() < (b - ck).length_squared())
 	for k in want:
 		_request(k)
 	# unload far chunks
+	if hlod != null: hlod.update(world_pos)
 	for k in loaded.keys():
 		var center := chunk_world_origin(k) + Vector3(chunk_size * 0.5, 0, -chunk_size * 0.5)
+		if hlod != null: center = hlod.region_center(Hlod.region_of(k))
 		if Vector2(center.x - world_pos.x, center.z - world_pos.z).length() > max(unload_radius_m, load_radius_m + 250.0) + chunk_size:
 			loaded[k].queue_free()
 			loaded.erase(k)
@@ -210,7 +225,7 @@ func _process(_dt: float) -> void:
 		built += 1
 
 func is_idle() -> bool:
-	return pending.is_empty()
+	return pending.is_empty() and (hlod == null or hlod.is_idle())
 
 ## Load everything around a point synchronously (used at spawn/teleport).
 func load_now(world_pos: Vector3) -> void:

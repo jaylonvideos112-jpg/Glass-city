@@ -62,7 +62,6 @@ func _ready() -> void:
 			var p := a.substr(7).split(",")
 			if p.size() == 3: set_date(p[0], int(p[1]), float(p[2]))
 			else: set_hour(float(p[0]))
-		if a == "--load-world": load_state()
 		if a.begins_with("--wet="): wetness = float(a.substr(6))
 		if a.begins_with("--snowcover="): snow_cover = float(a.substr(12))
 	if not InputMap.has_action("time_fast"):
@@ -149,6 +148,16 @@ func register_ground_materials(mats: Dictionary) -> void:
 		var m = mats.get(k)
 		if m is StandardMaterial3D:
 			_ground.append([m, m.albedo_color, m.roughness, GROUND[k]])
+
+## Tyre grip for the current road surface (1 = dry). Cars and AI traffic read this.
+func road_grip() -> float:
+	var G: Dictionary = C["surface"]["grip"]
+	return maxf(float(G["min"]), 1.0 - wetness * float(G["wet_loss"]) - snow_cover * float(G["snow_loss"]))
+
+## Speed factor for AI drivers on wet/snowy roads (1 = dry).
+func ai_speed_factor() -> float:
+	var G: Dictionary = C["surface"]["grip"]
+	return lerpf(1.0, float(G["ai_speed_wet"]), clampf(wetness, 0, 1)) * lerpf(1.0, float(G["ai_speed_snow"]), clampf(snow_cover, 0, 1))
 
 ## Advance wetness/snow by elapsed game hours (also called directly by tests).
 func step_surface(dh: float) -> void:
@@ -237,23 +246,24 @@ func apply_now() -> void:
 func is_night() -> bool: return night > 0.5
 
 # ------------------------------------------------------------------ persistence
+## world_state.gd section "clock": time, weather spell, wet/snowy ground
+func get_save_data() -> Dictionary:
+	return {"total_hours": total_hours, "wetness": wetness, "snow_cover": snow_cover, "weather": main.weather.state if main.weather else "clear",
+		"weather_left": main.weather.hours_left if main.weather else 6.0}
+
+func apply_save_data(d: Dictionary) -> void:
+	total_hours = float(d.get("total_hours", total_hours))
+	wetness = float(d.get("wetness", 0.0)); snow_cover = float(d.get("snow_cover", 0.0))
+	if main.weather and d.has("weather"):
+		main.weather.set_state(d["weather"], float(d.get("weather_left", 6.0)))
+	apply_now()
+
+## kept for callers/tests: the whole world is saved/loaded through world_state.gd
 func save_state() -> void:
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	f.store_string(JSON.stringify({"total_hours": total_hours, "wetness": wetness, "snow_cover": snow_cover, "weather": main.weather.state if main.weather else "clear",
-		"weather_left": main.weather.hours_left if main.weather else 6.0}))
-	f.close()
+	if main.get("world_state"): main.world_state.save()
 
 func load_state() -> bool:
-	if not FileAccess.file_exists(SAVE_PATH): return false
-	var d = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
-	if d == null: return false
-	total_hours = float(d["total_hours"])
-	wetness = float(d.get("wetness", 0.0)); snow_cover = float(d.get("snow_cover", 0.0))
-	if main.weather:
-		main.weather.set_state(d["weather"], float(d["weather_left"]))
-	apply_now()
-	return true
+	return main.world_state.load_file() if main.get("world_state") else false
 
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		save_state()
+func _notification(_what: int) -> void:
+	pass   # saving on quit is done by world_state.gd

@@ -2,6 +2,7 @@ extends Node3D
 ## Seasonal weather (Bible §6): a Markov chain of weather spells from source_data/climate.json, smooth blending
 ## between looks, and rain/snow particles that follow the camera. F7 cycles states for testing.
 
+signal lightning
 var main: Node
 var W: Dictionary                 # climate.json "weather"
 var state := "clear"
@@ -110,6 +111,7 @@ func _process(dt: float) -> void:
 			_lightning()
 
 func _lightning() -> void:
+	lightning.emit()
 	var env: Environment = main.env
 	var e0: float = env.ambient_light_energy
 	env.ambient_light_energy = e0 + 2.5

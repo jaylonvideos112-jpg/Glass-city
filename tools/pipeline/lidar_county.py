@@ -1,5 +1,5 @@
 import sys, json, math, pickle, collections
-sys.argv = ["x", "lidar/laz/laz", "osm/city", "lidar/buildings.pkl"]
+sys.argv = ["x", "lidar/laz/laz", "osm/city_all", "lidar/buildings.pkl"]
 sys.path.insert(0, __import__("os").path.dirname(__import__("os").path.abspath(__file__)))
 import lidar_process as L
 from multiprocessing import Pool

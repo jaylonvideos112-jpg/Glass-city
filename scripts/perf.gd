@@ -13,6 +13,7 @@ var _bench_out := ""
 var _bench_t := 0.0
 var _bench_stats := {"draw_calls_max": 0, "primitives_max": 0, "chunks_max": 0, "vram_mb_max": 0.0, "ram_mb_max": 0.0}
 var _seg_frames := {}
+var _seg_dc := {}   # segment -> peak draw calls
 var _scale := 1.0   # --bench-scale=0.2 shortens every segment (smoke-testing the benchmark itself)
 
 # Benchmark route: [name, seconds, from_pos, to_pos, look_at] in world coordinates (x, y, z), origin = downtown.
@@ -111,7 +112,8 @@ func _bench_step(dt: float) -> void:
 		var r: Array = ROUTE[_seg]
 		print("[benchmark] segment ", r[0])
 		main.focus_override = (r[2] + r[3]) * 0.5 * Vector3(1, 0, 1)
-		main.streamer.load_radius_m = clamp(r[2].y * 2.5, 700.0, 4000.0)
+		# with the far city (hlod.gd) the detail radius stays near street level; without it, widen for aerial views
+		main.streamer.load_radius_m = clamp(r[2].y * 2.5, 700.0, 900.0 if main.streamer.hlod != null else 4000.0)
 		main.streamer.load_now(main.focus_override)
 		_seg_frames[r[0]] = PackedFloat32Array()
 	var r2: Array = ROUTE[_seg]
@@ -131,6 +133,7 @@ func _bench_step(dt: float) -> void:
 	_seg_frames[r2[0]].append(dt * 1000.0)
 	var s := sample()
 	_bench_stats["draw_calls_max"] = max(_bench_stats["draw_calls_max"], s["draw_calls"])
+	_seg_dc[r2[0]] = max(_seg_dc.get(r2[0], 0), s["draw_calls"])
 	_bench_stats["primitives_max"] = max(_bench_stats["primitives_max"], s["primitives"])
 	_bench_stats["chunks_max"] = max(_bench_stats["chunks_max"], s["chunks"])
 	_bench_stats["vram_mb_max"] = max(_bench_stats["vram_mb_max"], s["vram_mb"])
@@ -149,7 +152,9 @@ static func _summ(fr: PackedFloat32Array) -> Dictionary:
 
 func _bench_finish() -> void:
 	var segs := {}
-	for k in _seg_frames: segs[k] = _summ(_seg_frames[k])
+	for k in _seg_frames:
+		segs[k] = _summ(_seg_frames[k])
+		segs[k]["draw_calls_max"] = _seg_dc.get(k, 0)
 	var res := {
 		"game": "GLASS CITY", "when": Time.get_datetime_string_from_system(),
 		"gpu": RenderingServer.get_video_adapter_name(), "driver": RenderingServer.get_video_adapter_vendor(),

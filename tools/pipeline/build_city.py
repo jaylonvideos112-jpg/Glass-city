@@ -536,6 +536,9 @@ for nid, lst in node_classes.items():
     seg_jobs[rkey(x, y)].append(("ix", nid, x, y, ctrl, cl[0]))
 log("traffic: intersections", sum(1 for v in seg_jobs.values() for j in v if j[0] == "ix"), "controls from", IX_SOURCE)
 
+# made-up crop fields (make_countryside.py): one ground material per crop look
+FIELD_KIND = {"wheat": 0, "maize": 1, "soy": 2, "hay": 3, "plowed": 4}
+fields = [[] for _ in range(5)]
 for e in els:
     t = tags(e)
     if "building" in t or "highway" in t or e["type"] == "node": continue
@@ -545,6 +548,8 @@ for e in els:
         dst = park
     elif lu == "forest" or nat in ("wood", "scrub") or le == "nature_reserve":
         dst = forest
+    elif lu == "farmland" and t.get("fictional"):
+        dst = fields[FIELD_KIND.get(t.get("crop", ""), 0)]
     elif t.get("amenity") == "parking":
         dst = parking
     elif lu in ("industrial", "railway"):
@@ -557,6 +562,7 @@ def tree_of(lst):
     lst = [g for g in lst if g is not None and not g.is_empty]
     return (lst, STRtree(lst) if lst else None)
 T_ROAD, T_SIDE, T_PARK, T_PARKING, T_FOREST, T_IND, T_WATER = map(tree_of, (road_polys, side_polys, park, parking, forest, industrial, WATER_TREE_SRC))
+T_FIELDS = [tree_of(f) for f in fields]
 
 def local_union(tr, rb):
     lst, t = tr
@@ -1523,6 +1529,10 @@ for ri in range(rx0, rx1 + 1):
         taken = unary_union([taken, park_r])
         forest_r = safe(lambda a, b: a.difference(b), clip(local_union(T_FOREST, rb)), taken)
         taken = unary_union([taken, forest_r])
+        field_rs = []
+        for tf in T_FIELDS:
+            fr = safe(lambda a, b: a.difference(b), clip(local_union(tf, rb)), taken) if tf[1] is not None else Polygon()
+            field_rs.append(fr); taken = unary_union([taken, fr])
         parking_r = safe(lambda a, b: a.difference(b), clip(local_union(T_PARKING, rb)), taken)
         taken = unary_union([taken, parking_r])
         ind_r = safe(lambda a, b: a.difference(b), clip(local_union(T_IND, rb)), taken)
@@ -1532,6 +1542,7 @@ for ri in range(rx0, rx1 + 1):
         add_area(generic, "lot", 0.0, 8.0, True, GROUND_COL_Y)
         add_area(park_r, "grass", 0.0, 8.0, True, GROUND_COL_Y)
         add_area(forest_r, "forest_floor", 0.0, 8.0, True, GROUND_COL_Y)
+        for fi, fr in enumerate(field_rs): add_area(fr, "field%d" % fi, 0.0, 12.0, True, GROUND_COL_Y)
         add_area(ind_r, "industrial", 0.01, 8.0, True, GROUND_COL_Y)
         add_area(parking_r, "parking", 0.02, 6.0, True, GROUND_COL_Y)
         add_area(side_r, "sidewalk", 0.05, 3.0, True, GROUND_COL_Y)

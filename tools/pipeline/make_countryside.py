@@ -210,7 +210,7 @@ for line in all_country:
             # driveway
             way({"highway": "service", "service": "driveway"}, [(p.x, p.y), (hx + nx_ * 8, hy + ny_ * 8), (bx_, by_)])
             farm_count += 1
-        dd += rng.uniform(380, 900)
+        dd += rng.uniform(220, 520)
 print("farmsteads", farm_count)
 
 # ------------------------------------------------------------------ 5. woodlots and wetlands
@@ -229,6 +229,35 @@ for k in range(int(BAND.area / 1e6 * 1.6)):
             way({"natural": "wood"} if rng.random() < 0.85 else {"natural": "wetland"}, list(q.exterior.coords)[:-1], closed=True)
             wood += 1
 print("woodlots", wood)
+
+# ------------------------------------------------------------------ 6. crop fields between the roads
+farm_yards = unary_union([Polygon([P(q["lat"], q["lon"]) for q in e["geometry"]]).buffer(45) for e in els
+                          if e["type"] == "way" and e["tags"].get("building") in ("farmhouse", "barn", "silo")])
+woods_u = unary_union([Polygon([P(q["lat"], q["lon"]) for q in e["geometry"]]).buffer(0) for e in els
+                       if e["type"] == "way" and e["tags"].get("natural") in ("wood", "wetland")])
+road_lines = unary_union([LineString([P(q["lat"], q["lon"]) for q in e["geometry"]]) for e in els
+                          if e["type"] == "way" and "highway" in e["tags"]] + [g for g in country_roads])
+blocked = unary_union([road_lines.buffer(14), farm_yards, woods_u.buffer(8), VILL.buffer(200), REAL.buffer(30)])
+CROPS = ["wheat", "maize", "soy", "soy", "maize", "hay", "plowed"]
+bx_, by_, bx1_, by1_ = BAND.bounds
+fields = 0
+FW, FH = 320.0, 460.0
+yy = by_
+while yy < by1_:
+    xx = bx_ + rng.uniform(-FW, 0)
+    while xx < bx1_:
+        w_ = FW * rng.uniform(0.7, 1.3)
+        cell = box(xx + 4, yy + 4, xx + w_ - 4, yy + FH - 4)
+        xx += w_
+        if not BAND.intersects(cell): continue
+        g = cell.intersection(INNER).difference(blocked)
+        for q in (g.geoms if hasattr(g, "geoms") else [g]):
+            if q.geom_type == "Polygon" and q.area > 9000:
+                q = q.simplify(3)
+                way({"landuse": "farmland", "crop": rng.choice(CROPS)}, list(q.exterior.coords)[:-1], closed=True)
+                fields += 1
+    yy += FH
+print("fields", fields)
 
 json.dump({"version": 0.6, "generator": "make_countryside.py", "elements": els}, open(OUT, "w"))
 print("elements", len(els))

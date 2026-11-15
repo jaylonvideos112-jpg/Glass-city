@@ -78,3 +78,16 @@ The test `chunk_data_schema` (tests/test_runner.gd) enforces this.
 * Neutral: everything under `tools/pipeline/` and `source_data/` (including `climate.json`: clock, sun, sky, weather odds), the intermediates, `manifest.json`, the bar theme table.
 * Godot-specific: the chunk binary (Godot Variant encoding), `.gd` scripts, `.gdshader`. For Unreal, add an exporter
   that writes the same chunk content as glTF + JSON; the facade shader logic is documented in its header comment.
+
+## Far city (HLOD)
+`scripts/hlod.gd`, child of the streamer. Regions are 2x2 chunks. A region's merged mesh is built on a worker thread
+from the chunk files (skipping small-detail materials, colouring aerial ground layers from a 16x16 shrink of the photo)
+and shown until all of that region's chunks are loaded in detail. The streamer loads detail by whole region.
+
+## Audio
+`scripts/audio.gd`: five AudioStreamGenerator channels filled each frame (engine, rain, wind, city, thunder).
+`targets()` is the pure mix decision (tested); levels in `source_data/audio.json`.
+
+## World state
+`scripts/world_state.gd`: `register(id, obj)`; obj implements `get_save_data()` / `apply_save_data(d)`.
+File `user://world_state.json` = `{version, saved_at, sections: {id: data}}`. Add `_migrate` steps when a section changes.

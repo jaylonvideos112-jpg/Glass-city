@@ -37,7 +37,9 @@ The build machine used for development renders on the CPU (no GPU), so its numbe
 these budgets. Only benchmarks from real GPUs count.
 
 ## Known heavy spots (to optimise)
-* Every chunk is one mesh with one surface per material, and there's no LOD yet. Far chunks should switch to merged
-  low-detail meshes (HLOD).
+* Every chunk is one mesh with one surface per material. Far away, merged low-detail region meshes (HLOD,
+  `scripts/hlod.gd`) take over: 1 draw call per 400 m region. Measured 2026-11-15 (CPU renderer, counts only): peak
+  draw calls 4,699 -> 2,711; the busiest view is now a neighbourhood street (2,711). Next: per-chunk mid LOD that drops
+  porches/details at 300 m+.
 * Facade shader runs on all exact downtown buildings. Cheap now, but needs a distance LOD with plain colour.
 * Trees and lamps are MultiMesh per chunk (good). Labels are Label3D (few).

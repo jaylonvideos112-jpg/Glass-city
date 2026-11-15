@@ -55,6 +55,10 @@ func _run() -> void:
 		["peds_cross_only_at_intersections", t_pd_cross],
 		["traffic_stops_for_crossing_ped", t_pd_car_stops],
 		["peds_umbrellas_in_rain", t_pd_umbrella],
+		["wet_and_snowy_roads_lose_grip", t_grip],
+		["audio_follows_car_and_weather", t_audio],
+		["far_city_hlod_covers_horizon", t_hlod],
+		["world_state_sections_round_trip", t_world_state],
 	]
 	for t in tests:
 		var t0 := Time.get_ticks_msec()
@@ -74,6 +78,68 @@ func _run() -> void:
 	get_tree().quit(failed)
 
 # ------------------------------------------------------------------ tests
+func t_world_state() -> Array:
+	var ws = main.world_state
+	if ws == null: return [false, "no world_state"]
+	var ids: Array = ws.sections.map(func(x): return x[0])
+	if not ("clock" in ids and "player" in ids): return [false, "sections registered: %s" % [ids]]
+	var snap: Dictionary = ws.snapshot()
+	var c = main.cars[1]
+	var keep: Vector3 = c.global_position
+	c.global_position += Vector3(40, 0, 0)
+	ws.restore(snap)
+	await _frames(2)
+	var back: float = Vector2(c.global_position.x - keep.x, c.global_position.z - keep.z).length()
+	var legacy: Dictionary = ws._migrate({"total_hours": 5.0})
+	if back > 1.0: return [false, "car not restored (%.1f m off)" % back]
+	if not legacy["sections"].has("clock"): return [false, "old save format not migrated"]
+	return [true, "sections %s restored; v1 saves migrate" % [ids]]
+
+func t_grip() -> Array:
+	var tod = main.tod
+	var kw: float = tod.wetness; var kn: float = tod.snow_cover
+	tod.wetness = 0.0; tod.snow_cover = 0.0
+	var dry: float = tod.road_grip(); var ai_dry: float = tod.ai_speed_factor()
+	tod.wetness = 1.0
+	var wet: float = tod.road_grip()
+	tod.wetness = 0.0; tod.snow_cover = 1.0
+	var snow: float = tod.road_grip(); var ai_snow: float = tod.ai_speed_factor()
+	tod.wetness = kw; tod.snow_cover = kn
+	if not (dry > 0.99 and wet < dry and snow < wet): return [false, "grip dry %.2f wet %.2f snow %.2f" % [dry, wet, snow]]
+	if ai_snow >= ai_dry: return [false, "AI not slower on snow"]
+	return [true, "grip dry %.2f, wet %.2f, snow %.2f; AI speed on snow x%.2f" % [dry, wet, snow, ai_snow]]
+
+func t_audio() -> Array:
+	var au = main.audio
+	if au == null: return [false, "no audio node"]
+	var r0: float = au.engine_rpm(0.0, 0.0); var r1: float = au.engine_rpm(6.0, 1.0)
+	if not (r1 > r0): return [false, "rpm does not rise with speed (%d -> %d)" % [r0, r1]]
+	var w = main.weather; var ks: String = w.state
+	w.set_state("clear"); var t_clear: Dictionary = au.targets()
+	w.set_state("storm"); var t_storm: Dictionary = au.targets()
+	w.set_state(ks); w.snap()
+	if not (t_storm["rain"] > t_clear["rain"] and t_storm["wind"] > t_clear["wind"]): return [false, "rain/wind not louder in a storm"]
+	return [true, "rpm %d -> %d; storm rain %.2f wind %.2f" % [r0, r1, t_storm["rain"], t_storm["wind"]]]
+
+func t_hlod() -> Array:
+	var h = main.streamer.hlod
+	if h == null: return [false, "far city disabled"]
+	for i in 600:
+		if h.is_idle() and h.regions.size() > 0: break
+		await _frames(1)
+	await _frames(40)    # visibility is refreshed every 0.25 s
+	var shown := 0; var far := 0
+	var p: Vector3 = main.focus_world()
+	for r in h.regions:
+		var mi = h.regions[r]
+		if mi is MeshInstance3D and mi.visible:
+			shown += 1
+			var c: Vector3 = h.region_center(r)
+			far = maxi(far, int(Vector2(c.x - p.x, c.z - p.z).length()))
+		if mi is MeshInstance3D and mi.visible and h.region_detailed(r): return [false, "region %s drawn twice (far + detail)" % r]
+	if shown < 20 or far < 2000: return [false, "only %d far regions, reaching %d m" % [shown, far]]
+	return [true, "%d far regions, out to %d m" % [shown, far]]
+
 func t_manifest() -> Array:
 	var m: Dictionary = main.streamer.manifest
 	for k in ["chunk_size", "chunks", "bbox", "spawn", "origin_lat", "origin_lon"]:

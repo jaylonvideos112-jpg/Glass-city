@@ -1,0 +1,5 @@
+{
+  "_doc": "Procedural audio levels (scripts/audio.gd). volume values are linear 0..1, multiplied by master.",
+  "volume": {"master": 0.8, "engine": 0.55, "rain": 0.5, "wind": 0.35, "city": 0.3, "thunder": 0.9},
+  "engine": {"idle_rpm": 850, "shift_rpm": 5200, "gear_top_mps": [8, 15, 23, 32, 44, 60]}
+}

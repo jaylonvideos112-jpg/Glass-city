@@ -281,6 +281,7 @@ func _physics_process(dt: float) -> void:
 	var focus: Vector3 = main.focus_world()
 	_manage_population(focus)
 	var wspeed: float = T["weather_speed"].get(main.weather.state, 1.0) if main.weather else 1.0
+	if main.tod and main.tod.has_method("ai_speed_factor"): wspeed *= main.tod.ai_speed_factor()   # wet/snowy roads
 	# spatial buckets for leader search (per directed edge)
 	var on_edge := {}
 	for c in cars:

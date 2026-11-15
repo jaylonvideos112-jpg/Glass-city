@@ -1,5 +1,23 @@
 # Changelog
 
+## Performance, countryside, data, driving feel, audio, world state (2026-11-15)
+* **Far city (HLOD), `scripts/hlod.gd`:** past the detailed streets the city is drawn as one merged low-detail mesh per
+  400 m region (no porches, curbs, lines or shadows; ground coloured from the aerial photos), out to 3.2 km. Detail
+  now loads whole regions so near and far never overlap. Benchmark peak draw calls **4,699 -> 2,711** (budget 3,000),
+  peak loaded chunks 455 -> 116, and the skyline is visible from anywhere instead of ending at 650 m. `--no-hlod` turns it off.
+* **Countryside:** crop fields (wheat, corn, soy, hay, plowed; new crop-row texture `textures/field.png`) fill the
+  made-up land; farms are about twice as dense (about 1,180).
+* **Map data:** aerial photos for every real-area chunk (16,000 new); LiDAR building heights and county records re-run
+  over all real tiles.
+* **Slippery roads:** wet roads cut tyre grip about 28 %, snow about 55 % (`climate.json` `surface.grip`); AI traffic
+  drives slower on them.
+* **Audio, `scripts/audio.gd`:** procedural (no sound files): engine with a 6-gear rpm model and wet-tyre hiss, rain,
+  gusty wind, distant city hum, thunder after lightning. Levels in `source_data/audio.json`; `--mute`.
+* **World state (Bible stage 3), `scripts/world_state.gd`:** one versioned save file with sections that any system
+  registers (`clock`, `player`). Autosaves every 2 minutes and on quit; the game resumes where you left off
+  (`--new-game` to start fresh). Old saves migrate.
+* 4 new game tests (grip, audio, far city, world state).
+
 ## Island countryside and town names (2026-11-15)
 * The island is now real data in the middle and made-up countryside around it: about 690 farmsteads (house, barn,
   some silos, driveways), 160 woodlots, 4 villages, 101 real roads continued outward and a 166 km coast road.

@@ -230,7 +230,15 @@
       "fall": 0.2
     },
     "rain_melt_per_hour": 0.3,
-    "snow_wetness_on_melt": 0.6
+    "snow_wetness_on_melt": 0.6,
+    "grip": {
+      "_doc": "tyre grip multiplier: 1 - wet*wet_loss - snow*snow_loss, never below min (also slows AI traffic)",
+      "wet_loss": 0.28,
+      "snow_loss": 0.55,
+      "min": 0.35,
+      "ai_speed_wet": 0.88,
+      "ai_speed_snow": 0.7
+    }
   },
   "lights": {
     "_doc": "street lamps and car lights",

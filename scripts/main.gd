@@ -34,6 +34,8 @@ var perf: CanvasLayer = null
 var tod: Node = null
 var weather: Node3D = null
 var traffic: Node = null
+var audio: Node = null
+var world_state: Node = null
 var peds: Node = null
 var input_enabled := true
 var env: Environment
@@ -97,6 +99,12 @@ func _ready() -> void:
 	var sl = load("res://scripts/street_lights.gd").new(); sl.name = "StreetLights"; sl.main = self; add_child(sl)
 	traffic = load("res://scripts/traffic.gd").new(); traffic.name = "Traffic"; traffic.main = self; add_child(traffic)
 	peds = load("res://scripts/pedestrians.gd").new(); peds.name = "Pedestrians"; peds.main = self; add_child(peds)
+	audio = load("res://scripts/audio.gd").new(); audio.name = "Audio"; audio.main = self; add_child(audio)
+	world_state = load("res://scripts/world_state.gd").new(); world_state.name = "WorldState"; world_state.main = self; add_child(world_state)
+	world_state.register("clock", tod)
+	world_state.register("player", self)
+	if OS.get_cmdline_user_args().has("--load-world") or (world_state.enabled and not OS.get_cmdline_user_args().has("--new-game")):
+		world_state.load_file()
 	player.collision_mask |= 2      # bump into traffic
 	for c in cars: c.collision_mask |= 2
 	tod.apply_now()
@@ -243,6 +251,34 @@ func toggle_vehicle() -> void:
 func focus_local() -> Vector3:
 	return current_car.global_position if current_car else player.global_position
 
+# ------------------------------------------------------------------ save section "player": you, and your cars
+func get_save_data() -> Dictionary:
+	var vs := []
+	for c in cars:
+		if not is_instance_valid(c): continue
+		var p: Vector3 = c.global_position + world_offset
+		vs.append({"model": c.model_name, "color": c.body_color.to_html(false), "pos": [p.x, p.y, p.z], "yaw": c.global_rotation.y})
+	var pp: Vector3 = (current_car.global_position if current_car else player.global_position) + world_offset
+	return {"pos": [pp.x, pp.y, pp.z], "cam_yaw": cam_yaw, "driving": cars.find(current_car) if current_car else -1, "vehicles": vs}
+
+func apply_save_data(d: Dictionary) -> void:
+	if current_car: return                       # never yank the player out of a moving car
+	var pw := Vector3(d["pos"][0], d["pos"][1], d["pos"][2])
+	streamer.load_now(pw)
+	var vs: Array = d.get("vehicles", [])
+	for i in mini(vs.size(), cars.size()):
+		var c = cars[i]; var v: Dictionary = vs[i]
+		c.model_name = v.get("model", c.model_name)
+		var vp := Vector3(v["pos"][0], v["pos"][1] + 0.3, v["pos"][2]) - world_offset
+		c.global_transform = Transform3D(Basis(Vector3.UP, float(v.get("yaw", 0.0))), vp)
+		c.linear_velocity = Vector3.ZERO; c.angular_velocity = Vector3.ZERO
+	var drv := int(d.get("driving", -1))
+	# you come back standing next to where you left off (beside the car if you were driving)
+	player.global_position = pw - world_offset + (Vector3(2.5, 0.6, 0) if drv >= 0 else Vector3(0, 0.3, 0))
+	player.velocity = Vector3.ZERO
+	cam_yaw = float(d.get("cam_yaw", cam_yaw))
+	last_safe = player.global_position + world_offset
+
 func focus_world() -> Vector3:
 	if focus_override != null:
 		return focus_override
@@ -289,6 +325,7 @@ func _respawn() -> void:
 
 func _process(dt: float) -> void:
 	streamer.update_focus(focus_world())
+	Car.surface_grip = tod.road_grip()
 	_rebase_if_needed()
 	if not cam_override:
 		_update_camera(dt)
