@@ -1,0 +1,11 @@
+# Godot
+.godot/
+*.translation
+export_presets.cfg
+# generated game data (rebuild with tools/build.sh)
+data/
+# python
+__pycache__/
+*.pyc
+# test / benchmark output
+tests/out/

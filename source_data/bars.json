@@ -1,0 +1,386 @@
+[
+{
+"real": "Martini & Nuzzis",
+"theme": "Easy Pour",
+"x": -12199.850817761222,
+"y": -6557.051966196284,
+"area": 3411.455074827519,
+"fixed": false
+},
+{
+"real": "Maumee Bay Brewpub",
+"theme": "Last Call",
+"x": -9.498740159647399,
+"y": -1056.4553634749539,
+"area": 150.0,
+"fixed": false
+},
+{
+"real": "Beastro Bar",
+"theme": "Shot Clock",
+"x": -3593.0772941505597,
+"y": -3788.9926400796253,
+"area": 943.4151065365429,
+"fixed": false
+},
+{
+"real": "Olde Cock n' Bull Tavern",
+"theme": "The Salty Hull",
+"x": -191.62169507340394,
+"y": -463.9017139826837,
+"area": 3837.4753204935973,
+"fixed": false
+},
+{
+"real": "Fowl & Fodder",
+"theme": "Corner Tap",
+"x": 139.30376547699663,
+"y": 127.32723356948539,
+"area": 204.10045956661193,
+"fixed": false
+},
+{
+"real": "Plate One",
+"theme": "Easy Pour",
+"x": 205.36242952209625,
+"y": -86.40618875341814,
+"area": 1317.1878212314273,
+"fixed": false
+},
+{
+"real": "Exclusive Bar & Grill",
+"theme": "The Salty Hull",
+"x": 203.67394944114088,
+"y": -32.92830537625007,
+"area": 488.04516122053764,
+"fixed": false
+},
+{
+"real": "Chasers",
+"theme": "Shot Clock",
+"x": -7446.080709103588,
+"y": -33.306791645415366,
+"area": 2274.6875761653873,
+"fixed": true
+},
+{
+"real": "Kyoto Ka",
+"theme": "Shot Clock",
+"x": 306.9540339856041,
+"y": -130.26606812596853,
+"area": 2279.4047427025976,
+"fixed": false
+},
+{
+"real": "The Blarney Irish Pub",
+"theme": "Cardboard Club",
+"x": -120.9633783946299,
+"y": -347.8956726270823,
+"area": 3837.4753204935973,
+"fixed": false
+},
+{
+"real": "Chevys Place",
+"theme": "Two Buck Tavern",
+"x": -185.14225673458367,
+"y": -268.95902170538466,
+"area": 219.61837812242825,
+"fixed": false
+},
+{
+"real": "Sukit",
+"theme": "Neon Coyote",
+"x": -984.6750043191289,
+"y": 202.21185502641384,
+"area": 2455.7668725205376,
+"fixed": false
+},
+{
+"real": "Patron Saints Brewery",
+"theme": "Velvet Mile",
+"x": -9655.26974792748,
+"y": 1094.8494558497496,
+"area": 3067.85538337815,
+"fixed": false
+},
+{
+"real": "Great Black Swamp Brewing Co",
+"theme": "Neon Coyote",
+"x": -3279.011681500051,
+"y": 1653.984994206883,
+"area": 524.8502820426635,
+"fixed": false
+},
+{
+"real": "Casual Pint",
+"theme": "Easy Pour",
+"x": -7213.369892853603,
+"y": 3287.9658759177814,
+"area": 1830.1586139494173,
+"fixed": true
+},
+{
+"real": "The Bronze Boar",
+"theme": "Tipsy Tom's",
+"x": -241.47760445199395,
+"y": -544.8532476875566,
+"area": 171.5963990545774,
+"fixed": false
+},
+{
+"real": "Tin Can Toledo",
+"theme": "Shot Clock",
+"x": -220.7500558748846,
+"y": -497.55359604963604,
+"area": 4320.190081685395,
+"fixed": false
+},
+{
+"real": "Quality Bar",
+"theme": "The Salty Hull",
+"x": 65.01895956097249,
+"y": 1180.18697749251,
+"area": 1810.01102786017,
+"fixed": false
+},
+{
+"real": "Manhattan's",
+"theme": "Neon Coyote",
+"x": -503.24192278038515,
+"y": 539.7214191621296,
+"area": 1074.4656882247177,
+"fixed": false
+},
+{
+"real": "Attic On Adams",
+"theme": "Velvet Mile",
+"x": -645.1407906482407,
+"y": 578.7722965323711,
+"area": 641.5013115725412,
+"fixed": false
+},
+{
+"real": "Fleetwood's Tap Room",
+"theme": "Cardboard Club",
+"x": 55.47031358791201,
+"y": -522.5114258852788,
+"area": 663.2700359188348,
+"fixed": false
+},
+{
+"real": "Peacock Cafe",
+"theme": "Easy Pour",
+"x": -1125.6256616990395,
+"y": 289.6867108912804,
+"area": 379.9868542550241,
+"fixed": false
+},
+{
+"real": "Georgjz419",
+"theme": "Erie Tiki",
+"x": -306.58805800796677,
+"y": 374.14480855598885,
+"area": 328.0079774754192,
+"fixed": false
+},
+{
+"real": "Wesley's Bar & Grill",
+"theme": "Two Buck Tavern",
+"x": -295.0431794262806,
+"y": 369.124299521865,
+"area": 322.1893424893133,
+"fixed": false
+},
+{
+"real": "Pub 51",
+"theme": "Two Buck Tavern",
+"x": 6962.185607345846,
+"y": -6532.539414323481,
+"area": 150.0,
+"fixed": false
+},
+{
+"real": "Eastside Cantina",
+"theme": "Cardboard Club",
+"x": 1054.3684752368506,
+"y": -679.0822896862009,
+"area": 408.6513767713059,
+"fixed": false
+},
+{
+"real": "Earnest Brew Works",
+"theme": "Easy Pour",
+"x": -58.81400320597126,
+"y": -686.384848282153,
+"area": 653.1828402568337,
+"fixed": false
+},
+{
+"real": "FireFly",
+"theme": "Cardboard Club",
+"x": 29.710595311788108,
+"y": -545.9887064934704,
+"area": 1719.1764988971813,
+"fixed": false
+},
+{
+"real": "Fassett Tavern",
+"theme": "BAR",
+"x": 747.5724763327673,
+"y": -2677.044510443537,
+"area": 169.7740132003308,
+"fixed": false
+},
+{
+"real": "#BoxLyfe Bar",
+"theme": "Cardboard Club",
+"x": -1665.1574297604052,
+"y": -2027.8626359850098,
+"area": 348.6506040033179,
+"fixed": true
+},
+{
+"real": "Arnie's",
+"theme": "The Salty Hull",
+"x": -5727.948256515758,
+"y": 1129.959623246525,
+"area": 739.2126574374663,
+"fixed": false
+},
+{
+"real": "Fusion Bistro and Bar",
+"theme": "Erie Tiki",
+"x": -6846.503927727933,
+"y": 2676.7884756148846,
+"area": 2545.749744826809,
+"fixed": false
+},
+{
+"real": "Lenny's",
+"theme": "Velvet Mile",
+"x": -11084.539024536733,
+"y": -3927.8748367932285,
+"area": 1286.919984303202,
+"fixed": false
+},
+{
+"real": "Longhorn Saloon",
+"theme": "Velvet Mile",
+"x": -2223.6700428667764,
+"y": 4417.580408741978,
+"area": 352.18019196352463,
+"fixed": false
+},
+{
+"real": "Zelma's Place",
+"theme": "Dollar Draft",
+"x": 903.3950666393158,
+"y": 3439.1934041598797,
+"area": 216.316518968626,
+"fixed": false
+},
+{
+"real": "Six Pack on Reynolds",
+"theme": "Erie Tiki",
+"x": -10656.6216121565,
+"y": -2855.4451263894316,
+"area": 1160.0860194817005,
+"fixed": false
+},
+{
+"real": "Sophie's Spot",
+"theme": "Happy Hour Hut",
+"x": -5242.672427205912,
+"y": 724.2780029480617,
+"area": 261.21788676274326,
+"fixed": false
+},
+{
+"real": "Pic-Rose",
+"theme": "Dollar Draft",
+"x": -697.1759206230931,
+"y": 3254.180410461898,
+"area": 300.1125199208363,
+"fixed": false
+},
+{
+"real": "The Thirsty Turtle",
+"theme": "BAR",
+"x": 1060.3155848811405,
+"y": -1360.7471915589294,
+"area": 247.38874454918397,
+"fixed": false
+},
+{
+"real": "Tribes Tavern",
+"theme": "Dollar Draft",
+"x": -8487.25741385702,
+"y": 7552.3150055829055,
+"area": 130.90419452438465,
+"fixed": false
+},
+{
+"real": "Jeds on Campus",
+"theme": "Shot Clock",
+"x": -7443.152901278944,
+"y": 35.42186197068433,
+"area": 511.8035380037155,
+"fixed": false
+},
+{
+"real": "Commodore Club of Toledo",
+"theme": "Last Call",
+"x": -477.9313568403452,
+"y": 3609.757127953307,
+"area": 227.10611376192216,
+"fixed": false
+},
+{
+"real": "Glass House Lounge",
+"theme": "Tipsy Tom's",
+"x": -724.4244957194279,
+"y": 6477.681169260956,
+"area": 253.74700278611118,
+"fixed": false
+},
+{
+"real": "Jake's Saloon",
+"theme": "Erie Tiki",
+"x": -5499.080188035692,
+"y": 29.432873365623895,
+"area": 571.3791305848422,
+"fixed": false
+},
+{
+"real": "Whale's Tale",
+"theme": "Happy Hour Hut",
+"x": 4856.542817413681,
+"y": 7261.949245797761,
+"area": 183.6714879058144,
+"fixed": false
+},
+{
+"real": "Anchor Inn",
+"theme": "The Salty Hull",
+"x": 3238.712735729893,
+"y": 6268.266943180684,
+"area": 315.7542796240717,
+"fixed": true
+},
+{
+"real": "Louie's Cafe",
+"theme": "Corner Tap",
+"x": -673.1462706071479,
+"y": 4477.681801821234,
+"area": 293.9216208568767,
+"fixed": false
+},
+{
+"real": "Crox Bar & Grill",
+"theme": "Alligator Club",
+"x": -3180.0,
+"y": -2722.0,
+"fixed": true,
+"area": 122.22077857484815
+}
+]

@@ -1,0 +1,1390 @@
+"""Toledo city generator v2: Overpass JSON tiles -> streamed Godot chunk files.
+
+usage: build_city.py <osm json file or dir of tiles> <outdir> [S W N E]
+
+* True 1:1 meters around a downtown origin (LAT0/LON0). Plan (x=east, y=north) -> Godot (x, h, -y).
+* Processes the map in 1 km regions so the whole city fits in memory; each region's chunks are
+  written to disk and freed before the next region.
+"""
+import pickle, zlib, json, math, struct, sys, os, hashlib, random, glob, heapq, time
+from collections import defaultdict
+import numpy as np
+import shapely
+import shapely.prepared
+from shapely.geometry import Polygon, LineString, MultiPolygon, box, Point, GeometryCollection, MultiLineString
+from shapely.geometry.polygon import orient
+from shapely.ops import unary_union, polygonize, linemerge
+from shapely.strtree import STRtree
+
+SRC, OUTDIR = sys.argv[1], sys.argv[2]
+LIDAR_PKL = os.environ.get("LIDAR", "")
+LAT0, LON0 = 41.6528, -83.5379
+R = 6378137.0
+CHUNK = 200.0
+REGION = 1000.0
+COSLAT = math.cos(math.radians(LAT0))
+GROUND_COL_Y = 0.09
+WATER_Y = -1.6
+BED_Y = -5.0
+T0 = time.time()
+
+def P(lat, lon):
+    return ((lon - LON0) * math.pi / 180 * R * COSLAT, (lat - LAT0) * math.pi / 180 * R)
+
+def log(*a):
+    print(f"[{time.time() - T0:6.1f}s]", *a, flush=True)
+
+# ---------------------------------------------------------------- Godot Variant encoder
+class PV3:
+    def __init__(self, a): self.a = a
+class PV2:
+    def __init__(self, a): self.a = a
+class PF32:
+    def __init__(self, a): self.a = a
+class PCOL:
+    def __init__(self, a): self.a = a
+
+def enc(v):
+    if isinstance(v, bool): return struct.pack("<II", 1, int(v))
+    if isinstance(v, int):
+        if -2**31 <= v < 2**31: return struct.pack("<Ii", 2, v)
+        return struct.pack("<Iq", 2 | (1 << 16), v)
+    if isinstance(v, float): return struct.pack("<Id", 3 | (1 << 16), v)
+    if isinstance(v, str):
+        b = v.encode("utf8"); pad = (4 - len(b) % 4) % 4
+        return struct.pack("<II", 4, len(b)) + b + b"\0" * pad
+    if isinstance(v, dict):
+        return struct.pack("<II", 27, len(v)) + b"".join(enc(k) + enc(x) for k, x in v.items())
+    if isinstance(v, list):
+        return struct.pack("<II", 28, len(v)) + b"".join(enc(x) for x in v)
+    if isinstance(v, PV3):
+        a = np.asarray(v.a, np.float32).reshape(-1, 3)
+        return struct.pack("<II", 36, len(a)) + a.tobytes()
+    if isinstance(v, PV2):
+        a = np.asarray(v.a, np.float32).reshape(-1, 2)
+        return struct.pack("<II", 35, len(a)) + a.tobytes()
+    if isinstance(v, PF32):
+        a = np.asarray(v.a, np.float32).reshape(-1)
+        return struct.pack("<II", 32, len(a)) + a.tobytes()
+    if isinstance(v, PCOL):
+        a = np.asarray(v.a, np.float32).reshape(-1, 4)
+        return struct.pack("<II", 37, len(a)) + a.tobytes()
+    raise TypeError(type(v))
+
+# ---------------------------------------------------------------- mesh accumulation
+class Chunk:
+    def __init__(self, cx, cz):
+        self.cx, self.cz = cx, cz
+        self.ox, self.oy = cx * CHUNK, cz * CHUNK
+        self.layers = defaultdict(lambda: ([], [], []))
+        self.fac = ([], [], [], [], [], [])     # facade layer: V, N, UV(m), UV2(floor h, bay w), COLOR, CUSTOM0
+        self.col = []
+        self.streets, self.labels, self.props = [], [], []
+        self.bars = []
+
+chunks = {}
+def ckey(x, y): return (math.floor(x / CHUNK), math.floor(y / CHUNK))
+def rkey(x, y): return (math.floor(x / REGION), math.floor(y / REGION))
+def chunk_at(x, y):
+    k = ckey(x, y)
+    if k not in chunks: chunks[k] = Chunk(*k)
+    return chunks[k]
+def to3(c, x, y, h): return (x - c.ox, h, -(y - c.oy))
+
+def tri(c, mat, a, b, cc, n, uvs, collide=False):
+    ab = (b[0] - a[0], b[1] - a[1], b[2] - a[2]); ac = (cc[0] - a[0], cc[1] - a[1], cc[2] - a[2])
+    cr = (ab[1] * ac[2] - ab[2] * ac[1], ab[2] * ac[0] - ab[0] * ac[2], ab[0] * ac[1] - ab[1] * ac[0])
+    if cr[0] * n[0] + cr[1] * n[1] + cr[2] * n[2] > 0:
+        b, cc = cc, b; uvs = (uvs[0], uvs[2], uvs[1])
+    V, N, U = c.layers[mat]
+    V.extend((a, b, cc)); N.extend((n, n, n)); U.extend(uvs)
+    if collide: c.col.extend((a, b, cc))
+
+def wtri(mat, a, b, cc, n, uv=((0, 0), (1, 0), (0, 1)), collide=False):
+    """Queue a triangle given in plan coords (x, y, h); emitted when its region is processed."""
+    mx, my = (a[0] + b[0] + cc[0]) / 3, (a[1] + b[1] + cc[1]) / 3
+    seg_jobs[rkey(mx, my)].append(("wt", mat, a, b, cc, n, uv, collide))
+
+def wquad(mat, p0, p1, p2, p3, n, uv=((0, 0), (1, 0), (1, 1), (0, 1)), collide=False):
+    wtri(mat, p0, p1, p2, n, (uv[0], uv[1], uv[2]), collide); wtri(mat, p0, p2, p3, n, (uv[0], uv[2], uv[3]), collide)
+
+def wbox(mat, cx, cy, u, v, hu, hv, z0, z1, collide=True, top=True, hu1=None, hv1=None):
+    """Oriented (optionally tapered) box in plan space: centre cx,cy; axes u,v unit 2D; half sizes hu,hv."""
+    hu1 = hu if hu1 is None else hu1; hv1 = hv if hv1 is None else hv1
+    def corner(su, sv, z, a, b): return (cx + u[0] * su * a + v[0] * sv * b, cy + u[1] * su * a + v[1] * sv * b, z)
+    sgn = [(1, 1), (-1, 1), (-1, -1), (1, -1)]
+    for k in range(4):
+        (a0, b0), (a1, b1) = sgn[k], sgn[(k + 1) % 4]
+        p0 = corner(a0, b0, z0, hu, hv); p1 = corner(a1, b1, z0, hu, hv)
+        p2 = corner(a1, b1, z1, hu1, hv1); p3 = corner(a0, b0, z1, hu1, hv1)
+        mx, my = (a0 + a1) / 2, (b0 + b1) / 2
+        nx, ny = u[0] * mx + v[0] * my, u[1] * mx + v[1] * my
+        L = math.hypot(nx, ny) or 1
+        wquad(mat, p0, p1, p2, p3, (nx / L, 0.0, -ny / L), ((0, 0), (1, 0), (1, (z1 - z0) / 6), (0, (z1 - z0) / 6)), collide)
+    if top:
+        q = [corner(a, b, z1, hu1, hv1) for a, b in sgn]
+        wquad(mat, q[0], q[1], q[2], q[3], (0.0, 1.0, 0.0), collide=collide)
+
+def wbeam(mat, a, b, r, collide=False):
+    """Thin square beam between two plan-space 3D points (cables, braces, hangers)."""
+    dx, dy, dz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
+    L = math.sqrt(dx * dx + dy * dy + dz * dz)
+    if L < 0.01: return
+    d = np.array([dx, dy, dz]) / L
+    up = np.array([0, 0, 1.0]) if abs(d[2]) < 0.9 else np.array([1.0, 0, 0])
+    s1 = np.cross(d, up); s1 /= np.linalg.norm(s1); s2 = np.cross(d, s1)
+    A = np.array(a); B = np.array(b)
+    offs = [s1 * r + s2 * r, -s1 * r + s2 * r, -s1 * r - s2 * r, s1 * r - s2 * r]
+    for k in range(4):
+        o0, o1 = offs[k], offs[(k + 1) % 4]
+        nn = (o0 + o1); nn /= np.linalg.norm(nn)
+        wquad(mat, tuple(A + o0), tuple(A + o1), tuple(B + o1), tuple(B + o0), (float(nn[0]), float(nn[2]), float(-nn[1])), collide=collide)
+
+def quad(c, mat, p0, p1, p2, p3, n, uv, collide=False):
+    tri(c, mat, p0, p1, p2, n, (uv[0], uv[1], uv[2]), collide)
+    tri(c, mat, p0, p2, p3, n, (uv[0], uv[2], uv[3]), collide)
+
+def triangulate(poly):
+    if poly.is_empty or poly.area < 0.05: return []
+    try:
+        t = shapely.constrained_delaunay_triangles(poly)
+    except Exception:
+        poly = poly.buffer(0)
+        if poly.is_empty: return []
+        try: t = shapely.constrained_delaunay_triangles(poly)
+        except Exception: return []
+    return [list(g.exterior.coords)[:3] for g in getattr(t, "geoms", [t]) if not g.is_empty]
+
+def polys_of(g):
+    if g is None or g.is_empty: return []
+    if isinstance(g, Polygon): return [g]
+    if isinstance(g, (MultiPolygon, GeometryCollection)): return [p for x in g.geoms for p in polys_of(x)]
+    return []
+
+UP = (0.0, 1.0, 0.0)
+def flat_poly(c, mat, poly, h, uvscale, collide=False, col_h=None):
+    for t in triangulate(poly):
+        pts = [to3(c, x, y, h) for x, y in t]
+        tri(c, mat, pts[0], pts[1], pts[2], UP, [(x / uvscale, -y / uvscale) for x, y in t], False)
+        if collide:
+            ch = h if col_h is None else col_h
+            c.col.extend([to3(c, x, y, ch) for x, y in t])
+
+def add_area(geom, mat, h, uvscale, collide=False, col_h=None):
+    if geom is None or geom.is_empty: return
+    x0, y0, x1, y1 = geom.bounds
+    for i in range(math.floor(x0 / CHUNK), math.floor(x1 / CHUNK) + 1):
+        for j in range(math.floor(y0 / CHUNK), math.floor(y1 / CHUNK) + 1):
+            part = geom.intersection(box(i * CHUNK, j * CHUNK, (i + 1) * CHUNK, (j + 1) * CHUNK))
+            pp = polys_of(part)
+            if not pp: continue
+            c = chunks.setdefault((i, j), Chunk(i, j))
+            for p in pp:
+                flat_poly(c, mat, p, h, uvscale, collide, col_h)
+
+# ---------------------------------------------------------------- load OSM
+files = sorted(glob.glob(os.path.join(SRC, "*.json"))) if os.path.isdir(SRC) else [SRC]
+els_by = {}
+bbox = None
+for f in files:
+    d = json.load(open(f))
+    bbox = bbox or d.get("bbox")
+    for e in d["elements"]:
+        els_by[(e["type"], e["id"])] = e
+els = list(els_by.values()); del els_by
+# ---- Lucas County footprints (2025 aerial-traced) + AREIS property records (wall, stories, year, garage...)
+COUNTY = os.environ.get("COUNTY", "")
+ATTACH = {}
+if COUNTY and os.path.exists(os.path.join(COUNTY, "county_osm.json")):
+    _drop = set(json.load(open(os.path.join(COUNTY, "county_drop.json"))))
+    els = [e for e in els if not (e["type"] == "way" and f"w{e['id']}" in _drop)] + json.load(open(os.path.join(COUNTY, "county_osm.json")))["elements"]
+    ATTACH = {k: {"c:" + a: str(v) for a, v in d.items()} for k, d in json.load(open(os.path.join(COUNTY, "county_attach.json"))).items()}
+    del _drop
+if len(sys.argv) >= 7: bbox = list(map(float, sys.argv[3:7]))
+S, W, N, E = bbox
+bx0, by0 = P(S, W); bx1, by1 = P(N, E)
+BBOX = box(bx0, by0, bx1, by1)
+BBOX_P = shapely.prepared.prep(BBOX)
+log("elements", len(els), "files", len(files), "bbox m", round(bx1 - bx0), "x", round(by1 - by0))
+
+def way_pts(w): return [P(g["lat"], g["lon"]) for g in w.get("geometry", []) if g]
+def way_poly(w):
+    pts = way_pts(w)
+    if len(pts) < 4: return None
+    try:
+        p = Polygon(pts)
+        if not p.is_valid: p = p.buffer(0)
+        return p if not p.is_empty else None
+    except Exception: return None
+def rel_poly(r):
+    outers, inners = [], []
+    for m in r.get("members", []):
+        if m.get("type") != "way" or "geometry" not in m: continue
+        pts = [P(g["lat"], g["lon"]) for g in m["geometry"] if g]
+        if len(pts) < 2: continue
+        (inners if m.get("role") == "inner" else outers).append(LineString(pts))
+    if not outers: return None
+    try:
+        po = unary_union(list(polygonize(unary_union(outers))))
+        if po.is_empty: return None
+        if inners: po = po.difference(unary_union(list(polygonize(unary_union(inners)))))
+        return po.buffer(0)
+    except Exception: return None
+def area_geom(e): return way_poly(e) if e["type"] == "way" else rel_poly(e)
+def tags(e): return e.get("tags", {})
+
+# ---------------------------------------------------------------- places (neighbourhood names for HUD + styling)
+places = []
+for e in els:
+    if e["type"] == "node" and "place" in tags(e) and tags(e).get("name"):
+        x, y = P(e["lat"], e["lon"])
+        places.append([tags(e)["name"], x, -y, tags(e)["place"]])
+log("places", len(places))
+OWE = [(x, -z) for n, x, z, k in places if n.lower() == "old west end"]
+def in_owe(x, y): return any(math.hypot(x - a, y - b) < 900 for a, b in OWE)
+
+# ---------------------------------------------------------------- water (incl. Lake Erie / Maumee Bay via coastline)
+water = []
+for e in els:
+    t = tags(e)
+    if t.get("natural") == "water" or t.get("waterway") == "riverbank":
+        g = area_geom(e)
+        if g is not None: water.append(g)
+coast = [LineString(way_pts(e)) for e in els if e["type"] == "way" and tags(e).get("natural") == "coastline" and len(way_pts(e)) > 1]
+if coast:
+    big = BBOX.buffer(500)
+    cl = unary_union(coast).intersection(big)
+    samples = []
+    for ln in (cl.geoms if hasattr(cl, "geoms") else [cl]):
+        if not isinstance(ln, LineString): continue
+        cs = list(ln.coords)
+        for (x0, y0), (x1, y1) in zip(cs, cs[1:]):
+            L = math.hypot(x1 - x0, y1 - y0)
+            if L < 1: continue
+            # OSM coastline: land on the left, water on the right
+            samples.append(Point((x0 + x1) / 2 + (y1 - y0) / L * 2, (y0 + y1) / 2 - (x1 - x0) / L * 2))
+    parts = list(polygonize(unary_union([big.exterior, cl])))
+    lake = [p for p in parts if sum(p.contains(s) for s in samples[:: max(1, len(samples) // 400)]) > 0]
+    water.extend(lake)
+    log("coastline segments", len(samples), "lake polys", len(lake))
+WATER = unary_union(water).intersection(BBOX.buffer(400)).buffer(0) if water else Polygon()
+WATER_TREE_SRC = polys_of(WATER)
+log("water km2", round(WATER.area / 1e6, 2))
+
+# ---------------------------------------------------------------- roads
+WIDTH = {"motorway": 11, "trunk": 10, "primary": 12, "secondary": 11, "tertiary": 9.5,
+         "residential": 7.5, "unclassified": 7.5, "service": 4.5, "living_street": 6,
+         "motorway_link": 6, "trunk_link": 6, "primary_link": 6, "secondary_link": 6, "tertiary_link": 6, "track": 3.5}
+WALK = {"footway": 2.2, "path": 2.0, "pedestrian": 6, "cycleway": 2.2}
+SIDEWALK_ON = {"primary", "secondary", "tertiary", "residential", "unclassified", "living_street", "trunk"}
+RESID = {"residential", "unclassified", "living_street"}
+
+def road_width(t):
+    hw = t["highway"]
+    w = WIDTH.get(hw) or WALK.get(hw)
+    if w is None: return None
+    try:
+        if "width" in t: w = max(w * 0.6, min(float(t["width"].split()[0]), 30))
+        elif "lanes" in t and hw in WIDTH: w = max(w, int(t["lanes"].split(";")[0]) * 3.4)
+    except ValueError: pass
+    return w
+
+road_polys, side_polys, bridge_ways = [], [], []
+street_lines = []
+seg_jobs = defaultdict(list)       # region -> centerline / street / lamp / streettree jobs
+node_degree = defaultdict(int)
+for e in els:
+    if e["type"] == "way" and "highway" in tags(e):
+        for nid in e.get("nodes", []): node_degree[nid] += 1
+
+rng = random.Random(42)
+for e in els:
+    t = tags(e)
+    if e["type"] != "way" or "highway" not in t or t.get("area") == "yes": continue
+    hw = t["highway"]; w = road_width(t)
+    if w is None: continue
+    pts = way_pts(e)
+    if len(pts) < 2: continue
+    line = LineString(pts)
+    drivable = hw in WIDTH
+    if t.get("bridge") not in (None, "no") and t.get("tunnel") in (None, "no"):
+        bridge_ways.append((e, pts, w, drivable)); continue
+    if drivable:
+        road_polys.append(line.buffer(w / 2, cap_style="flat" if hw.startswith("motor") else "round", quad_segs=3))
+        if hw not in ("service", "track", "motorway", "motorway_link"): street_lines.append(line)
+        if hw in SIDEWALK_ON and t.get("sidewalk") != "no":
+            side_polys.append(line.buffer(w / 2 + 2.8, quad_segs=3))
+    else:
+        side_polys.append(line.buffer(w / 2, quad_segs=2))
+    center = drivable and hw in ("primary", "secondary", "tertiary", "trunk") and t.get("oneway") != "yes"
+    name = t.get("name") if drivable else None
+    acc_l = acc_t = 0.0
+    lamp_step = 50.0 if hw in RESID else 36.0
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L < 0.1: continue
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        rk = rkey(mx, my)
+        if center: seg_jobs[rk].append(("cl", x0, y0, x1, y1))
+        if name: seg_jobs[rk].append(("st", name, x0, y0, x1, y1))
+        if not (drivable and hw in SIDEWALK_ON): continue
+        dx, dy = (x1 - x0) / L, (y1 - y0) / L
+        d = lamp_step / 2 - acc_l
+        while d < L:
+            sides = (1,) if hw in RESID else (-1, 1)
+            for side in sides:
+                off = (w / 2 + 1.0) * side
+                px, py = x0 + dx * d - dy * off, y0 + dy * d + dx * off
+                seg_jobs[rkey(px, py)].append(("lamp", px, py, math.atan2(-dy * side, -dx * side)))
+            d += lamp_step
+        acc_l = (acc_l + L) % lamp_step
+        if hw in RESID:   # street trees in the yard strip beyond the sidewalk
+            d = 7.0 - acc_t
+            while d < L:
+                for side in (-1, 1):
+                    if rng.random() < 0.55:
+                        off = (w / 2 + 4.3) * side
+                        px, py = x0 + dx * d - dy * off, y0 + dy * d + dx * off
+                        seg_jobs[rkey(px, py)].append(("stree", px, py, rng.uniform(0.75, 1.3)))
+                d += 14.0
+            acc_t = (acc_t + L) % 14.0
+log("roads", len(road_polys), "bridges", len(bridge_ways))
+
+# ---------------------------------------------------------------- land use
+park, parking, forest, industrial = [], [], [], []
+for e in els:
+    t = tags(e)
+    if "building" in t or "highway" in t or e["type"] == "node": continue
+    lu, le, nat = t.get("landuse"), t.get("leisure"), t.get("natural")
+    dst = None
+    if le in ("park", "pitch", "garden", "playground", "stadium", "golf_course") or lu in ("grass", "recreation_ground", "cemetery", "meadow"):
+        dst = park
+    elif lu == "forest" or nat in ("wood", "scrub") or le == "nature_reserve":
+        dst = forest
+    elif t.get("amenity") == "parking":
+        dst = parking
+    elif lu in ("industrial", "railway"):
+        dst = industrial
+    if dst is not None:
+        g = area_geom(e)
+        if g is not None and g.area < 2.5e7: dst.append(g)
+
+def tree_of(lst):
+    lst = [g for g in lst if g is not None and not g.is_empty]
+    return (lst, STRtree(lst) if lst else None)
+T_ROAD, T_SIDE, T_PARK, T_PARKING, T_FOREST, T_IND, T_WATER = map(tree_of, (road_polys, side_polys, park, parking, forest, industrial, WATER_TREE_SRC))
+
+def local_union(tr, rb):
+    lst, t = tr
+    if t is None: return Polygon()
+    idx = t.query(rb)
+    if len(idx) == 0: return Polygon()
+    try: return unary_union([lst[i] for i in idx]).buffer(0)
+    except Exception: return unary_union([lst[i].buffer(0) for i in idx])
+
+def safe(f, *a):
+    try: return f(*a)
+    except Exception:
+        return f(*[x.buffer(0) for x in a])
+
+# ---------------------------------------------------------------- bridges (global ramp solve, then bucket segments)
+bnodes = defaultdict(list)
+for idx, (e, pts, w, drv) in enumerate(bridge_ways):
+    for nid in e["nodes"]: bnodes[nid].append(idx)
+parent = list(range(len(bridge_ways)))
+def find(i):
+    while parent[i] != i: parent[i] = parent[parent[i]]; i = parent[i]
+    return i
+for nid, lst in bnodes.items():
+    for o in lst[1:]: parent[find(o)] = find(lst[0])
+comp = defaultdict(list)
+for i in range(len(bridge_ways)): comp[find(i)].append(i)
+node_pos = {}
+for e, pts, w, drv in bridge_ways:
+    for nid, p in zip(e["nodes"], pts): node_pos[nid] = p
+RAMP = 45.0
+node_h = {}
+BRIDGE_CFG = [("glass city skyway", 40.0, 0.045, "skyway"), ("anthony wayne bridge", 32.3, 0.06, "suspension")]
+special_bridges = defaultdict(list)
+for root, members in comp.items():
+    adj = defaultdict(list); layer = 1
+    cfg = None
+    for i in members:
+        nm_ = tags(bridge_ways[i][0]).get("name", "").lower()
+        for key_, deck_, grade_, kind_ in BRIDGE_CFG:
+            if key_ in nm_:
+                cfg = (deck_, grade_, kind_); special_bridges[kind_].append(bridge_ways[i])
+    for i in members:
+        e = bridge_ways[i][0]
+        try: layer = max(layer, int(tags(e).get("layer", "1")))
+        except ValueError: pass
+        ns = e["nodes"]
+        for a, b in zip(ns, ns[1:]):
+            d = math.dist(node_pos[a], node_pos[b]); adj[a].append((b, d)); adj[b].append((a, d))
+    H = 7.0 * max(1, min(layer, 3))
+    ramp = RAMP
+    if cfg:
+        H = cfg[0]
+        total = sum(w_ for n in adj for _, w_ in adj[n]) / 2
+        ramp = min(H / cfg[1], max(60.0, total * 0.42))
+    terms = [n for n in adj if node_degree[n] > len(bnodes[n]) or len(adj[n]) == 1]
+    dist = {n: 0.0 for n in terms}; pq = [(0.0, n) for n in terms]
+    while pq:
+        d, n = heapq.heappop(pq)
+        if d > dist.get(n, 1e18): continue
+        for m, w_ in adj[n]:
+            if d + w_ < dist.get(m, 1e18): dist[m] = d + w_; heapq.heappush(pq, (d + w_, m))
+    for n in adj: node_h[n] = H * min(1.0, dist.get(n, ramp) / ramp)
+
+def densify(nodes, pts, step=8.0):
+    out = []
+    for (na, a), (nb, b) in zip(zip(nodes, pts), zip(nodes[1:], pts[1:])):
+        ha, hb = node_h.get(na, 0), node_h.get(nb, 0)
+        L = math.dist(a, b); k = max(1, int(L / step))
+        for s in range(k):
+            f = s / k
+            out.append((a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, ha + (hb - ha) * f))
+    out.append((pts[-1][0], pts[-1][1], node_h.get(nodes[-1], 0)))
+    return out
+
+for e, pts, w, drv in bridge_ways:
+    dp = densify(e["nodes"], pts)
+    for i in range(len(dp) - 1):
+        mx, my = (dp[i][0] + dp[i + 1][0]) / 2, (dp[i][1] + dp[i + 1][1]) / 2
+        seg_jobs[rkey(mx, my)].append(("br", dp[i], dp[i + 1], w, drv, i))
+    if tags(e).get("name") and drv:
+        for a, b in zip(pts, pts[1:]):
+            seg_jobs[rkey((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)].append(("st", tags(e)["name"], a[0], a[1], b[0], b[1]))
+
+def river_crossing(ways):
+    """Midpoint and axis of where a set of bridge ways crosses open water."""
+    cands = []
+    for e, pts, w, drv in ways:
+        ln = LineString(pts)
+        try: inter = ln.intersection(WATER)
+        except Exception: continue
+        for g in getattr(inter, "geoms", [inter]):
+            if isinstance(g, LineString) and g.length > 40:
+                cs = list(g.coords)
+                cands.append((g.length, g.interpolate(0.5, normalized=True), np.subtract(cs[-1], cs[0])))
+    if not cands: return None
+    best = max(cands, key=lambda c_: c_[0])
+    u = best[2] / np.linalg.norm(best[2])
+    # parallel carriageways crossing the same stretch of river: centre on the median between them
+    near = [c_ for c_ in cands if c_[1].distance(best[1]) < 60 and abs(np.dot(c_[2] / np.linalg.norm(c_[2]), u)) > 0.9]
+    mx = sum(c_[1].x for c_ in near) / len(near); my = sum(c_[1].y for c_ in near) / len(near)
+    return mx, my, (float(u[0]), float(u[1])), best[0]
+
+def build_skyway(ways, deck):
+    rc = river_crossing(ways)
+    if rc is None: return
+    # pylon sits in the median: average the river crossings of all carriageways
+    cx, cy, u, wl = rc
+    v = (-u[1], u[0])
+    top = 121.0
+    wbox("concrete_dk", cx, cy, u, v, 6.0, 3.2, BED_Y, deck - 2, top=False, hu1=5.0, hv1=2.8)
+    wbox("concrete_dk", cx, cy, u, v, 5.0, 2.8, deck - 2, top - 60, top=False, hu1=4.2, hv1=2.4)
+    wbox("glass_lit", cx, cy, u, v, 4.2, 2.4, top - 60, top, top=True, hu1=3.2, hv1=1.9)
+    for side in (-1, 1):                         # single plane of stays, combined fan/harp
+        for k in range(20):
+            s_ = 24 + k * 8.2
+            dp = (cx + u[0] * s_ * side, cy + u[1] * s_ * side, deck + 1.2)
+            ap = (cx + u[0] * 2.5 * side, cy + u[1] * 2.5 * side, deck + 24 + k * 2.9)
+            wbeam("cable", ap, dp, 0.18)
+    log("skyway pylon at", round(cx), round(cy))
+
+def build_suspension(ways, deck):
+    rc = river_crossing(ways)
+    if rc is None: return
+    cx, cy, u, wl = rc
+    v = (-u[1], u[0])
+    half_main, side_len = 119.6, 71.2
+    tower_top = 61.3 + WATER_Y
+    leg_off = 10.2
+    deck_y = deck + GROUND_COL_Y
+    for t in (-1, 1):
+        tx, ty = cx + u[0] * half_main * t, cy + u[1] * half_main * t
+        for l in (-1, 1):
+            lx, ly = tx + v[0] * leg_off * l, ty + v[1] * leg_off * l
+            wbox("bridge_blue", lx, ly, u, v, 1.3, 1.1, BED_Y, tower_top, top=True, hu1=0.9, hv1=0.8)
+        for zb in (deck_y - 2.5, deck_y + 12, tower_top - 1.5):    # struts
+            wbeam("bridge_blue", (tx + v[0] * leg_off, ty + v[1] * leg_off, zb), (tx - v[0] * leg_off, ty - v[1] * leg_off, zb), 0.6, True)
+        for a_, b_ in ((deck_y + 12, tower_top - 1.5), (deck_y - 2.5, deck_y + 12)):  # X bracing
+            wbeam("bridge_blue", (tx + v[0] * leg_off, ty + v[1] * leg_off, a_), (tx - v[0] * leg_off, ty - v[1] * leg_off, b_), 0.35)
+            wbeam("bridge_blue", (tx - v[0] * leg_off, ty - v[1] * leg_off, a_), (tx + v[0] * leg_off, ty + v[1] * leg_off, b_), 0.35)
+    for l in (-1, 1):                                             # main cables + paired suspenders
+        ox, oy = v[0] * leg_off * l, v[1] * leg_off * l
+        def cable_z(s_):
+            a = abs(s_)
+            if a <= half_main: return deck_y + 2.0 + (tower_top - 1.0 - deck_y - 2.0) * (a / half_main) ** 2
+            f = (a - half_main) / side_len
+            return tower_top - 1.0 - (tower_top - 1.0 - deck_y - 1.0) * f
+        span = half_main + side_len
+        prev = None
+        for k in range(0, 61):
+            s_ = -span + 2 * span * k / 60
+            p_ = (cx + u[0] * s_ + ox, cy + u[1] * s_ + oy, cable_z(s_))
+            if prev: wbeam("bridge_blue", prev, p_, 0.35)
+            prev = p_
+        s_ = -span + 6.1
+        while s_ < span - 3:
+            z_top = cable_z(s_)
+            if z_top - deck_y > 1.5:
+                for d_ in (-0.25, 0.25):
+                    bx_, by_ = cx + u[0] * (s_ + d_) + ox, cy + u[1] * (s_ + d_) + oy
+                    wbeam("cable", (bx_, by_, deck_y + 0.8), (bx_, by_, z_top), 0.05)
+            s_ += 6.1
+        for t in (-1, 1):                                         # anchorage blocks
+            ax_, ay_ = cx + u[0] * span * t + ox * 1.15, cy + u[1] * span * t + oy * 1.15
+            wbox("concrete_dk", ax_, ay_, u, v, 6, 2.0, 0.0, deck_y - 1.6)
+    log("suspension towers at", round(cx), round(cy))
+
+for kind_, ways_ in special_bridges.items():
+    cfg_ = [c_ for c_ in BRIDGE_CFG if c_[3] == kind_][0]
+    (build_skyway if kind_ == "skyway" else build_suspension)(ways_, cfg_[1])
+
+def emit_bridge_seg(p0, p1, w, drv, i):
+    (x0, y0, h0), (x1, y1, h1) = p0, p1
+    L = math.hypot(x1 - x0, y1 - y0)
+    if L < 0.05: return
+    mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+    if not BBOX_P.contains(Point(mx, my)): return
+    c = chunk_at(mx, my)
+    dx, dy = (x1 - x0) / L, (y1 - y0) / L; nx, ny = -dy, dx
+    mat = "asphalt" if drv else "sidewalk"
+    hw_ = w / 2 + (0.6 if drv else 0.2)
+    ex = 0.3
+    ax, ay = x0 - dx * ex, y0 - dy * ex; bx, by = x1 + dx * ex, y1 + dy * ex
+    top0, top1 = h0 + GROUND_COL_Y + 0.02, h1 + GROUND_COL_Y + 0.02
+    l0 = to3(c, ax - nx * hw_, ay - ny * hw_, top0); r0 = to3(c, ax + nx * hw_, ay + ny * hw_, top0)
+    l1 = to3(c, bx - nx * hw_, by - ny * hw_, top1); r1 = to3(c, bx + nx * hw_, by + ny * hw_, top1)
+    slope = (h1 - h0) / L
+    n = np.array([-dx * slope, 1.0, dy * slope]); n = tuple(float(v) for v in n / np.linalg.norm(n))
+    quad(c, mat, l0, l1, r1, r0, n, [(0, 0), (L / 6, 0), (L / 6, w / 6), (0, w / 6)], True)
+    if max(h0, h1) > 0.6:
+        for side in (-1, 1):
+            sx, sy = nx * hw_ * side, ny * hw_ * side
+            q0 = (ax + sx, ay + sy); q1 = (bx + sx, by + sy)
+            nn = (nx * side, 0.0, -ny * side); inn = (-nn[0], 0.0, -nn[2])
+            quad(c, "concrete_dk", to3(c, *q0, top0 - 1.2), to3(c, *q1, top1 - 1.2), to3(c, *q1, top1), to3(c, *q0, top0), nn, [(0, 0), (L / 4, 0), (L / 4, .3), (0, .3)])
+            quad(c, "concrete_dk", to3(c, *q0, top0), to3(c, *q1, top1), to3(c, *q1, top1 + 1.0), to3(c, *q0, top0 + 1.0), nn, [(0, 0), (L / 4, 0), (L / 4, .25), (0, .25)], True)
+            quad(c, "concrete_dk", to3(c, *q0, top0), to3(c, *q1, top1), to3(c, *q1, top1 + 1.0), to3(c, *q0, top0 + 1.0), inn, [(0, 0), (L / 4, 0), (L / 4, .25), (0, .25)], True)
+        quad(c, "concrete_dk", to3(c, ax - nx * hw_, ay - ny * hw_, top0 - 1.2), to3(c, bx - nx * hw_, by - ny * hw_, top1 - 1.2),
+             to3(c, bx + nx * hw_, by + ny * hw_, top1 - 1.2), to3(c, ax + nx * hw_, ay + ny * hw_, top0 - 1.2), (0, -1.0, 0), [(0, 0), (1, 0), (1, 1), (0, 1)])
+    if i % 3 == 0 and min(h0, h1) > 3.5:
+        c.props.append(["pillar", mx - c.ox, -(my - c.oy), min(h0, h1) - 1.0, w])
+
+def emit_centerline(x0, y0, x1, y1, water_p):
+    L = math.hypot(x1 - x0, y1 - y0)
+    if L < 1: return
+    dx, dy = (x1 - x0) / L, (y1 - y0) / L; nx, ny = -dy, dx
+    mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+    if not BBOX_P.contains(Point(mx, my)) or water_p.contains(Point(mx, my)): return
+    c = chunk_at(mx, my)
+    tr = 4 if L > 12 else 0
+    sx0, sy0, sx1, sy1 = x0 + dx * tr, y0 + dy * tr, x1 - dx * tr, y1 - dy * tr
+    for off in (-0.18, 0.18):
+        ox, oy, h = nx * off, ny * off, 0.06
+        p = [(sx0 + ox - nx * h, sy0 + oy - ny * h), (sx1 + ox - nx * h, sy1 + oy - ny * h), (sx1 + ox + nx * h, sy1 + oy + ny * h), (sx0 + ox + nx * h, sy0 + oy + ny * h)]
+        q = [to3(c, x, y, 0.1) for x, y in p]
+        quad(c, "yellowline", q[0], q[1], q[2], q[3], UP, [(0, 0), (1, 0), (1, 1), (0, 1)])
+
+def ring_walls(geom, R_ext, top, bot, mat):
+    for p in polys_of(geom):
+        p = orient(p, 1.0)
+        for ring in [p.exterior] + list(p.interiors):
+            cs = list(ring.coords)
+            for (x0, y0), (x1, y1) in zip(cs, cs[1:]):
+                L = math.hypot(x1 - x0, y1 - y0)
+                if L < 0.01: continue
+                mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+                if R_ext.distance(Point(mx, my)) < 0.05: continue   # artificial region/bbox cut edge
+                c = chunk_at(mx, my)
+                nx, ny = -(y1 - y0) / L, (x1 - x0) / L
+                n = (nx, 0.0, -ny)
+                quad(c, mat, to3(c, x0, y0, bot), to3(c, x1, y1, bot), to3(c, x1, y1, top), to3(c, x0, y0, top), n,
+                     [(0, bot / 3), (L / 3, bot / 3), (L / 3, top / 3), (0, top / 3)], True)
+
+# ---------------------------------------------------------------- buildings
+PARODY = {
+    "fifth third field": "Fifth Fourth Field", "fifth third center": "Fifth Fourth Center",
+    "huntington center": "Huntingdon Centre", "pnc bank": "PNB Tower", "owens corning": "Owings Cornwell HQ",
+    "imagination station": "Imagine Station", "hilton": "Hillside Inn", "marriott": "Merriwood Hotel",
+    "renaissance": "Renaissant Hotel", "the blade": "The Toledo Edge", "toledo blade": "The Toledo Edge",
+    "amtrak": "Toledo Rail Station", "promedica": "ProMedix", "mercy health": "Merciful Health",
+    "jeep": "Jeepers Assembly", "stellantis": "Stellantine Assembly", "walmart": "ValuMart", "kroger": "Krogan's",
+    "meijer": "Mayer's", "costco": "CostKo", "home depot": "Home Despot", "lowe's": "Lowly's", "target": "Targit",
+}
+GOV_OK = ("courthouse", "county", "city", "government", "federal", "library", "church", "cathedral", "museum",
+          "safety building", "post office", "school", "university", "station", "civic", "hospital", "zoo", "college", "stadium", "arena")
+BRANDY = ("credit union", "bank", "inc", "llc", "hotel", "store", "market", "restaurant", "bar ", "grill")
+
+buildings, parts = [], []
+for e in els:
+    t = tags(e)
+    if e["type"] == "node": continue
+    if "building:part" in t and t.get("building:part") != "no":
+        g = area_geom(e)
+        if g is not None: parts.append((e, g))
+    elif "building" in t:
+        g = area_geom(e)
+        if g is not None and g.area > 4: buildings.append((e, g))
+part_tree = STRtree([g.representative_point() for _, g in parts]) if parts else None
+log("buildings", len(buildings), "parts", len(parts))
+
+def num(s):
+    if s is None: return None
+    try: return float(str(s).split(";")[0].replace("m", "").strip())
+    except ValueError: return None
+
+HOUSEY = ("house", "detached", "semidetached_house", "residential", "terrace", "bungalow")
+def classify(kind, area):
+    if kind in HOUSEY: return "house"
+    if kind in ("garage", "garages", "shed", "carport"): return "garage"
+    if kind == "yes" and area < 55: return "garage"
+    if kind == "yes" and area < 260: return "house"
+    return kind
+
+def h_of(t, rnd, cls, dist_core, owe):
+    h = num(t.get("height"))
+    if h is None:
+        lv = num(t.get("building:levels"))
+        if lv is not None: h = lv * 3.6 + (1.0 if lv > 1 else 0.5)
+    if h is None:
+        if cls == "house": h = (9.5 + rnd * 3.0) if owe else (6.0 + rnd * 2.5)
+        elif cls == "garage": h = 3.0
+        elif cls in ("roof", "carport"): h = 3.2
+        elif cls == "parking": h = 10 + rnd * 8
+        elif dist_core < 450: h = 12 + rnd * 18
+        elif dist_core < 900: h = 9 + rnd * 9
+        elif cls in ("industrial", "warehouse", "commercial", "retail"): h = 7 + rnd * 5
+        else: h = 6 + rnd * 6
+    mn = num(t.get("min_height"))
+    if mn is None:
+        ml = num(t.get("building:min_level"))
+        mn = ml * 3.6 if ml else 0.0
+    return max(h, mn + 2.5), mn
+
+def style_of(t, cls, h, x, y, rnd, owe):
+    dcore = math.hypot(x, y)
+    mat = t.get("building:material", "")
+    if cls in ("house", "garage"):
+        if owe: return "brick_brown" if rnd < 0.3 else f"siding{3 + int(rnd * 30) % 3}"
+        if rnd < 0.18: return "brick_red"
+        return f"siding{int(rnd * 600) % 6}"
+    if h > 38: return "glass" if rnd < 0.65 else "concrete"
+    if mat == "brick": return "brick_red"
+    if mat == "glass": return "glass"
+    if mat in ("concrete", "stone"): return "concrete"
+    if -900 < y < -150 and -700 < x < 450 and cls in ("industrial", "warehouse", "commercial", "yes", "retail", "apartments"):
+        return "warehouse" if rnd < 0.6 else "brick_red"
+    if cls in ("industrial", "warehouse", "manufacture"): return "warehouse" if rnd < 0.5 else "metal"
+    if cls in ("retail", "commercial", "supermarket") and dcore > 1500: return "concrete" if rnd < 0.5 else "brick_tan"
+    if cls == "parking": return "concrete"
+    if dcore < 700: return ["brick_red", "brick_brown", "brick_tan", "concrete"][int(rnd * 4) % 4]
+    if cls in ("apartments", "school", "church"): return "brick_brown" if rnd < .5 else "brick_red"
+    return ["brick_red", "brick_brown", "brick_tan", "concrete"][int(rnd * 4) % 4]
+
+# ---- county-record facades: real wall material, era-correct windows, paint palettes typical of each era
+ERA_TINTS = {"old": ["#e9e3d2", "#c8b386", "#7f8d6f", "#9b5c4b", "#61748a", "#d8c27c", "#5e6b5a", "#efe8d8"],
+             "mid": ["#eeeadc", "#bab29b", "#8f9c86", "#c6a679", "#7f90a2", "#e6dcc1", "#a8826a", "#f3efe4"],
+             "post": ["#f2f0ea", "#cfd3cf", "#a3b3c1", "#e3d6b5", "#b9aa92", "#a7b59c", "#e9e4d4", "#c9c2b2"],
+             "new": ["#f4f2ec", "#d9d5c9", "#c3c5c0", "#b7ab95", "#8f9ba4", "#e8e0cc", "#a6a294", "#d2c6ad"]}
+HOUSE_MATS = [f"h_clap_{e}#{i}" for e in ERA_TINTS for i in range(8)] + [f"h_lap#{e}{i}" for e in ERA_TINTS for i in range(8)] + \
+             [f"h_brick_{e}" for e in ERA_TINTS] + ["h_stucco", "h_stone", "h_block"]
+def era_of(y):
+    return "old" if y < 1915 else "mid" if y < 1946 else "post" if y < 1980 else "new"
+def _f(t, k, d=0.0):
+    try: return float(t.get(k, d) or d)
+    except ValueError: return d
+def county_style(t, g, h, rnd, cls, store, m, e):
+    """Pick facade/height/porch from the county record. Returns (mat, cls, h, store)."""
+    luc = t.get("c:luc", ""); wall = t.get("c:wall", ""); y = int(_f(t, "c:year")); st = _f(t, "c:stories")
+    ctype = int(_f(t, "c:ctype", -1)); era = era_of(y) if y > 1700 else "mid"
+    tint = int(rnd * 997) % 8
+    has_lidar = m is not None and "h" in m and m.get("n", 0) >= 6
+    resid = ctype in (2, 3, 4, 5, 12) or (ctype < 0 and luc[:1] == "5")
+    lid_h = m["h"] if has_lidar else (st or 1) * 3.0
+    if resid and (g.area >= 650 or lid_h > 13.5 or (st or 1) > 3):
+        resid = False; ctype = 1                     # big residential = apartment block, not a house
+    if resid and g.area < 650:
+        tla_fp = _f(t, "c:tla") * 0.0929 / max(1.0, min(st or 1, 2.5))
+        if g.area < 90 and (tla_fp == 0 or g.area < 0.55 * tla_fp):
+            cls = "garage"
+            mat = f"h_lap#{era if era != 'old' else 'mid'}{tint}" if wall != "brick" else f"h_brick_{era}"
+            if not has_lidar: h = 3.3
+            return mat, cls, h, False
+        cls = "house"
+        if wall == "brick": mat = f"h_brick_{era}"
+        elif wall == "stucco": mat = "h_stucco"
+        elif wall == "stone": mat = "h_stone"
+        elif wall == "block": mat = "h_block"
+        else: mat = f"h_clap_{era}#{tint}"
+        if wall == "partbrick":
+            e["_base"] = (f"h_brick_{era}", 1.1 if st <= 1.3 else 3.0)
+        e["_porch"] = {"old": 0.92, "mid": 0.85, "post": 0.22, "new": 0.12}[era]
+        if not has_lidar: h = max(3.0, (st or 1) * 2.9) + 2.0
+        return mat, cls, h, False
+    # ---------------- commercial / institutional by AREIS structure type
+    if not has_lidar and st: h = st * (4.2 if st <= 2 else 3.7) + 0.8
+    if ctype == 1 or (resid and g.area >= 650):     # apartments
+        small = g.area < 500 and lid_h <= 13.5
+        if small:
+            mat = f"h_brick_{era}" if era != "new" else (f"h_clap_new#{tint}" if rnd < 0.5 else "h_brick_new")
+        else:
+            mat = ["brick_red", "brick_brown", "brick_tan"][int(rnd * 3) % 3] if era in ("old", "mid") else ("brick_tan" if rnd < 0.5 else "concrete")
+        return mat, "apartments", h, False
+    if ctype == 11:                                 # mixed residential/commercial: storefront under brick
+        return ("brick_red" if rnd < 0.5 else "brick_brown"), "commercial", h, True
+    if ctype in (20, 21, 22, 23, 24):
+        if era in ("old", "mid"): mat = "brick_tan" if rnd < 0.5 else "brick_brown"
+        elif era == "post": mat = "concrete" if rnd < 0.5 else "brick_tan"
+        else: mat = "glass" if (st or 1) >= 3 else ("brick_tan" if rnd < 0.6 else "concrete")
+        return mat, "office", h, False
+    if ctype in (30, 31, 32, 33, 34, 35):
+        return ("brick_tan" if rnd < 0.6 else "brick_red"), "retail", h, ctype in (30, 34, 35) and era in ("old", "mid")
+    if 40 <= ctype <= 49 or ctype in (123, 125):
+        return ("concrete" if rnd < 0.5 else "brick_tan") if era in ("post", "new") else "brick_red", "retail", h, True
+    if 60 <= ctype <= 66 or ctype == 128:
+        return ("metal" if rnd < 0.5 else "concrete"), "commercial", h, False
+    if 67 <= ctype <= 76 or ctype == 126:
+        return ("brick_red" if era in ("old", "mid") else ("warehouse" if rnd < 0.6 else "metal")), "industrial", h, False
+    if ctype == 112:
+        return ("h_stone" if era == "old" else "brick_brown" if era == "mid" else "brick_tan"), "church", h, False
+    if ctype in (103, 104, 130, 131, 105, 106):
+        return ("brick_brown" if rnd < 0.5 else "brick_red"), "school", h, False
+    if ctype in (107, 129, 10):
+        return ("brick_tan" if era in ("old", "mid") else "concrete"), "hospital", h, False
+    if ctype in (8, 9, 122):
+        if lid_h <= 12 and g.area < 900:
+            return (f"h_clap_new#{tint}" if era == "new" else "brick_tan"), "hotel", h, False
+        return ("concrete" if era in ("post", "new") else "brick_tan"), "hotel", h, False
+    return None, cls, h, store
+
+TILE = {"brick_red": (7, 7), "brick_brown": (7, 7), "brick_tan": (7, 7), "warehouse": (12, 9),
+        "glass": (6, 8), "concrete": (12, 10.5), "metal": (8, 6)}
+for i in range(6): TILE[f"siding{i}"] = (5, 5)
+for _m in HOUSE_MATS:
+    TILE[_m] = (3.4 if "_old" in _m else 5.0, 2.95) if not _m.startswith("h_lap") else (4.0, 2.95)
+TILE["h_block"] = (4.0, 2.95)
+TILE.update({m: (8, 4.5) for m in ["bar_shooters","bar_anchor","bar_cardboard","bar_easypour","bar_velvet","bar_lakefront","bar_coyote","bar_gator","dive_twobuck","dive_dollar","dive_cornertap","dive_happyhour","dive_tipsytom","dive_bar","dive_lastcall"]})
+TILE.update({"storefront": (8, 4.2), "intl_dark": (4.5, 3.9), "glass_oneseagate": (6, 3.9), "limestone": (6, 4.2),
+             "granite_black": (6, 4.5), "yamasaki": (3, 3.9), "terracotta": (5, 4.0), "sandstone": (6, 5), "marble": (8, 8),
+             "glass_dark": (6, 3.6), "glass_blue": (6, 3.6), "seats": (2, 2), "porch": (3, 3)})
+
+# ---- landmark registry: real heights (CTBUH / Wikipedia) and facade materials for Toledo's skyline
+LANDMARKS = {
+    "w429957698": dict(h=121.9, mat="intl_dark"),                                   # Tower on the Maumee (Fiberglas Tower), 1969
+    "w429957793": dict(h=112.2, mat="limestone", base=("granite_black", 8.0), crown="deco"),  # PNC Bank Bldg, 1930 Art Deco
+    "w189305197": dict(h=99.8, mat="yamasaki"),                                     # Government Center (Yamasaki), 1982
+    "w429962019": dict(h=88.0, mat="terracotta", base=("limestone", 9.0)),         # Riverfront Apts (Toledo Trust), 1913
+    "w429787172": dict(h=76.8, mat="glass_dark"),                                   # Summit Center / ProMedica Senior Care
+    "w189371898": dict(h=76.2, mat="brick_tan", base=("limestone", 8.0)),          # Nicholas Building, 1906
+    "w580662591": dict(h=70.1, mat="glass_dark"),                                   # Edison Plaza, 1972
+    "w189369980": dict(h=64.0, mat="glass_blue"),                                   # Hylant (LOF) Building, 1960
+    "w429963849": dict(h=54.9, mat="brick_brown"),                                  # AT&T / Ohio Bell, 1925
+    "w429955308": dict(h=54.3, mat="brick_tan", base=("limestone", 7.0)),          # Ohio Building, 1906
+    "w171964340": dict(h=49.1, mat="glass_dark"),                                   # Renaissance Toledo Downtown
+    "w189372081": dict(h=56.1, mat="brick_brown"),                                  # Four SeaGate (brown)
+    "w189371912": dict(h=42.4, mat="brick_tan", base=("limestone", 6.0)),          # Spitzer Building, 1896
+    "w708650218": dict(h=37.2, mat="sandstone"),                                    # Pythian Castle, 1890
+    "w189363860": dict(mat="sandstone"),                                            # Lucas County Courthouse
+    "w233893958": dict(mat="marble", colonnade=True),                               # Toledo Museum of Art (Greek Revival)
+    "w189367647": dict(mat="limestone"),                                            # Main Library (Art Deco)
+    "r8833546": dict(mat="sandstone"),                                              # University Hall, UT
+}
+POINT_LANDMARKS = [((41.65333, -83.53056), dict(h=125.3, mat="glass_oneseagate", name="One SeaGate"))]
+LID = pickle.load(open(LIDAR_PKL, "rb")) if LIDAR_PKL and os.path.exists(LIDAR_PKL) else {}
+for _ev in ("LIDAR2", "LIDAR3"):          # LIDAR3 = exact downtown massing (full-res LiDAR), applied last
+    _l2 = os.environ.get(_ev, "")
+    if _l2 and os.path.exists(_l2): LID.update(pickle.load(open(_l2, "rb")))
+log("lidar measurements", len(LID))
+STREET_TREE = STRtree(street_lines) if street_lines else None
+
+def rect_frame(g):
+    rect = g.minimum_rotated_rectangle
+    if not isinstance(rect, Polygon) or rect.area <= 0 or g.area / rect.area < 0.82: return None
+    cs = list(rect.exterior.coords)[:4]
+    e0 = math.dist(cs[0], cs[1]); e1 = math.dist(cs[1], cs[2])
+    if e0 < e1: cs = cs[1:] + cs[:1]; e0, e1 = e1, e0
+    return cs, e0, e1, rect
+
+def dome(c, cx, cy, r, z0, hgt, mat):
+    rings, segs = 6, 14
+    pts = [[(cx + r * math.cos(a_ / segs * 2 * math.pi) * math.cos(b_ / rings * math.pi / 2),
+             cy + r * math.sin(a_ / segs * 2 * math.pi) * math.cos(b_ / rings * math.pi / 2),
+             z0 + hgt * math.sin(b_ / rings * math.pi / 2)) for a_ in range(segs + 1)] for b_ in range(rings + 1)]
+    for b_ in range(rings):
+        for a_ in range(segs):
+            p0, p1, p2, p3 = pts[b_][a_], pts[b_][a_ + 1], pts[b_ + 1][a_ + 1], pts[b_ + 1][a_]
+            mx = (p0[0] + p2[0]) / 2 - cx; my = (p0[1] + p2[1]) / 2 - cy; mz = ((p0[2] + p2[2]) / 2 - z0) * r / max(hgt, 0.1)
+            L = math.sqrt(mx * mx + my * my + mz * mz) or 1
+            quad(c, mat, to3(c, *p0), to3(c, *p1), to3(c, *p2), to3(c, *p3), (mx / L, mz / L, -my / L), [(0, 0), (1, 0), (1, 1), (0, 1)], True)
+
+def pitched_roof(c, g, h, mat_wall, ridge, kind="gable", roof_mat="shingle"):
+    """Gable / cross-gable / hip roof on a near-rectangular footprint, walls already up to h."""
+    fr = rect_frame(g)
+    if fr is None: return False
+    cs, e0, e1, rect = fr
+    if kind == "gable_cross":          # ridge runs across the short axis
+        cs = cs[1:] + cs[:1]; e0, e1 = e1, e0
+    a, b, cc, d = cs                   # a-b and c-d are the eave edges parallel to the ridge
+    if e1 > 22: return False
+    m0 = ((a[0] + d[0]) / 2, (a[1] + d[1]) / 2); m1 = ((b[0] + cc[0]) / 2, (b[1] + cc[1]) / 2)
+    if kind == "hip":                  # pull ridge ends inward by half the width -> four sloped faces
+        inset = min(e1 / 2, e0 / 2 - 0.3)
+        ux, uy = (m1[0] - m0[0]) / e0, (m1[1] - m0[1]) / e0
+        m0 = (m0[0] + ux * inset, m0[1] + uy * inset); m1 = (m1[0] - ux * inset, m1[1] - uy * inset)
+    top = h + ridge
+    cx_, cy_ = rect.centroid.x, rect.centroid.y
+    P3 = lambda p, z: to3(c, p[0], p[1], z)
+    def face_n(p, q, rise, run):
+        ex, ey = q[0] - p[0], q[1] - p[1]; L = math.hypot(ex, ey)
+        nx, ny = ey / L, -ex / L
+        if ((p[0] + q[0]) / 2 - cx_) * nx + ((p[1] + q[1]) / 2 - cy_) * ny < 0: nx, ny = -nx, -ny
+        n = np.array([nx * rise, run, -ny * rise]); return tuple(float(v) for v in n / np.linalg.norm(n)), L, (nx, ny)
+    for (p, q) in ((a, b), (cc, d)):   # long slopes
+        n, L, _ = face_n(p, q, ridge, e1 / 2)
+        rp = m0 if math.dist(m0, p) < math.dist(m1, p) else m1
+        rq = m1 if rp is m0 else m0
+        quad(c, roof_mat, P3(p, h), P3(q, h), P3(rq, top), P3(rp, top), n, [(0, 0), (L / 4, 0), (L / 4, 1.5), (0, 1.5)], True)
+    for (p, q, m) in ((d, a, m0), (b, cc, m1)):
+        if kind == "hip":
+            n, L, _ = face_n(p, q, ridge, max(math.dist(m, ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)), 0.5))
+            tri(c, roof_mat, P3(p, h), P3(q, h), P3(m, top), n, [(0, 0), (L / 4, 0), (L / 8, 1.5)], True)
+        else:
+            _, L, (nx, ny) = face_n(p, q, 1, 1)
+            tw, th = TILE.get(mat_wall, (5, 5))
+            tri(c, mat_wall, P3(p, h), P3(q, h), P3(m, top), (nx, 0.0, -ny), [(0, -h / th), (L / tw, -h / th), (L / 2 / tw, -top / th)], True)
+    return True
+
+def cbox(c, cx, cy, u, v, hu, hv, z0, z1, mat, collide=False):
+    """Oriented box in chunk space (porches, columns, crowns)."""
+    sg = [(1, 1), (-1, 1), (-1, -1), (1, -1)]
+    cor = lambda a, b, z: to3(c, cx + u[0] * hu * a + v[0] * hv * b, cy + u[1] * hu * a + v[1] * hv * b, z)
+    for k in range(4):
+        (a0, b0), (a1, b1) = sg[k], sg[(k + 1) % 4]
+        nx, ny = u[0] * (a0 + a1) / 2 + v[0] * (b0 + b1) / 2, u[1] * (a0 + a1) / 2 + v[1] * (b0 + b1) / 2
+        L = math.hypot(nx, ny) or 1
+        quad(c, mat, cor(a0, b0, z0), cor(a1, b1, z0), cor(a1, b1, z1), cor(a0, b0, z1), (nx / L, 0.0, -ny / L), [(0, 0), (1, 0), (1, 1), (0, 1)], collide)
+    quad(c, mat, cor(1, 1, z1), cor(-1, 1, z1), cor(-1, -1, z1), cor(1, -1, z1), UP, [(0, 0), (1, 0), (1, 1), (0, 1)], collide)
+
+def walls(c, p, z0, z1, mat):
+    tw, th = TILE.get(mat, (6, 6))
+    for ring in [p.exterior] + list(p.interiors):
+        cs = list(ring.coords); u = 0.0
+        for (x0, y0), (x1, y1) in zip(cs, cs[1:]):
+            L = math.hypot(x1 - x0, y1 - y0)
+            if L < 0.05: continue
+            nx, ny = (y1 - y0) / L, -(x1 - x0) / L
+            quad(c, mat, to3(c, x0, y0, z0), to3(c, x1, y1, z0), to3(c, x1, y1, z1), to3(c, x0, y0, z1), (nx, 0.0, -ny),
+                 [(u / tw, -z0 / th), ((u + L) / tw, -z0 / th), ((u + L) / tw, -z1 / th), (u / tw, -z1 / th)], True)
+            u += L
+
+# ---------------------------------------------------------------- parametric facades (downtown exact buildings)
+FACADES = json.load(open(os.environ["FACADES"])) if os.environ.get("FACADES") and os.path.exists(os.environ["FACADES"]) else {}
+MAT_WALL = {"brick_red": ("#8c3a2c", 0.0), "brick_brown": ("#6e4430", 0.0), "brick_tan": ("#b89a72", 0.0), "concrete": ("#aaa69d", 0.5),
+            "limestone": ("#cfc6b0", 0.25), "granite_black": ("#2a2a2c", 0.25), "metal": ("#8e9399", 0.75), "intl_dark": ("#2c2f33", 0.75),
+            "yamasaki": ("#e6e3dc", 0.5), "terracotta": ("#cdbb9c", 0.25), "sandstone": ("#c8ab7c", 0.25), "marble": ("#e8e4dc", 0.25),
+            "warehouse": ("#8a5a44", 0.0), "storefront": ("#5a5048", 0.5), "glass": ("#3a4652", 1.0), "glass_dark": ("#1d2329", 1.0),
+            "glass_blue": ("#2e4a66", 1.0), "glass_oneseagate": ("#3c5a6e", 1.0), "copper_green": ("#6f9a86", 0.75)}
+GLASS_OF = {"glass": 0, "glass_dark": 4, "glass_blue": 1, "glass_oneseagate": 1}
+
+def hex_rgb(h):
+    h = h.lstrip("#"); return tuple(int(h[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+
+def default_facade(mat, t, h, cls, store, rnd):
+    """Best guess from records until a building is matched to photos (FACADES file overrides any key)."""
+    y = int(_f(t, "c:year")) if t else 0
+    era = era_of(y) if y > 1700 else ("mid" if mat.startswith("brick") or mat in ("limestone", "terracotta", "sandstone") else "post")
+    wall, wm = MAT_WALL.get(mat, ("#a9a59c", 0.5))
+    if mat.startswith("h_brick"): wall, wm = ("#8c4a36", 0.0)
+    if mat.startswith(("h_clap", "h_lap")): wall, wm = ("#d8d2c4", 0.5)
+    sp = {"wall": wall, "wmat": wm, "floor": {"old": 4.3, "mid": 4.0, "post": 3.7, "new": 3.9}[era],
+          "bay": {"old": 2.6, "mid": 2.8, "post": 3.0, "new": 3.0}[era], "ww": 0.5 if era in ("old", "mid") else 0.6,
+          "wh": 0.58 if era in ("old", "mid") else 0.55, "style": 0, "glass": 0,
+          "base": 4.6 if (store or cls in ("retail", "commercial")) and h > 7 else 0.0}
+    if wm >= 1.0:
+        sp.update(style=2, glass=GLASS_OF.get(mat, 0), bay=1.6, floor=3.9)
+    elif era in ("post", "new") and cls in ("office", "commercial", "hospital") and rnd < 0.4:
+        sp.update(style=1, wh=0.42, glass=1 if rnd < 0.15 else 0)
+    if wm == 0.0 and not mat.startswith("h_"):
+        # brick tones seen in downtown photos, by era (Italianate orange-red -> 1910s-20s red/buff -> post-war tan/brown)
+        pal = {"old": ["#a5573c", "#9a4a35", "#b0623f", "#8c4a36", "#a0503a"],
+               "mid": ["#8c3a2c", "#9b4a3a", "#b89a72", "#a98a64", "#7e4434", "#c2a982"],
+               "post": ["#b89a72", "#8a6a50", "#a68e70", "#6e4430"], "new": ["#a68e70", "#8a5a44", "#b9a07e"]}[era]
+        sp["wall"] = pal[int(rnd * 997) % len(pal)]
+        if y and y < 1900 and cls not in ("industrial", "parking"):
+            sp.update(style=5, ww=0.42, wh=0.62, bay=2.2, floor=4.4)   # Italianate: tall segmental-arch windows
+    if cls in ("industrial",) or mat == "warehouse":
+        sp.update(ww=0.55, wh=0.5, base=0.0, floor=4.6)
+    if cls == "parking":
+        sp.update(style=1, wh=0.45, glass=4, floor=3.1, wall="#a39f96", wmat=0.5, base=0.0)
+    return sp
+
+def fwalls(c, p, z0, z1, sp, base=True):
+    r, g_, b_ = hex_rgb(sp["wall"])
+    col4 = (r, g_, b_, float(sp["wmat"]))
+    c0 = (float(sp["ww"]), float(sp["wh"]), float(sp["base"]) if base else 0.0, float(sp["style"] + 8 * sp["glass"]))
+    V, N, U, U2, CO, C0 = c.fac
+    for ring in [p.exterior] + list(p.interiors):
+        cs = list(ring.coords); u = 0.0
+        for (x0, y0), (x1, y1) in zip(cs, cs[1:]):
+            L = math.hypot(x1 - x0, y1 - y0)
+            if L < 0.05: continue
+            nx, ny = (y1 - y0) / L, -(x1 - x0) / L
+            n = (nx, 0.0, -ny)
+            bw = L / max(1, round(L / sp["bay"])) if L > sp["bay"] * 0.6 else L
+            a, b, cc, d = to3(c, x0, y0, z0), to3(c, x1, y1, z0), to3(c, x1, y1, z1), to3(c, x0, y0, z1)
+            ua, ub, uc, ud = (0.0, z0), (L, z0), (L, z1), (0.0, z1)
+            for tri_ in ((a, b, cc, ua, ub, uc), (a, cc, d, ua, uc, ud)):
+                p0, p1, p2, q0, q1, q2 = tri_
+                ab = (p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]); ac = (p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2])
+                cr = (ab[1] * ac[2] - ab[2] * ac[1], ab[2] * ac[0] - ab[0] * ac[2], ab[0] * ac[1] - ab[1] * ac[0])
+                if cr[0] * n[0] + cr[1] * n[1] + cr[2] * n[2] > 0: p1, p2, q1, q2 = p2, p1, q2, q1
+                V.extend((p0, p1, p2)); N.extend((n, n, n)); U.extend((q0, q1, q2))
+                U2.extend(((sp["floor"], bw),) * 3); CO.extend((col4,) * 3); C0.extend((c0,) * 3)
+                c.col.extend((p0, p1, p2))
+            u += L
+
+def porch(c, p, rnd):
+    """Front porch on the side of the house facing the nearest street."""
+    if STREET_TREE is None: return
+    k = STREET_TREE.nearest(p.centroid)
+    road = street_lines[k]
+    if road.distance(p) > 45: return
+    rp = road.interpolate(road.project(p.centroid))
+    best = None
+    cs = list(orient(p, 1.0).exterior.coords)
+    for (x0, y0), (x1, y1) in zip(cs, cs[1:]):
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L < 5: continue
+        nx, ny = (y1 - y0) / L, -(x1 - x0) / L
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        dx, dy = rp.x - mx, rp.y - my; dl = math.hypot(dx, dy) or 1
+        score = (nx * dx + ny * dy) / dl
+        if best is None or score > best[0]: best = (score, mx, my, (x1 - x0) / L, (y1 - y0) / L, nx, ny, L)
+    if best is None or best[0] < 0.5: return
+    _, mx, my, ux, uy, nx, ny, L = best
+    wdt = min(L * 0.8, 7.5) / 2 if rnd < 0.6 else min(L * 0.45, 3.5) / 2
+    if rnd >= 0.6: mx, my = mx + ux * (L / 2 - wdt - 0.3), my + uy * (L / 2 - wdt - 0.3)
+    dep = 2.3
+    pcx, pcy = mx + nx * dep / 2, my + ny * dep / 2
+    cbox(c, pcx, pcy, (ux, uy), (nx, ny), wdt, dep / 2, 0.0, 0.55, "concrete_dk", True)         # deck
+    cbox(c, pcx + nx * 0.15, pcy + ny * 0.15, (ux, uy), (nx, ny), wdt + 0.2, dep / 2 + 0.15, 2.85, 3.05, "porch")  # roof slab
+    for s_ in (-1, 0, 1) if wdt > 2.5 else (-1, 1):
+        cx_ = pcx + ux * (wdt - 0.2) * s_ + nx * (dep / 2 - 0.2); cy_ = pcy + uy * (wdt - 0.2) * s_ + ny * (dep / 2 - 0.2)
+        cbox(c, cx_, cy_, (ux, uy), (nx, ny), 0.12, 0.12, 0.55, 2.85, "porch")
+
+def deco_crown(c, p, h, mat):
+    """PNC-style Art Deco setbacks with a stepped pyramidal top (after the Mausoleum at Halicarnassus)."""
+    tiers = [(0.71, 0.0), (0.82, 3.0), (0.90, 6.0)]
+    z0 = -0.3
+    last = p
+    for frac, inset in tiers:
+        q = p.buffer(-inset, join_style=2) if inset else p
+        q = max(polys_of(q), key=lambda a: a.area) if polys_of(q) else last
+        walls(c, orient(q, 1.0), z0, h * frac, mat); flat_poly(c, "roof", q, h * frac, 6.0, True)
+        z0 = h * frac; last = q
+    fr = rect_frame(last.buffer(-1.5, join_style=2)) or rect_frame(last)
+    if fr is None: return
+    cs, e0, e1, rect = fr
+    ap = rect.centroid
+    steps = 6
+    for k in range(steps):      # stepped pyramid
+        f = 1 - k / steps
+        cs_k = [(ap.x + (x - ap.x) * f, ap.y + (y - ap.y) * f) for x, y in cs]
+        poly = Polygon(cs_k)
+        zz0 = h * 0.90 + (h * 0.1) * k / steps; zz1 = h * 0.90 + (h * 0.1) * (k + 1) / steps
+        walls(c, orient(poly, 1.0), zz0, zz1, mat); flat_poly(c, "roof", poly, zz1, 6.0, True)
+
+def colonnade(c, p, h):
+    hc = min(h * 0.8, 13.0)
+    cs = list(orient(p, 1.0).exterior.coords)
+    for (x0, y0), (x1, y1) in zip(cs, cs[1:]):
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L < 30: continue
+        ux, uy = (x1 - x0) / L, (y1 - y0) / L; nx, ny = uy, -ux
+        n = int(L / 4.2)
+        for k in range(1, n):
+            cx_, cy_ = x0 + ux * k * L / n + nx * 1.6, y0 + uy * k * L / n + ny * 1.6
+            cbox(c, cx_, cy_, (ux, uy), (nx, ny), 0.45, 0.45, 0.0, hc, "marble", True)
+        mx0, my0 = x0 + nx * 1.6, y0 + ny * 1.6
+        cbox(c, (x0 + x1) / 2 + nx * 1.6, (y0 + y1) / 2 + ny * 1.6, (ux, uy), (nx, ny), L / 2, 1.2, hc, hc + 1.4, "marble", True)
+
+def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=None, lm=None, store=False, roof_mat="shingle"):
+    c = chunk_at(cp.x, cp.y)
+    g = g.simplify(0.25, preserve_topology=True)
+    b0 = mn if mn > 0 else -0.3
+    if lm and lm.get("crown") == "deco" and not e.get("_exact"):
+        for p in polys_of(g):
+            base = lm.get("base")
+            if base: walls(c, orient(p, 1.0), -0.3, base[1], base[0])
+            deco_crown(c, p, h, mat)
+        return
+    if tiers and (not lm or e.get("_exact")):
+        for tier in tiers:
+            z0, z1, wkt = tier[:3]
+            fspec = e.get("_fspec")
+            if len(tier) > 3 and fspec:   # a sub-building inside this footprint with its own facade (e.g. Secor in the convention centre)
+                fspec = dict(fspec); fspec.update(FACADES.get(tier[3], {}))
+            for p in polys_of(shapely.from_wkt(wkt)):
+                p = orient(p, 1.0)
+                zb = -0.3 if z0 <= 0.5 else z0
+                if z0 <= 0.5 and lm and lm.get("base"):
+                    walls(c, p, zb, min(lm["base"][1], z1), lm["base"][0]); zb = min(lm["base"][1], z1)
+                elif z0 <= 0.5 and store and z1 > 6 and not e.get("_fspec"):
+                    walls(c, p, zb, 4.2, "storefront"); zb = 4.2
+                if fspec:
+                    fwalls(c, p, zb, z1, fspec, base=z0 <= 0.5)
+                else:
+                    walls(c, p, zb, z1, mat)
+                flat_poly(c, "roof", p, z1, 6.0, True)
+        return
+    for p in polys_of(g):
+        p = orient(p, 1.0)
+        kind = roof
+        if kind is None and cls in ("house", "garage") and e.get("tags", {}).get("roof:shape") != "flat":
+            kind = "gable" if rnd < 0.62 else "hip"
+        if kind == "dome":
+            r_ = math.sqrt(p.area / math.pi)
+            dome_h = min(r_ * 0.9, 25.0)
+            walls(c, p, b0, h - dome_h if h - dome_h > 3 else h, mat)
+            dome(c, p.centroid.x, p.centroid.y, r_, h - dome_h if h - dome_h > 3 else h, dome_h, roof_mat if roof_mat != "shingle" else "cable")
+            continue
+        pitched = kind in ("gable", "gable_cross", "hip") and rect_frame(p) is not None and (p.area < 700 or e.get("tags", {}).get("roof:shape"))
+        if pitched:
+            wall_top = eave if (eave and eave > 2.2) else (h if roof is None else h - 2.2)
+            ridge = max(0.8, min(7.0, h - wall_top)) if (h - wall_top) > 0.8 else (2.2 if cls == "house" else 1.2)
+        else:
+            wall_top = h
+        z = b0
+        if lm and lm.get("base"):
+            walls(c, p, z, lm["base"][1], lm["base"][0]); z = lm["base"][1]
+        elif store and wall_top > 6:
+            walls(c, p, z, 4.2, "storefront"); z = 4.2
+        if e.get("_base") and not store:
+            bm_, bh_ = e["_base"]; bh_ = min(bh_, wall_top - 0.3)
+            if bh_ > z + 0.3: walls(c, p, z, bh_, bm_); z = bh_
+        walls(c, p, z, wall_top, mat)
+        if not (pitched and pitched_roof(c, p, wall_top, mat, ridge, kind, roof_mat)):
+            flat_poly(c, "roof", p, wall_top, 6.0, True)
+        if mn > 0:
+            for t3 in triangulate(p):
+                pts = [to3(c, x, y, mn) for x, y in t3]
+                tri(c, "concrete_dk", pts[0], pts[1], pts[2], (0, -1.0, 0), [(0, 0), (1, 0), (0, 1)])
+        if cls == "house" and ((rnd * 3.17) % 1.0) < e.get("_porch", 0.78) and 45 < p.area < 300:
+            porch(c, p, (rnd * 7.31) % 1.0)
+        if lm and lm.get("colonnade"):
+            colonnade(c, p, h)
+    if g.area > 300 and h > 8 and rnd > 0.35 and cls not in ("house", "garage"):
+        rp = g.representative_point()
+        c.props.append(["hvac", rp.x - c.ox, -(rp.y - c.oy), h, rnd])
+
+stadium_jobs = defaultdict(list)
+_pitches = []
+for e in els:
+    t = tags(e)
+    if e["type"] != "node" and t.get("leisure") == "pitch":
+        gg = area_geom(e)
+        if gg is not None: _pitches.append(gg)
+for e in els:
+    t = tags(e)
+    if e["type"] != "node" and t.get("leisure") == "stadium":
+        sg = area_geom(e)
+        if sg is None or sg.area < 3000: continue
+        inside = [pp for pp in _pitches if sg.contains(pp.representative_point())]
+        if not inside: continue
+        pitch = max(inside, key=lambda a: a.area)
+        cp_ = sg.representative_point()
+        stadium_jobs[rkey(cp_.x, cp_.y)].append((sg, pitch, t.get("name", "")))
+log("stadiums", sum(len(v) for v in stadium_jobs.values()))
+
+def build_stadium(sg, pitch):
+    cp_ = sg.representative_point(); c = chunk_at(cp_.x, cp_.y)
+    for k in range(16):
+        inner = pitch.buffer(5 + k * 2.6); outer = pitch.buffer(5 + (k + 1) * 2.6)
+        ring = safe(lambda a, b: a.difference(b), outer, inner).intersection(sg)
+        if ring.is_empty or ring.area < 5: break
+        z = 1.2 + k * 1.05
+        for pg in polys_of(ring):
+            pg = orient(pg, 1.0)
+            walls(c, pg, 0.0, z, "concrete_dk"); flat_poly(c, "seats", pg, z, 2.0, True)
+    ring_ = sg.exterior
+    for k in range(6):
+        pt = ring_.interpolate(k / 6, normalized=True)
+        cbox(c, pt.x, pt.y, (1.0, 0.0), (0.0, 1.0), 0.5, 0.5, 0.0, 34.0, "concrete_dk", True)
+        cbox(c, pt.x, pt.y, (1.0, 0.0), (0.0, 1.0), 2.4, 0.9, 34.0, 36.5, "glass_lit")
+
+bjobs = defaultdict(list)
+PART_PARENT = {}
+
+# ---------------------------------------------------------------- themed bars (enterable)
+BAR_MAT = {"Shot Clock": "bar_shooters", "The Salty Hull": "bar_anchor", "Cardboard Club": "bar_cardboard", "Easy Pour": "bar_easypour",
+           "Velvet Mile": "bar_velvet", "Erie Tiki": "bar_lakefront", "Neon Coyote": "bar_coyote", "Alligator Club": "bar_gator",
+           "Two Buck Tavern": "dive_twobuck", "Dollar Draft": "dive_dollar", "Corner Tap": "dive_cornertap", "Happy Hour Hut": "dive_happyhour",
+           "Tipsy Tom's": "dive_tipsytom", "BAR": "dive_bar", "Last Call": "dive_lastcall"}
+BAR_BLDG = {}          # building key -> theme
+BARS_PATH = os.environ.get("BARS", os.path.join(os.path.dirname(os.path.abspath(SRC.rstrip("/"))), "bars.json"))
+_bars = json.load(open(BARS_PATH)) if os.path.exists(BARS_PATH) else []
+_btree = STRtree([g for _, g in buildings]) if buildings else None
+_synth = 0
+for b in _bars:
+    pt = Point(b["x"], b["y"])
+    if not BBOX_P.contains(pt): continue
+    k = _btree.nearest(pt) if _btree is not None else None
+    if k is not None and buildings[k][1].distance(pt) < 30 and buildings[k][1].area < 6000:
+        e_, g_ = buildings[k]
+        BAR_BLDG[f"{e_['type'][0]}{e_['id']}"] = b["theme"]
+    else:   # no mapped building: put a modest one-storey bar where the business is
+        _synth += 1
+        fake = {"type": "way", "id": 9_000_000_000 + _synth, "tags": {"building": "commercial", "height": "5.5"}}
+        g_ = box(b["x"] - 8, b["y"] - 6, b["x"] + 8, b["y"] + 6)
+        buildings.append((fake, g_))
+        BAR_BLDG[f"w{fake['id']}"] = b["theme"]
+log("bars mapped", len(BAR_BLDG), "synthesized", _synth)
+
+def bar_door(c, p, theme, h):
+    """Front door on the wall facing the nearest street; records it for the game (enter/exit + exterior props)."""
+    cs = list(orient(p, 1.0).exterior.coords)
+    road = street_lines[STREET_TREE.nearest(p.centroid)] if STREET_TREE is not None else None
+    best = None
+    for (x0, y0), (x1, y1) in zip(cs, cs[1:]):
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L < 3: continue
+        nx, ny = (y1 - y0) / L, -(x1 - x0) / L
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        score = L * 0.01
+        if road is not None:
+            rp = road.interpolate(road.project(Point(mx, my)))
+            dx, dy = rp.x - mx, rp.y - my; dl = math.hypot(dx, dy) or 1
+            score += (nx * dx + ny * dy) / dl - dl * 0.01
+        if best is None or score > best[0]: best = (score, mx, my, nx, ny, L)
+    if best is None: return
+    _, mx, my, nx, ny, L = best
+    dx_, dy_ = mx + nx * 0.25, my + ny * 0.25
+    yaw = math.atan2(-nx, ny)   # Godot yaw so that local -Z points out of the building
+    c.bars.append([theme, dx_ - c.ox, -(dy_ - c.oy), float(yaw), float(min(h, 12.0)), float(L)])
+for e, g in buildings:
+    cp = g.representative_point()
+    if not BBOX_P.contains(cp): continue
+    key_ = f"{e['type'][0]}{e['id']}"
+    if part_tree is not None:
+        hits = [k for k in part_tree.query(g) if g.contains(parts[k][1].representative_point())]
+        if hits:
+            for k in hits:
+                if key_ in LANDMARKS: PART_PARENT[k] = key_
+            covered = sum(parts[k][1].area for k in hits)
+            if covered > 0.6 * g.area and key_ not in LANDMARKS: continue
+    bjobs[rkey(cp.x, cp.y)].append((e, g, cp, False))
+# LiDAR-exact massing replaces OSM building:parts entirely (orphaned parts would float or double up)
+_ex = [g for e, g in buildings if (LID.get(f"{e['type'][0]}{e['id']}") or {}).get("exact")]
+_ex_tree = STRtree(_ex) if _ex else None
+for k_, (e, g) in enumerate(parts):
+    cp = g.representative_point()
+    if _ex_tree is not None and any(_ex[i].contains(cp) for i in _ex_tree.query(cp)): continue
+    if BBOX_P.contains(cp): bjobs[rkey(cp.x, cp.y)].append((e, g, cp, ("part", k_)))
+
+labels_done = set()
+def do_building(e, g, cp, is_part):
+    t = tags(e)
+    rnd = int(hashlib.md5(str(e["id"]).encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+    part_lm = LANDMARKS.get(PART_PARENT.get(is_part[1])) if isinstance(is_part, tuple) else None
+    kind = "yes" if is_part else t.get("building", "yes")
+    cls = classify(kind, g.area)
+    owe = in_owe(cp.x, cp.y)
+    h, mn = h_of(t, rnd, cls, math.hypot(cp.x, cp.y), owe)
+    key = f"{e['type'][0]}{e['id']}"
+    lm = LANDMARKS.get(key)
+    if lm is None and not is_part:
+        for (la, lo), d_ in POINT_LANDMARKS:
+            px, py = P(la, lo)
+            if g.buffer(8).contains(Point(px, py)) and g.area > 600: lm = d_; break
+    m = LID.get(key)
+    roof = eave = tiers = None
+    has_tag_h = t.get("height") or t.get("building:levels")
+    if m and "h" in m and m.get("n", 0) >= 6:
+        mh = m["h"]
+        # trust LiDAR unless the building is newer than the 2016 scan (no/low returns) or tags say much taller
+        if not (has_tag_h and h > mh * 1.6):
+            if not is_part or mn <= 0: h = max(2.6, mh)
+            roof = m.get("roof")
+            if roof == "complex": roof = None
+            eave = m.get("eave")
+            tiers = m.get("tiers") if not is_part else None
+            cls = "house" if (cls == "yes" and roof in ("gable", "hip", "gable_cross") and g.area < 300) else cls
+    if m and m.get("demolished"): return
+    exact = bool(m and m.get("exact"))
+    if exact:
+        h = m["h"]; tiers = m["tiers"]; roof = None
+    elif lm:
+        h = lm.get("h", h); tiers = None
+    osm_roof = {"gabled": "gable", "hipped": "hip", "dome": "dome", "pyramidal": "hip", "flat": "flat"}.get(t.get("roof:shape", ""))
+    if osm_roof: roof = osm_roof
+    mat = lm["mat"] if lm else (part_lm["mat"] if part_lm else style_of(t, cls, h, cp.x, cp.y, rnd, owe))
+    roof_mat = {"green": "copper_green", "silver": "cable", "black": "roof", "red": "shingle_red"}.get(t.get("roof:colour", ""), "shingle")
+    dcore = math.hypot(cp.x, cp.y)
+    store = (not lm) and cls not in ("house", "garage") and roof in (None, "flat") and h < 60 and \
+            (cls in ("commercial", "retail") or (cls == "yes" and dcore < 1800 and g.area > 120))
+    if lm or tiers or roof in (None, "flat"):
+        roof = None if (lm and not osm_roof) else roof
+    ct = t if "c:luc" in t or "c:ctype" in t else ATTACH.get(key)
+    if ct and not lm and not part_lm and not is_part:
+        cmat, cls2, h2, store2 = county_style(ct, g, h, rnd, cls, store, m, e)
+        if cmat:
+            mat, cls, h, store = cmat, cls2, h2, store2
+            if cls in ("house", "garage") and roof is None and not (m and m.get("roof") == "flat"):
+                roof = "gable" if rnd < 0.62 else "hip"
+    bar_theme = BAR_BLDG.get(key)
+    if bar_theme:
+        mat = BAR_MAT[bar_theme]; store = False; roof = None; tiers = None
+    if exact:
+        e["_exact"] = True
+        sp = default_facade(mat, ct or t, h, cls, store, rnd)
+        sp.update(FACADES.get(key, {}))
+        e["_fspec"] = sp
+    emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=roof, eave=eave, tiers=tiers, lm=lm, store=store, roof_mat=roof_mat)
+    if bar_theme:
+        c_ = chunk_at(cp.x, cp.y)
+        p_ = max(polys_of(g), key=lambda a: a.area)
+        bar_door(c_, p_, bar_theme, h)
+    nm = (t.get("name") or "").strip()
+    if nm and not is_part:
+        low = nm.lower().replace("-", " "); shown = None
+        for k, v in PARODY.items():
+            if k in low: shown = v; break
+        big = g.area > 1500 or h > 25
+        if shown is None and big and any(k in low for k in GOV_OK) and not any(b in low for b in BRANDY) and not t.get("brand") and not t.get("shop"):
+            shown = nm
+        if shown and shown not in labels_done and g.area > 400:
+            labels_done.add(shown)
+            c = chunk_at(cp.x, cp.y)
+            c.labels.append([shown, cp.x - c.ox, -(cp.y - c.oy), h + 3.0])
+
+# ---------------------------------------------------------------- spawn
+def find_spawn():
+    by_name = defaultdict(list)
+    for rk, jobs in seg_jobs.items():
+        for j in jobs:
+            if j[0] == "st" and j[1] in ("North Summit Street", "Summit Street", "Madison Avenue"):
+                by_name[j[1]].append(LineString([(j[2], j[3]), (j[4], j[5])]))
+    for n1, n2 in (("North Summit Street", "Madison Avenue"), ("Summit Street", "Madison Avenue")):
+        if by_name[n1] and by_name[n2]:
+            i = unary_union(by_name[n1]).intersection(unary_union(by_name[n2]))
+            if not i.is_empty:
+                p = i.representative_point()
+                return (p.x, p.y, n1, n2)
+    return (0.0, 0.0, "", "")
+sx, sy, s1, s2 = find_spawn()
+log("spawn", round(sx), round(sy), s1, s2)
+
+# ---------------------------------------------------------------- region loop
+os.makedirs(os.path.join(OUTDIR, "chunks"), exist_ok=True)
+manifest_chunks = []
+written = set()
+total_v = 0
+def flush_region():
+    global total_v
+    for (i, j), c in list(chunks.items()):
+        if (i, j) in written: print("WARN chunk rewritten", i, j)
+        written.add((i, j))
+        layers = []
+        for mat, (V, Nn, U) in c.layers.items():
+            if V:
+                layers.append({"mat": mat, "v": PV3(V), "n": PV3(Nn), "uv": PV2(U)})
+                total_v += len(V)
+        if c.fac[0]:
+            V, Nn, U, U2, CO, C0 = c.fac
+            layers.append({"mat": "facade", "v": PV3(V), "n": PV3(Nn), "uv": PV2(U), "uv2": PV2(U2), "color": PCOL(CO), "c0": PF32(C0)})
+            total_v += len(V)
+        d = {"x": i, "z": j, "ox": c.ox, "oz": -c.oy, "layers": layers, "col": PV3(c.col),
+             "streets": c.streets, "labels": c.labels, "bars": c.bars,
+             "props": [[p[0], float(p[1]), float(p[2]), float(p[3]), float(p[4])] for p in c.props]}
+        raw = enc(d)
+        with open(os.path.join(OUTDIR, "chunks", f"{i}_{j}.bin"), "wb") as f:
+            f.write(b"TCZ1" + struct.pack("<I", len(raw)) + zlib.compress(raw, 6))
+        manifest_chunks.append([i, j])
+    chunks.clear()
+
+rx0, ry0 = math.floor(bx0 / REGION), math.floor(by0 / REGION)
+rx1, ry1 = math.floor(bx1 / REGION), math.floor(by1 / REGION)
+nreg = (rx1 - rx0 + 1) * (ry1 - ry0 + 1); done = 0
+for ri in range(rx0, rx1 + 1):
+    for rj in range(ry0, ry1 + 1):
+        Rb_ = box(ri * REGION, rj * REGION, (ri + 1) * REGION, (rj + 1) * REGION)
+        Rg = Rb_.intersection(BBOX)
+        done += 1
+        if Rg.is_empty or Rg.area < 1: continue
+        rb = Rg.buffer(40)
+        clip = lambda g: safe(lambda a, b: a.intersection(b), g, Rg)
+        water_r = clip(local_union(T_WATER, rb))
+        roads_r = safe(lambda a, b: a.difference(b), clip(local_union(T_ROAD, rb)), water_r)
+        side_r = safe(lambda a, b: a.difference(b), clip(local_union(T_SIDE, rb)), unary_union([roads_r, water_r]))
+        taken = unary_union([water_r, roads_r, side_r])
+        park_r = safe(lambda a, b: a.difference(b), clip(local_union(T_PARK, rb)), taken)
+        taken = unary_union([taken, park_r])
+        forest_r = safe(lambda a, b: a.difference(b), clip(local_union(T_FOREST, rb)), taken)
+        taken = unary_union([taken, forest_r])
+        parking_r = safe(lambda a, b: a.difference(b), clip(local_union(T_PARKING, rb)), taken)
+        taken = unary_union([taken, parking_r])
+        ind_r = safe(lambda a, b: a.difference(b), clip(local_union(T_IND, rb)), taken)
+        taken = unary_union([taken, ind_r])
+        generic = safe(lambda a, b: a.difference(b), Rg, taken)
+        add_area(generic, "lot", 0.0, 8.0, True, GROUND_COL_Y)
+        add_area(park_r, "grass", 0.0, 8.0, True, GROUND_COL_Y)
+        add_area(forest_r, "forest_floor", 0.0, 8.0, True, GROUND_COL_Y)
+        add_area(ind_r, "industrial", 0.01, 8.0, True, GROUND_COL_Y)
+        add_area(parking_r, "parking", 0.02, 6.0, True, GROUND_COL_Y)
+        add_area(side_r, "sidewalk", 0.05, 3.0, True, GROUND_COL_Y)
+        add_area(roads_r, "asphalt", 0.08, 6.0, True, GROUND_COL_Y)
+        if not water_r.is_empty:
+            add_area(water_r, "water", WATER_Y, 20.0)
+            add_area(water_r, "riverbed", BED_Y, 10.0, True)
+            ring_walls(water_r, Rg.exterior, GROUND_COL_Y, BED_Y, "seawall")
+        water_p = shapely.prepared.prep(water_r)
+        hard = shapely.prepared.prep(unary_union([roads_r.buffer(0.5), water_r, side_r]))
+        # scatter trees in parks (sparse) and woods (dense)
+        for g, dens in ((park_r, 220.0), (forest_r, 55.0)):
+            for pg in polys_of(g):
+                n = int(pg.area / dens); x0, y0, x1, y1 = pg.bounds; tries = 0
+                pp = shapely.prepared.prep(pg)
+                while n > 0 and tries < n * 5 + 10:
+                    tries += 1
+                    x, y = rng.uniform(x0, x1), rng.uniform(y0, y1)
+                    if pp.contains(Point(x, y)):
+                        c = chunk_at(x, y); c.props.append(["tree", x - c.ox, -(y - c.oy), 0.0, rng.uniform(0.7, 1.4)]); n -= 1
+        for j in seg_jobs.get((ri, rj), []):
+            k = j[0]
+            if k == "cl": emit_centerline(j[1], j[2], j[3], j[4], water_p)
+            elif k == "st":
+                mx, my = (j[2] + j[4]) / 2, (j[3] + j[5]) / 2
+                if BBOX_P.contains(Point(mx, my)):
+                    c = chunk_at(mx, my)
+                    c.streets.append([j[1], j[2] - c.ox, -(j[3] - c.oy), j[4] - c.ox, -(j[5] - c.oy)])
+            elif k == "lamp":
+                pt = Point(j[1], j[2])
+                if BBOX_P.contains(pt) and not hard.contains(pt):
+                    c = chunk_at(j[1], j[2]); c.props.append(["lamp", j[1] - c.ox, -(j[2] - c.oy), 0.0, j[3]])
+            elif k == "stree":
+                pt = Point(j[1], j[2])
+                if BBOX_P.contains(pt) and not hard.contains(pt):
+                    c = chunk_at(j[1], j[2]); c.props.append(["tree", j[1] - c.ox, -(j[2] - c.oy), 0.0, j[3]])
+            elif k == "br": emit_bridge_seg(*j[1:])
+            elif k == "wt":
+                _, mat_, a_, b_, c3_, n_, uv_, col_ = j
+                ch = chunk_at((a_[0] + b_[0] + c3_[0]) / 3, (a_[1] + b_[1] + c3_[1]) / 3)
+                tri(ch, mat_, to3(ch, *a_), to3(ch, *b_), to3(ch, *c3_), n_, uv_, col_)
+        for (sg, pitch, nm_) in stadium_jobs.get((ri, rj), []):
+            try: build_stadium(sg, pitch)
+            except Exception as ex: print("stadium fail", nm_, ex)
+        for (e, g, cp, is_part) in bjobs.get((ri, rj), []):
+            try: do_building(e, g, cp, is_part)
+            except Exception as ex: print("bldg fail", e["id"], ex)
+        flush_region()
+        if done % 20 == 0: log(f"region {done}/{nreg} chunks {len(manifest_chunks)} verts {total_v}")
+
+manifest = {"chunk_size": CHUNK, "origin_lat": LAT0, "origin_lon": LON0, "chunks": manifest_chunks,
+            "spawn": [sx, -sy], "spawn_desc": f"{s1} & {s2}", "bbox": [bx0, -by1, bx1, -by0],
+            "water_y": WATER_Y, "ground_y": GROUND_COL_Y, "places": places}
+json.dump(manifest, open(os.path.join(OUTDIR, "manifest.json"), "w"))
+log("DONE chunks", len(manifest_chunks), "verts", total_v, "labels", len(labels_done))

@@ -1,0 +1,81 @@
+{
+  "budget": {
+    "chunks": 400,
+    "draw_calls": 3000,
+    "frame_ms": 16.7,
+    "primitives": 6000000,
+    "ram_mb": 6000,
+    "vram_mb": 6000
+  },
+  "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+  "driver": "Unknown",
+  "game": "GLASS CITY",
+  "gpu": "llvmpipe (LLVM 20.1.2, 256 bits)",
+  "overall": {
+    "avg_fps": 15,
+    "avg_ms": 66.67,
+    "frames": 125,
+    "low1_fps": 13.5,
+    "max_ms": 74.68,
+    "p95_ms": 73.06,
+    "p99_ms": 74
+  },
+  "pass": false,
+  "peaks": {
+    "chunks_max": 455,
+    "draw_calls_max": 4706,
+    "primitives_max": 419436,
+    "ram_mb_max": 860.568246841431,
+    "vram_mb_max": 1038.05210113525
+  },
+  "resolution": "960x540",
+  "segments": {
+    "aerial_high": {
+      "avg_fps": 15.1,
+      "avg_ms": 66.33,
+      "frames": 23,
+      "low1_fps": 13.4,
+      "max_ms": 74.52,
+      "p95_ms": 70.79,
+      "p99_ms": 74.52
+    },
+    "downtown_street": {
+      "avg_fps": 15,
+      "avg_ms": 66.61,
+      "frames": 28,
+      "low1_fps": 13.6,
+      "max_ms": 73.48,
+      "p95_ms": 71.77,
+      "p99_ms": 73.48
+    },
+    "neighborhood_street": {
+      "avg_fps": 15.1,
+      "avg_ms": 66.06,
+      "frames": 28,
+      "low1_fps": 13.4,
+      "max_ms": 74.68,
+      "p95_ms": 73.06,
+      "p99_ms": 74.68
+    },
+    "riverfront_low": {
+      "avg_fps": 15,
+      "avg_ms": 66.8,
+      "frames": 23,
+      "low1_fps": 13.5,
+      "max_ms": 73.83,
+      "p95_ms": 71.63,
+      "p99_ms": 73.83
+    },
+    "skyline_orbit": {
+      "avg_fps": 14.8,
+      "avg_ms": 67.68,
+      "frames": 23,
+      "low1_fps": 13.7,
+      "max_ms": 73.07,
+      "p95_ms": 72.87,
+      "p99_ms": 73.07
+    }
+  },
+  "threads": 2,
+  "when": "2026-11-14T22:49:54"
+}

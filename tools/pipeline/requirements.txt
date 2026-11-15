@@ -1,0 +1,7 @@
+shapely>=2.1
+numpy
+pillow
+laspy[lazrs]
+pyproj
+rasterio
+scipy
