@@ -22,6 +22,8 @@ var _mutex := Mutex.new()
 var _mat: StandardMaterial3D
 var _t := 0.0
 var _focus := Vector3.INF
+var queue: Array[Vector2i] = []    # regions waiting to be built, nearest first
+const MAX_INFLIGHT := 2
 
 func setup(s: Node3D) -> void:
 	streamer = s
@@ -94,9 +96,7 @@ func update(world_pos: Vector3) -> void:
 			if region_chunks(r).is_empty(): continue
 			want.append(r)
 	want.sort_custom(func(a, b): return (a - c).length_squared() < (b - c).length_squared())
-	for r in want:
-		regions[r] = null
-		pending[r] = WorkerThreadPool.add_task(_decode.bind(r, region_chunks(r)))
+	queue = want     # started a few at a time in _process, only while the detail streamer is idle (detail first)
 	for r in regions.keys():
 		var rc := region_center(r)
 		if Vector2(rc.x - world_pos.x, rc.z - world_pos.z).length() > radius_m + rs * 1.5 and not pending.has(r):
@@ -145,6 +145,11 @@ func _decode(r: Vector2i, ks: Array[Vector2i]) -> void:
 
 func _process(dt: float) -> void:
 	if streamer == null: return
+	while not queue.is_empty() and pending.size() < MAX_INFLIGHT and streamer.pending.is_empty():
+		var q: Vector2i = queue.pop_front()
+		if regions.has(q): continue
+		regions[q] = null
+		pending[q] = WorkerThreadPool.add_task(_decode.bind(q, region_chunks(q)))
 	var built := 0
 	while built < builds_per_frame:
 		_mutex.lock()
@@ -187,4 +192,4 @@ func _process(dt: float) -> void:
 				mi.visible = not region_detailed(r)
 
 func is_idle() -> bool:
-	return pending.is_empty()
+	return pending.is_empty() and queue.is_empty()

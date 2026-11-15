@@ -98,6 +98,35 @@ func _rebuild() -> void:
 			if dd < (float(e["w"]) + float(o["w"])) * 0.5 + 14.0:
 				side_block[i] = 1 if (cp - mid).dot(right) > 0.0 else -1
 				break
+	# any road whose sidewalk would land on another road (service lane alongside, tight bend, frontage road):
+	# no sidewalk on that side. Sidewalk points along the edge are tested against every other nearby road.
+	var soff: float = float(P["sidewalk_offset_from_curb"][1])
+	for i in walk_edges:
+		if side_block.has(i): continue
+		var e: Dictionary = tr.edges[i]
+		var a: Vector3 = tr.npos[e["a"]]
+		var right := Vector3(-e["dir"].z, 0, e["dir"].x)
+		var near: Array = []
+		for j in tr.edges.size():
+			if j == i: continue
+			var o: Dictionary = tr.edges[j]
+			if o["a"] == e["a"] or o["a"] == e["b"] or o["b"] == e["a"] or o["b"] == e["b"]: continue
+			var oa: Vector3 = tr.npos[o["a"]]
+			if Vector2(oa.x - a.x, oa.z - a.z).length() < float(o["len"]) + float(e["len"]) + 30.0: near.append(j)
+		if near.is_empty(): continue
+		for side in [1, -1]:
+			var bad := false
+			var hits := 0
+			for t in [0.25, 0.5, 0.75]:
+				var q: Vector3 = a + e["dir"] * float(e["len"]) * t + right * side * (float(e["w"]) * 0.5 + soff)
+				for j in near:
+					var o: Dictionary = tr.edges[j]
+					var cp := Geometry3D.get_closest_point_to_segment(q, tr.npos[o["a"]], tr.npos[o["b"]])
+					if Vector2(cp.x - q.x, cp.z - q.z).length() < float(o["w"]) * 0.5 + 0.5: hits += 1; break
+			bad = hits >= 2      # along the road, not just at a corner
+			if bad:
+				side_block[i] = side
+				break
 	node_r.clear()
 	for n in node_walk:
 		var ways := 0; var r := 0.0

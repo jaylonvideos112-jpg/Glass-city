@@ -16,7 +16,9 @@
 * **World state (Bible stage 3), `scripts/world_state.gd`:** one versioned save file with sections that any system
   registers (`clock`, `player`). Autosaves every 2 minutes and on quit; the game resumes where you left off
   (`--new-game` to start fresh). Old saves migrate.
-* 4 new game tests (grip, audio, far city, world state).
+* Pedestrians no longer walk a sidewalk that would overlap another road running alongside (found once more of the
+  map loads at a time).
+* 4 new game tests (grip, audio, far city, world state); `--only=name` runs a subset. 38 game + 9 data tests pass.
 
 ## Island countryside and town names (2026-11-15)
 * The island is now real data in the middle and made-up countryside around it: about 690 farmsteads (house, barn,

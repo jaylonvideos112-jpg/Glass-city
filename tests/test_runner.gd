@@ -60,6 +60,8 @@ func _run() -> void:
 		["far_city_hlod_covers_horizon", t_hlod],
 		["world_state_sections_round_trip", t_world_state],
 	]
+	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
+		if a.begins_with("--only="): tests = tests.filter(func(t): return a.substr(7) in t[0])
 	for t in tests:
 		var t0 := Time.get_ticks_msec()
 		var r = await t[1].call()
@@ -602,6 +604,8 @@ func t_pd_density() -> Array:
 	return [true, "3 am %d people, 12:30 pm %d" % [night, noon]]
 
 ## Distance from a world point to the nearest drivable road surface (negative = inside the carriageway).
+var _worst_info := ""
+var _near_edge := ""
 func _off_road(q: Vector3) -> float:
 	var tr = main.traffic
 	var best := 1e9
@@ -609,7 +613,9 @@ func _off_road(q: Vector3) -> float:
 		var a: Vector3 = tr.npos[e["a"]]; var b: Vector3 = tr.npos[e["b"]]
 		if (a - q).length() > 200.0 and (b - q).length() > 200.0: continue
 		var cp := Geometry3D.get_closest_point_to_segment(Vector3(q.x, 0, q.z), a, b)
-		best = min(best, Vector2(cp.x - q.x, cp.z - q.z).length() - float(e.get("w", 8.0)) * 0.5)
+		var dd := Vector2(cp.x - q.x, cp.z - q.z).length() - float(e.get("w", 8.0)) * 0.5
+		if dd < best: _near_edge = "edge %s-%s w %.1f cls %s" % [e["a"], e["b"], float(e.get("w", 8.0)), e.get("cls", e.get("class", "?"))]
+		best = min(best, dd)
 	return best
 
 func t_pd_walk() -> Array:
@@ -628,6 +634,7 @@ func t_pd_walk() -> Array:
 		for p in pd.peds:
 			if p["state"] == "cross": continue
 			var d := _off_road(p["pos"])
+			if d < worst: _worst_info = "at %s state %s near %s; ped edge %s" % [p["pos"].snapped(Vector3.ONE * 0.1), p.get("state", ""), _near_edge, [p.get("ea"), p.get("eb"), p.get("edge")]]
 			worst = min(worst, d)
 			if d < -0.3: in_road += 1
 	var moved := 0; var m := 0
@@ -637,7 +644,7 @@ func t_pd_walk() -> Array:
 			if (p["pos"] - start[p["node"]]).length() > 5.0: moved += 1
 	tod.total_hours = keep; tod.apply_now()
 	if moved < m * 0.5: return [false, "only %d of %d people walked more than 5 m in 10 s" % [moved, m]]
-	if in_road > 0: return [false, "%d samples of people walking in the road (worst %.1f m inside)" % [in_road, -worst]]
+	if in_road > 0: return [false, "%d samples of people walking in the road (worst %.1f m inside %s)" % [in_road, -worst, _worst_info]]
 	return [true, "%d people, %d of %d walked >5 m in 10 s, closest to traffic %.1f m from the curb" % [n, moved, m, worst]]
 
 func t_pd_cross() -> Array:
