@@ -214,3 +214,9 @@ func _process(dt: float) -> void:
 
 func is_idle() -> bool:
 	return pending.is_empty() and queue.is_empty()
+
+## don't let worker threads outlive this node (quitting mid-build crashed)
+func _exit_tree() -> void:
+	queue = []
+	for r in pending: WorkerThreadPool.wait_for_task_completion(pending[r])
+	pending.clear()

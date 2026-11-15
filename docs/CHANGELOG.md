@@ -1,5 +1,19 @@
 # Changelog
 
+## Smartphone (2026-11-15)
+* **Phone (`scripts/phone.gd`):** Tab opens it; arrows move, Enter opens, Backspace goes back. Apps:
+  * **Maps** - a map of the whole island (`textures/phone_map.png` from `make_phone_map.py`), 13 categories of
+    places (my places, food, groceries, bars, ATMs, jobs, dealers, auto shops, gyms & bowling, ballparks & cinemas,
+    fishing, homes for rent, police & hospitals), nearest first; Enter sets the **GPS**: purple route along the roads
+    on the radar, distance in miles, a light beam at the destination, "You've arrived".
+  * **GlassPay** balance, cash and recent transactions · **Jobs** apply/quit from the phone · **Messages** - every
+    on-screen notice is kept here · **Contacts** - Mike's Towing brings your car to you ($150), boss, landlord, transit,
+    Mom · **My Stuff** cars (GPS to them), businesses, home · **News** - the Glass City Gazette, headlines from the
+    weather, Swamp Hens, police and economy · **Profile** - needs, stats, fish log · **Camera** - photo mode: zoom
+    (Z/X or wheel), filters (normal, black & white, warm, vivid), Space saves a PNG to `user://photos` ·
+    **Settings** - wallpaper.
+* Saved as section `phone`. 1 new test. Fixed a crash when quitting while far-city meshes were still building.
+
 ## Needs, inventory, activities (2026-11-15)
 * **Needs (`scripts/needs.gd`, `source_data/life.json`):** health and stamina (the Bible's only formal attributes),
   hunger and fitness. Hunger empties over ~30 game hours (starving slowly costs health); sprinting uses stamina; max

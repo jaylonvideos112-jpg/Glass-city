@@ -101,6 +101,7 @@ func toggle_help() -> void:
 func flash(t: String) -> void:
 	flash_label.text = t
 	flash_t = 2.5
+	if main and main.get("phone") and main.phone: main.phone.notify(t)     # every notice also lands in Messages
 
 func _process(dt: float) -> void:
 	if main == null or main.streamer == null:
@@ -179,6 +180,19 @@ func _draw_radar() -> void:
 			continue
 		a = a.limit_length(R); b = b.limit_length(R)
 		radar.draw_line(c + a, c + b, Color(0.85, 0.85, 0.8, 0.9), 3.0)
+	# GPS: route along the roads and the waypoint (clamped to the rim)
+	var ph = main.get("phone")
+	if ph and ph.waypoint != Vector3.INF:
+		var prev = null
+		for q in ph.route:
+			var r2: Vector2 = (Vector2(q.x, q.z) - f2).rotated(yaw) * scale
+			if prev != null and (r2.length() < R or prev.length() < R):
+				radar.draw_line(c + (prev as Vector2).limit_length(R), c + r2.limit_length(R), Color(0.75, 0.35, 1.0), 4.0)
+			prev = r2
+		var wpt: Vector2 = (Vector2(ph.waypoint.x, ph.waypoint.z) - f2).rotated(yaw) * scale
+		radar.draw_circle(c + wpt.limit_length(R - 4.0), 6.0, Color(0.75, 0.35, 1.0))
+		var dist_m: float = Vector2(ph.waypoint.x - fw.x, ph.waypoint.z - fw.z).length()
+		radar.draw_string(ThemeDB.fallback_font, c + Vector2(-40, R + 22), "%.1f mi" % (dist_m / 1609.0), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color(0.85, 0.7, 1.0))
 	# player arrow (heading relative to camera)
 	var heading: float
 	if main.current_car:

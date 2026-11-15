@@ -241,7 +241,20 @@ func _shots(dt: float) -> void:
 	var cam: Camera3D = main.camera
 	var pos = s[1]
 	var look = s[2]
-	if s[0] == "@bowling" and main.activities:
+	if s[0] == "@phone" and main.phone:
+		main.hud.visible = true
+		var ph = main.phone
+		if not ph.open:
+			ph.set_open(true); ph.app = "Maps"; ph.map_cat = ph.CATS.find("Food"); ph.map_zoom = 4.0; ph._refresh()
+			ph.sel = 0; ph._activate(); ph.sel = 1; ph._refresh()
+		var pl: Vector3 = main.player.global_position + main.world_offset
+		pos = pl + Vector3(-4, 2.6, 6); look = pl + Vector3(0, 1.4, 0)
+		if shot_wait < 3.0:
+			shot_wait += dt
+			ph._update_route(); ph._refresh()
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP)
+			return
+	elif s[0] == "@bowling" and main.activities:
 		# HUD + the bowling game overlay, mid-game, over the street view
 		main.hud.visible = true
 		var ac = main.activities

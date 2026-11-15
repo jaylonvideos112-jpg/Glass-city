@@ -73,6 +73,7 @@ func _run() -> void:
 		["car_damage_repair_upgrade_views", t_damage],
 		["needs_hunger_stamina_fitness_weight", t_needs],
 		["activities_food_gym_games_fishing_bowling", t_activities],
+		["phone_apps_gps_tow_photo", t_phone],
 		["police_close_in_offroad_and_helicopter", t_police_heli],
 		["emergency_responds_with_siren", t_dispatch],
 	]
@@ -149,6 +150,60 @@ func t_wanted() -> Array:
 	if fined != 300: return [false, "fine %d, expected 300" % fined]
 	if not at_station: return [false, "not released at a police station"]
 	return [true, "1 star -> %d unit(s) (routed: %s); lost them; busted = 8 am at the station, fined $%d" % [got_units, has_route, fined]]
+
+func t_phone() -> Array:
+	var ph = main.phone
+	ph.set_open(true)
+	var home_ok: bool = ph._panel.visible and ph.app == ""
+	var counts := {}
+	ph.app = "Maps"
+	for i in ph.CATS.size():
+		ph.map_cat = i; ph._refresh(); counts[ph.CATS[i]] = ph._list.size()
+	ph.map_cat = ph.CATS.find("Food"); ph._refresh()
+	var target: Vector3 = ph._list[0][1]
+	ph.sel = 0; ph._activate()
+	ph._update_route()
+	var routed: int = ph.route.size()
+	var gps_ok: bool = ph.waypoint != Vector3.INF
+	# every notice lands in Messages
+	main.hud.flash("Test notice")
+	var msg_ok: bool = ph.messages[-1][1] == "Test notice"
+	# tow: your car brought next to you
+	var mine = null
+	for c in main.cars:
+		if is_instance_valid(c) and c.owned_index >= 0: mine = c
+	var cs0: int = main.money.cash; var w0: int = main.money.wallet
+	main.money.cash = 0; main.money.wallet = 500
+	var keep_t: Transform3D = mine.global_transform
+	mine.global_position += Vector3(80, 0, 0)
+	ph.call_contact("tow")
+	var towed: float = mine.global_position.distance_to(main.player.global_position)
+	var paid: int = 500 - main.money.wallet
+	mine.global_transform = keep_t
+	main.money.cash = cs0; main.money.wallet = w0
+	ph.set_open(false)
+	var input_back: bool = main.input_enabled
+	# camera: a photo file
+	ph.enter_photo_mode(); ph.set_filter(1)
+	var path: String = await ph.take_photo()
+	var bw: bool = main.env.adjustment_saturation == 0.0
+	ph.exit_photo_mode()
+	var photo_ok: bool = FileAccess.file_exists(path)
+	var snap: Dictionary = main.world_state.snapshot()
+	ph.wallpaper = 2
+	main.world_state.restore(snap, ["phone"])
+	var saved: bool = ph.wallpaper == 0
+	ph.clear_waypoint()
+	var empty: Array = counts.keys().filter(func(k): return counts[k] == 0 and k != "My places")
+	if not home_ok: return [false, "phone didn't open"]
+	if not empty.is_empty(): return [false, "map categories with nothing: %s" % [empty]]
+	if not gps_ok: return [false, "no waypoint set"]
+	if not msg_ok: return [false, "notice not in Messages"]
+	if towed > 8.0 or paid != 150: return [false, "tow: car %.0f m away, paid $%d" % [towed, paid]]
+	if not input_back: return [false, "controls not given back after closing the phone"]
+	if not (photo_ok and bw): return [false, "photo/filter failed"]
+	if not saved: return [false, "phone settings not saved"]
+	return [true, "13 map categories; GPS route %d road points to the nearest food; tow $150; B&W photo saved; Messages logs notices" % routed]
 
 func t_needs() -> Array:
 	var nd = main.needs; var tod = main.tod
