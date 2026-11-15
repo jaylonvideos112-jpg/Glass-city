@@ -1,0 +1,211 @@
+extends Node
+## Game clock, calendar, sun/moon, sky and night lighting (Bible §6; decision log: 1 real hour per game day).
+## All numbers come from source_data/climate.json. Weather (weather.gd) feeds cloud/fog/darkness multipliers in.
+
+const CLIMATE_PATH := "res://source_data/climate.json"
+const SAVE_PATH := "user://world_state.json"
+
+var main: Node
+var C: Dictionary                 # climate.json
+var total_hours := 0.0            # game hours since day 0, 00:00
+var time_scale := 1.0             # F6 toggles x60 for testing
+var sec_per_day := 3600.0
+var days_per_season := 12
+var seasons: Array = []
+var start_weekday := 0
+
+var sun: DirectionalLight3D
+var moon: DirectionalLight3D
+var sky_mat: ProceduralSkyMaterial
+var night := 0.0                  # 0 day .. 1 full night (drives window/lamp emission)
+var sun_alt := 0.0                # degrees
+var occupancy := 0.5
+var fog_base := 0.00022           # demo/camera code sets this; weather multiplies it
+var _night_mats: Array = []       # StandardMaterial3D with window emission masks
+var _lamp_mat: StandardMaterial3D
+var _acc := 0.0
+
+func _ready() -> void:
+	C = JSON.parse_string(FileAccess.get_file_as_string(CLIMATE_PATH))
+	var ck: Dictionary = C["clock"]
+	sec_per_day = ck["real_seconds_per_game_day"]
+	days_per_season = int(ck["days_per_season"])
+	seasons = ck["seasons"]
+	var st: Dictionary = ck["start"]
+	start_weekday = int(st["weekday"])
+	total_hours = (seasons.find(st["season"]) * days_per_season + int(st["day"]) - 1) * 24.0 + float(st["hour"])
+	sun = main.get_node("Sun")
+	moon = DirectionalLight3D.new(); moon.name = "Moon"
+	moon.light_color = Color(0.55, 0.65, 0.9); moon.light_energy = 0.0; moon.shadow_enabled = false
+	moon.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY   # no sky disc (a dark disc showed by day)
+	main.add_child(moon)
+	sky_mat = main.env.sky.sky_material
+	# cloud layer: a wrapping noise panorama, faded in by weather cloudiness (sky_cover_modulate alpha)
+	var nt := NoiseTexture2D.new()
+	var fn := FastNoiseLite.new()
+	fn.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	fn.frequency = 0.006
+	fn.fractal_octaves = 5
+	nt.noise = fn; nt.width = 1024; nt.height = 512; nt.seamless = true
+	nt.color_ramp = Gradient.new()
+	nt.color_ramp.set_color(0, Color(0, 0, 0)); nt.color_ramp.set_color(1, Color(1, 1, 1))
+	nt.color_ramp.set_offset(0, 0.42); nt.color_ramp.set_offset(1, 0.78)
+	sky_mat.sky_cover = nt
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--time="):          # --time=21.5 or --time=summer,3,21.5
+			var p := a.substr(7).split(",")
+			if p.size() == 3: set_date(p[0], int(p[1]), float(p[2]))
+			else: set_hour(float(p[0]))
+		if a == "--load-world": load_state()
+	if not InputMap.has_action("time_fast"):
+		for pair in [["time_fast", KEY_F6], ["weather_next", KEY_F7]]:
+			InputMap.add_action(pair[0])
+			var ev := InputEventKey.new(); ev.physical_keycode = pair[1]
+			InputMap.action_add_event(pair[0], ev)
+	apply_now()
+
+# ------------------------------------------------------------------ calendar
+func day_index() -> int: return int(floor(total_hours / 24.0))
+func hour() -> float: return fposmod(total_hours, 24.0)
+func season_index() -> int: return int(day_index() / days_per_season) % seasons.size()
+func season_name() -> String: return seasons[season_index()]
+func day_in_season() -> int: return day_index() % days_per_season + 1
+func year() -> int: return int(day_index() / (days_per_season * seasons.size())) + 1
+func weekday_name() -> String:
+	var w: Array = C["clock"]["weekdays"]
+	return w[(start_weekday + day_index()) % 7]
+func clock_string() -> String:
+	var h := hour(); var hh := int(h); var mm := int((h - hh) * 60.0)
+	return "%d:%02d %s" % [(hh + 11) % 12 + 1, mm, "AM" if hh < 12 else "PM"]
+func date_string() -> String:
+	return "%s, %s day %d, year %d" % [weekday_name(), season_name().capitalize(), day_in_season(), year()]
+
+func set_hour(h: float) -> void:
+	total_hours = day_index() * 24.0 + clamp(h, 0.0, 23.999)
+	apply_now()
+
+func set_date(season: String, day: int, h: float) -> void:
+	total_hours = ((year() - 1) * days_per_season * seasons.size() + seasons.find(season) * days_per_season + day - 1) * 24.0 + h
+	apply_now()
+
+# ------------------------------------------------------------------ sun
+## Day of the real year that this game day stands for (seasons start on the solstices/equinoxes).
+func day_of_year() -> float:
+	var sd: Dictionary = C["clock"]["season_day_of_year"]
+	var s := season_name()
+	var nxt: String = seasons[(season_index() + 1) % seasons.size()]
+	var a: float = sd[s]; var b: float = sd[nxt]
+	if b < a: b += 365.0
+	var f := (day_in_season() - 1 + hour() / 24.0) / days_per_season
+	return fposmod(a + (b - a) * f, 365.0)
+
+## Sun altitude/azimuth (degrees) for the current clock. Azimuth from north, clockwise.
+func sun_position() -> Vector2:
+	var L: Dictionary = C["location"]
+	var lat := deg_to_rad(float(L["lat"]))
+	var decl := deg_to_rad(23.44 * sin(TAU * (day_of_year() - 81.0) / 365.0))
+	var noon: float = L["solar_noon_standard"] + (1.0 if L["dst_seasons"].has(season_name()) else 0.0)
+	var ha := deg_to_rad((hour() - noon) * 15.0)
+	var sin_alt := sin(lat) * sin(decl) + cos(lat) * cos(decl) * cos(ha)
+	var alt := asin(clamp(sin_alt, -1.0, 1.0))
+	var az := atan2(-sin(ha), tan(decl) * cos(lat) - sin(lat) * cos(ha))
+	return Vector2(rad_to_deg(alt), fposmod(rad_to_deg(az), 360.0))
+
+static func dir_from(alt_deg: float, az_deg: float) -> Vector3:
+	var a := deg_to_rad(alt_deg); var z := deg_to_rad(az_deg)
+	return Vector3(sin(z) * cos(a), sin(a), -cos(z) * cos(a))   # north = -Z, east = +X
+
+# ------------------------------------------------------------------ per frame
+func _unhandled_input(e: InputEvent) -> void:
+	if e.is_action_pressed("time_fast"):
+		time_scale = 60.0 if time_scale == 1.0 else 1.0
+		main.hud.flash("Time x%d" % int(time_scale))
+
+func _process(dt: float) -> void:
+	total_hours += dt * 24.0 / sec_per_day * time_scale
+	_acc += dt
+	if _acc > 0.1 or time_scale > 1.0:   # lighting changes slowly; 10 Hz is plenty at normal speed
+		_acc = 0.0
+		apply_now()
+
+func register_night_material(m: StandardMaterial3D) -> void:
+	_night_mats.append(m)
+
+func register_lamp_material(m: StandardMaterial3D) -> void:
+	_lamp_mat = m
+
+func _col(h: String) -> Color: return Color(h)
+
+func apply_now() -> void:
+	var sp := sun_position()
+	sun_alt = sp.x
+	var w: Dictionary = main.weather.look() if main.get("weather") else {"cloud": 0.05, "sun": 1.0, "fog": 1.0, "dark": 0.0}
+	var s := sin(deg_to_rad(sun_alt))
+	var day_f := smoothstep(-0.10, 0.22, s)                  # 0 night .. 1 day
+	var dusk_f := clampf(1.0 - absf(s - 0.02) / 0.16, 0.0, 1.0) # peaks at sunrise/sunset
+	night = 1.0 - smoothstep(-0.12, 0.06, s)
+	occupancy = C["occupancy_by_hour"][int(hour()) % 24]
+	# sun
+	var dir := dir_from(max(sun_alt, -2.0), sp.y)
+	sun.basis = Basis.looking_at(-dir, Vector3.UP if abs(dir.y) < 0.99 else Vector3.FORWARD)
+	sun.light_energy = 1.3 * smoothstep(-0.02, 0.2, s) * float(w["sun"])
+	sun.light_color = Color(1.0, 0.62, 0.38).lerp(Color(1.0, 0.95, 0.86), smoothstep(0.02, 0.3, s))
+	sun.shadow_enabled = sun.light_energy > 0.05
+	# moon: high in the opposite sky, soft and blue
+	var md := dir_from(lerp(25.0, 55.0, night), fposmod(sp.y + 180.0, 360.0))
+	moon.basis = Basis.looking_at(-md, Vector3.UP)
+	moon.light_energy = 0.12 * night * (1.0 - 0.8 * float(w["cloud"]))
+	# sky palette: night -> dusk -> day, then greyed by cloud
+	var P: Dictionary = C["sky"]
+	var keys := ["top", "horizon", "ground", "fog"]
+	var col := {}
+	for k in keys:
+		var c := _col(P["night"][k]).lerp(_col(P["day"][k]), day_f)
+		c = c.lerp(_col(P["dusk"][k]), dusk_f * 0.7 * (1.0 - float(w["cloud"]) * 0.6))
+		var grey := Color(c.get_luminance(), c.get_luminance(), c.get_luminance()) * 0.95
+		col[k] = c.lerp(grey, float(w["cloud"]) * 0.75).darkened(float(w["dark"]) * 0.5 * day_f)
+	sky_mat.sky_top_color = col["top"]
+	sky_mat.sky_horizon_color = col["horizon"]
+	sky_mat.ground_horizon_color = col["horizon"].darkened(0.1)
+	sky_mat.ground_bottom_color = col["ground"]
+	sky_mat.sun_angle_max = lerp(20.0, 4.0, float(w["cloud"]))
+	var cl: Color = Color(0.95, 0.95, 0.97).lerp(Color(0.5, 0.52, 0.56), float(w["dark"])) * lerp(0.08, 1.0, day_f)
+	cl = cl.lerp(Color(1.0, 0.7, 0.55), dusk_f * 0.5)
+	sky_mat.sky_cover_modulate = Color(cl.r, cl.g, cl.b, clampf(float(w["cloud"]) * 1.15, 0.0, 1.0))
+	if main.bars == null or not main.bars.inside:
+		main.env.fog_light_color = col["fog"]
+		main.env.fog_density = fog_base * float(w["fog"])
+		main.env.ambient_light_energy = lerp(float(P["night"]["ambient"]), float(P["day"]["ambient"]), day_f) * (1.0 - float(w["dark"]) * 0.4)
+	# night lights: windows (facade shader + masked textures), street lamps
+	var fac: ShaderMaterial = main.streamer.materials.get("facade")
+	if fac:
+		fac.set_shader_parameter("night", night)
+		fac.set_shader_parameter("occupancy", occupancy)
+	var e := night * (0.25 + 0.5 * occupancy)
+	for m in _night_mats:
+		m.emission_energy_multiplier = e * 0.9
+	if _lamp_mat:
+		_lamp_mat.emission_energy_multiplier = 2.5 * night
+
+func is_night() -> bool: return night > 0.5
+
+# ------------------------------------------------------------------ persistence
+func save_state() -> void:
+	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	f.store_string(JSON.stringify({"total_hours": total_hours, "weather": main.weather.state if main.weather else "clear",
+		"weather_left": main.weather.hours_left if main.weather else 6.0}))
+	f.close()
+
+func load_state() -> bool:
+	if not FileAccess.file_exists(SAVE_PATH): return false
+	var d = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	if d == null: return false
+	total_hours = float(d["total_hours"])
+	if main.weather:
+		main.weather.set_state(d["weather"], float(d["weather_left"]))
+	apply_now()
+	return true
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		save_state()

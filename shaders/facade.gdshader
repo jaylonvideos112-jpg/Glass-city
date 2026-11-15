@@ -12,6 +12,7 @@ render_mode blend_mix, cull_back, diffuse_burley, specular_schlick_ggx;
 
 uniform sampler2D noise_tex : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform float night = 0.0;
+uniform float occupancy = 0.6;   // share of rooms with lights on (by hour, from climate.json)
 
 varying vec4 c0;
 varying vec2 fb;
@@ -25,6 +26,13 @@ void vertex() {
 }
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+// a lit room seen through glass: warm or cool, dimmer at the bottom (furniture), each room different
+vec3 room_light(vec2 cell, float fy) {
+	float h = hash(cell + 7.7);
+	vec3 c = h < 0.12 ? vec3(0.55, 0.7, 1.0) : (h < 0.3 ? vec3(1.0, 0.95, 0.85) : vec3(1.0, 0.78, 0.5));
+	float b = 0.16 + 0.22 * hash(cell + 1.3);
+	return c * b * mix(0.55, 1.0, smoothstep(0.1, 0.9, fy));
+}
 
 void fragment() {
 	vec2 m = UV;                       // metres
@@ -60,7 +68,7 @@ void fragment() {
 	vec3 emit = vec3(0.0);
 	float fy = fract(m.y / fh), fx = fract(m.x / bw);
 	vec2 cell = vec2(floor(m.x / bw), floor(m.y / fh));
-	float lit = step(0.62, hash(cell + 3.1));
+	float lit = step(1.0 - occupancy * 0.5, hash(cell + 3.1));
 	if (m.y < base && base > 0.5) {
 		// storefront: tall glazing between thin piers, dark frame, sign band at the top
 		float bx = fract(m.x / max(bw, 3.0));
@@ -68,14 +76,14 @@ void fragment() {
 		float band = step(base - 0.8, m.y);
 		col = mix(col * 0.55, glass * 0.9, glz);
 		col = mix(col, wall * 0.45, band * 0.6);
-		if (glz > 0.5) { rough = 0.08; spec = 0.9; emit = vec3(1.0, 0.85, 0.6) * 0.5 * night; }
+		if (glz > 0.5) { rough = 0.08; spec = 0.9; emit = vec3(1.0, 0.82, 0.55) * 0.3 * night; }
 	} else if (style == 2 || wmat > 0.88) {
 		// curtain wall: glass everywhere, thin mullions on the bay grid, spandrel line at each floor
 		float mull = step(fx, 0.025) + step(0.975, fx);
 		float spand = step(fy, 0.1);
 		col = mix(glass * (0.85 + 0.25 * hash(cell)), wall * 0.6, clamp(mull + spand * 0.7, 0.0, 1.0));
 		rough = mix(0.06, 0.5, clamp(mull + spand, 0.0, 1.0)); metal = 0.2; spec = 0.8;
-		emit = vec3(1.0, 0.9, 0.7) * 0.6 * night * lit * (1.0 - spand);
+		emit = room_light(cell, fy) * night * lit * (1.0 - spand);
 	} else if (style == 4 || style == 6) {
 		if (style == 6) col *= mix(1.0, 0.8, clamp(step(fx, 0.012) + step(fract(m.y / (fh * 0.5)), 0.02), 0.0, 1.0));
 	} else {
@@ -103,7 +111,7 @@ void fragment() {
 			float sash = step(abs(fy - (y0 + y1) * 0.5), 0.012);
 			col = mix(glass * (0.8 + 0.3 * hash(cell)), vec3(0.85), clamp(frame + sash, 0.0, 1.0));
 			rough = 0.08; spec = 0.9; metal = 0.15;
-			emit = vec3(1.0, 0.88, 0.65) * 0.7 * night * lit;
+			emit = room_light(cell, fy) * night * lit * (1.0 - frame);
 		} else {
 			// sill / lintel shadow lines
 			float sill = step(abs(fy - y0 + 0.02), 0.02) * inx;

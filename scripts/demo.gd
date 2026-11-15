@@ -54,6 +54,27 @@ func _ready() -> void:
 		main.streamer.load_radius_m = fly_r0 + fly_h0 * 3.0
 		main.focus_override = fly_center
 		main.streamer.load_now(fly_center)
+	if mode == "timelapse":
+		# fixed camera, fast clock: --cam=x,y,z,lx,ly,lz --timescale=120
+		var c := [420.0, 30.0, 420.0, 150.0, 60.0, 0.0]
+		for a2 in OS.get_cmdline_user_args():
+			if a2.begins_with("--cam="):
+				c = []
+				for v in a2.substr(6).split(","): c.append(float(v))
+			if a2.begins_with("--timescale="): main.tod.time_scale = float(a2.substr(12))
+		main.cam_override = true
+		main.hud.visible = false
+		var cp := Vector3(c[0], c[1], c[2]); var lp := Vector3(c[3], c[4], c[5])
+		main.focus_override = lp.lerp(cp, 0.3) * Vector3(1, 0, 1)
+		main.streamer.load_radius_m = 1500.0
+		main.streamer.load_now(main.focus_override)
+		main.tod.fog_base = 0.00022 * clamp(300.0 / max(cp.y, 1.0), 0.12, 1.0)
+		main.camera.global_position = cp - main.world_offset
+		main.camera.look_at(lp - main.world_offset, Vector3.UP)
+		return
+	if mode == "barwalk":
+		_bar_walk()
+		return
 	if mode == "bars":
 		main.cam_override = true
 		main.hud.visible = false
@@ -207,7 +228,7 @@ func _fly() -> void:
 		main.streamer.load_radius_m = max(700.0, fly_h0 * 2.2)
 	cam.global_position = pos - main.world_offset
 	cam.look_at(center + Vector3(0, 30, 0) - main.world_offset, Vector3.UP)
-	main.env.fog_density = 0.00022 * clamp(300.0 / max(pos.y, 1.0), 0.04, 1.0)
+	main.tod.fog_base = 0.00022 * clamp(300.0 / max(pos.y, 1.0), 0.04, 1.0)
 
 func _shots(dt: float) -> void:
 	if busy:
@@ -241,7 +262,7 @@ func _shots(dt: float) -> void:
 		cam.far = 25000.0
 	cam.global_position = pos - main.world_offset
 	cam.look_at(look - main.world_offset, Vector3.UP)
-	main.env.fog_density = 0.00022 * clamp(300.0 / max(pos.y, 1.0), 0.12, 1.0)
+	main.tod.fog_base = 0.00022 * clamp(300.0 / max(pos.y, 1.0), 0.12, 1.0)
 	shot_wait += dt
 	if shot_wait > 1.5 and main.streamer.is_idle():
 		busy = true
@@ -313,3 +334,60 @@ func _bar_tour() -> void:
 			get_viewport().get_texture().get_image().save_png(out_dir.path_join("play_outside.png"))
 			main.cam_override = true
 	get_tree().quit()
+
+
+## Video: walk up to a bar, go in, look around, walk to the bar counter (--demo=barwalk --bar=Theme).
+func _bar_walk() -> void:
+	var want := "Neon Coyote"
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--bar="): want = a.substr(6)
+	var bars = main.bars
+	var j = JSON.parse_string(FileAccess.get_file_as_string("res://data/bars_index.json"))
+	var d := {}
+	for b in j:
+		if b["theme"] != want: continue
+		var at := Vector3(b["x"], 0, -b["y"])
+		main.player.global_position = at - main.world_offset + Vector3(0, 30, 0)
+		main.streamer.load_now(at)
+		for f in 5: await get_tree().physics_frame
+		d = bars.nearest_door(at - main.world_offset, 90.0)
+		if not d.is_empty(): break
+	if d.is_empty():
+		print("[demo] no door for ", want); get_tree().quit(); return
+	var n: Node3D = d["node"]
+	var p := player_on(n.global_transform * Vector3(0, 0.3, -9.0))
+	main.player.global_position = p
+	main.cam_yaw = n.global_rotation.y + PI
+	main.cam_pitch = -0.12
+	main.cam_dist = 5.0
+	for f in 30: await get_tree().physics_frame
+	# walk up to the door
+	var t := 0.0
+	while t < 3.2:
+		main.player.input_dir = Vector2(0, 1)
+		t += get_physics_process_delta_time()
+		await get_tree().physics_frame
+		if bars.prompt(main.player.global_position) != "": break
+	main.player.input_dir = Vector2.ZERO
+	main.hud.visible = true
+	for f in 45: await get_tree().physics_frame
+	bars.try_interact(main.player)
+	# inside: walk toward the counter, slow look around
+	for f in 40: await get_tree().physics_frame
+	main.cam_yaw = 0.0
+	t = 0.0
+	while t < 2.6:
+		main.player.input_dir = Vector2(0, 1)
+		t += get_physics_process_delta_time()
+		await get_tree().physics_frame
+	main.player.input_dir = Vector2.ZERO
+	t = 0.0
+	while t < 6.0:
+		main.cam_yaw = sin(t * 0.9) * 1.1
+		t += get_physics_process_delta_time()
+		await get_tree().physics_frame
+	get_tree().quit()
+
+func player_on(p: Vector3) -> Vector3:
+	var g: Vector3 = main._ground_from(p + main.world_offset, 40.0)
+	return Vector3(p.x, (g.y - main.world_offset.y if g.y < 90.0 else p.y), p.z)

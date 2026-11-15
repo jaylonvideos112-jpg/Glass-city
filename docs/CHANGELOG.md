@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.5 (in progress), Step 3a: time of day and weather
+* **Clock and calendar:** 1 real hour per game day (decision log 2026-11-14); 4 seasons × 12 days, weekdays, years.
+  HUD shows time, date and weather. F6 = time ×60.
+* **Sun path:** computed from Toledo's latitude and the season (DST honoured), so a June sunset is around 9:10 pm and a
+  December one about 5:10 pm. A moonlight takes over at night.
+* **Sky:** night, dusk and day palettes; a cloud layer that thickens with the weather; golden-hour colours.
+* **Night lighting:** lit windows on every textured building (emission masks made by `make_textures.py`) and on
+  facade-shader buildings (per-room warm and cool light, occupancy by hour), plus glowing street lamps.
+* **Weather:** clear, partly cloudy, overcast, rain, thunderstorm (with lightning), fog and snow; spells follow
+  per-season odds from `source_data/climate.json`; rain and snow particles; looks blend over about 45 game minutes.
+  F7 cycles the weather.
+* **Persistence:** time and weather are saved on quit (`user://world_state.json`).
+* 6 new in-game tests and 1 new data test (23 total).
+* Fix: window emission masks lit whole walls (Godot's emission ADD operator); now MULTIPLY.
+
 ## v0.4 (in progress), Stage 0 foundation + realistic city
 ### Foundation (Bible stage 0)
 * Project renamed **GLASS CITY**; development bible v1.0 added under `docs/`.

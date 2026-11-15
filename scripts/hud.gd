@@ -5,6 +5,8 @@ var main: Node
 var street_label: Label
 var district_label: Label
 var speed_label: Label
+var clock_label: Label
+var date_label: Label
 var prompt_label: Label
 var flash_label: Label
 var help_label: Label
@@ -36,7 +38,18 @@ func _ready() -> void:
 	speed_label = _label(26, Vector2.ZERO)
 	speed_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	speed_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	speed_label.offset_right = -30; speed_label.offset_top = 24
+	speed_label.offset_right = -30; speed_label.offset_top = 92
+	clock_label = _label(30, Vector2.ZERO)
+	clock_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	clock_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	clock_label.offset_right = -30; clock_label.offset_top = 18
+	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	date_label = _label(17, Vector2.ZERO)
+	date_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	date_label.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	date_label.offset_right = -30; date_label.offset_top = 58
+	date_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	date_label.modulate = Color(0.85, 0.9, 1.0)
 	speed_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	prompt_label = _label(22, Vector2.ZERO)
 	prompt_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
@@ -98,6 +111,9 @@ func _process(dt: float) -> void:
 		if dd2 < 1.0 and dd2 < bestd:
 			bestd = dd2; dname = pl[0]
 	district_label.text = dname
+	if main.tod:
+		clock_label.text = main.tod.clock_string()
+		date_label.text = "%s  ·  %s" % [main.tod.date_string(), main.weather.label() if main.weather else ""]
 	if main.current_car:
 		speed_label.text = "%d MPH" % int(main.current_car.speed_mps() * 2.237)
 		prompt_label.text = ""

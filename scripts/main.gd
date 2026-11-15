@@ -8,6 +8,8 @@ const Hud := preload("res://scripts/hud.gd")
 const Demo := preload("res://scripts/demo.gd")
 const Bars := preload("res://scripts/bars.gd")
 const Perf := preload("res://scripts/perf.gd")
+const TimeOfDay := preload("res://scripts/time_of_day.gd")
+const Weather := preload("res://scripts/weather.gd")
 
 const REBASE_DIST := 1000.0   # shift the world back to the origin past this distance
 
@@ -29,6 +31,8 @@ var safe_timer := 0.0
 var demo: Node = null
 var bars: Node = null
 var perf: CanvasLayer = null
+var tod: Node = null
+var weather: Node3D = null
 var input_enabled := true
 var env: Environment
 var cam_override := false
@@ -81,6 +85,13 @@ func _ready() -> void:
 	world.add_child(camera)
 	camera.current = true
 	hud = Hud.new(); hud.main = self; add_child(hud)
+	tod = TimeOfDay.new(); tod.name = "TimeOfDay"; tod.main = self; add_child(tod)
+	weather = Weather.new(); weather.name = "Weather"; weather.main = self; add_child(weather)
+	for m in streamer.materials.values():
+		if m is StandardMaterial3D and m.emission_texture != null: tod.register_night_material(m)
+	streamer._lamp_mesh()
+	tod.register_lamp_material(streamer.lamp_bulb_mat)
+	tod.apply_now()
 	perf = Perf.new(); perf.main = self; add_child(perf)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--test"):

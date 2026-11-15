@@ -88,6 +88,22 @@ def licence_register_covers_sources():
     for must in ("OpenStreetMap", "ODbL", "USGS", "Lucas County", "Wikimedia Commons", "OSIP"):
         assert must in reg, f"DATA_SOURCES.md does not mention {must}"
 
+@test
+def climate_schema():
+    C = json.load(open(os.path.join(SRC, "climate.json")))
+    ck = C["clock"]
+    assert ck["real_seconds_per_game_day"] == 3600, "day length must be 1 real hour (docs/DECISIONS.md)"
+    assert ck["days_per_season"] == 12 and len(ck["seasons"]) == 4
+    assert len(C["occupancy_by_hour"]) == 24 and all(0 <= v <= 1 for v in C["occupancy_by_hour"])
+    st = C["weather"]["states"]
+    for season, odds in C["weather"]["next"].items():
+        assert set(odds) <= set(st), f"{season} odds name unknown states {set(odds) - set(st)}"
+        assert abs(sum(odds.values()) - 1.0) < 0.02, f"{season} odds sum to {sum(odds.values()):.2f}"
+    assert C["weather"]["next"]["summer"].get("snow", 0) == 0, "snow possible in summer"
+    for k, v in st.items():
+        assert v["hours"][0] <= v["hours"][1], f"{k} spell hours reversed"
+    return f"{len(st)} weather states"
+
 for name, ok, detail in results:
     print(f"[data-test] {'PASS' if ok else 'FAIL'} {name}  ({detail})")
 failed = sum(1 for r in results if not r[1])

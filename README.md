@@ -29,6 +29,8 @@ You start downtown at **Summit St & Madison Ave** next to five parked cars.
 | Wheel | zoom camera | |
 | H | toggle help | |
 | F3 | performance overlay | |
+| F6 | time ×60 (testing) | |
+| F7 | next weather (testing) | |
 | Esc | free mouse | |
 
 Drive into the Maumee or the lake and you respawn ("WASTED").

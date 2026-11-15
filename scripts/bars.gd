@@ -245,6 +245,7 @@ func _set_indoor_env(on: bool, th: Dictionary) -> void:
 		env.ambient_light_energy = 0.55
 		main.cam_dist = min(main.cam_dist, 3.2)
 		if main.has_node("Sun"): main.get_node("Sun").visible = false
+		if main.has_node("Moon"): main.get_node("Moon").visible = false
 	else:
 		if _saved_env.is_empty(): return
 		env.fog_enabled = _saved_env["fog"]
@@ -253,6 +254,7 @@ func _set_indoor_env(on: bool, th: Dictionary) -> void:
 		env.ambient_light_energy = _saved_env["amb"]
 		main.cam_dist = _saved_env["cam_dist"]
 		if main.has_node("Sun"): main.get_node("Sun").visible = true
+		if main.has_node("Moon"): main.get_node("Moon").visible = true
 
 # ------------------------------------------------------------------ interiors
 ## Room centred on the origin: floor at y=0, entrance/exit door in the +Z wall, bar counter along -Z.

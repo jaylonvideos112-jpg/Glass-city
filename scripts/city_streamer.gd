@@ -26,6 +26,7 @@ const AERIAL_LAYERS := {"lot": true, "grass": true, "parking": true, "industrial
 var _aerial_shader: Shader = preload("res://shaders/aerial.gdshader")
 var _detail_tex: Texture2D = preload("res://textures/parking.png")
 var label_font_size := 96
+var lamp_bulb_mat: StandardMaterial3D = null
 var bars: Node = null   # bars.gd: builds bar exteriors and handles enter/exit
 
 func _ready() -> void:
@@ -43,6 +44,14 @@ func _tex_mat(tex: String, tint := Color.WHITE, rough := 0.9) -> StandardMateria
 	m.albedo_color = tint
 	m.roughness = rough
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	var ep := "res://textures/%s_emit.png" % tex
+	if ResourceLoader.exists(ep):
+		# lit windows at night: time_of_day.gd drives emission_energy_multiplier
+		m.emission_enabled = true
+		m.emission_texture = load(ep)
+		m.emission = Color.WHITE
+		m.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY   # ADD would light the whole wall
+		m.emission_energy_multiplier = 0.0
 	return m
 
 func _make_materials() -> void:
@@ -374,6 +383,16 @@ func _lamp_mesh() -> ArrayMesh:
 	st.commit(am)
 	var m := StandardMaterial3D.new(); m.albedo_color = Color(0.22, 0.24, 0.25); m.metallic = 0.5; m.roughness = 0.5
 	am.surface_set_material(0, m)
+	var bulb := BoxMesh.new(); bulb.size = Vector3(0.3, 0.04, 0.6)
+	var st2 := SurfaceTool.new(); st2.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st2.append_from(bulb, 0, Transform3D(Basis(), Vector3(0, 6.7, -2.1)))
+	st2.commit(am)
+	lamp_bulb_mat = StandardMaterial3D.new()
+	lamp_bulb_mat.albedo_color = Color(0.9, 0.85, 0.7)
+	lamp_bulb_mat.emission_enabled = true
+	lamp_bulb_mat.emission = Color(1.0, 0.78, 0.45)   # sodium-ish warm white
+	lamp_bulb_mat.emission_energy_multiplier = 0.0
+	am.surface_set_material(1, lamp_bulb_mat)
 	_lamp_cache = am
 	return am
 

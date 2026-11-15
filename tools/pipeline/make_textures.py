@@ -13,8 +13,21 @@ def noise(img, amt):
     n = rng.integers(-amt, amt + 1, a.shape[:2])[..., None]
     return Image.fromarray(np.clip(a + n, 0, 255).astype(np.uint8))
 
+WIN = []   # window glass boxes drawn since the last save -> night emission mask "<name>_emit.png"
+_mrng = random.Random(11)
+
 def save(img, name):
     img.convert("RGB").save(os.path.join(OUT, name + ".png"))
+    if WIN:
+        # night-lights mask: about 55% of windows lit, each a slightly different warmth/brightness
+        m = Image.new("RGB", (S, S), (0, 0, 0)); md = ImageDraw.Draw(m)
+        few = len(WIN) <= 4   # a house texture with 1-4 windows: light them all, or every such house is dark
+        for box in WIN:
+            if few or _mrng.random() < 0.55:
+                v = 0.55 + 0.45 * _mrng.random(); w = _mrng.random()
+                md.rectangle(box, fill=(int(255 * v), int((200 + 40 * w) * v), int((120 + 90 * w) * v)))
+        m.save(os.path.join(OUT, name + "_emit.png"))
+    WIN.clear()
 
 def windows(d, cols, rows, frame, glass, inset=(0.25, 0.22), lit=0.04):
     cw, rh = S / cols, S / rows
@@ -24,7 +37,7 @@ def windows(d, cols, rows, frame, glass, inset=(0.25, 0.22), lit=0.04):
             y0 = r * rh + rh * inset[1]; y1 = (r + 1) * rh - rh * 0.12
             d.rectangle([x0 - 5, y0 - 5, x1 + 5, y1 + 5], fill=frame)
             g = (225, 205, 150) if random.random() < lit else glass
-            d.rectangle([x0, y0, x1, y1], fill=g)
+            d.rectangle([x0, y0, x1, y1], fill=g); WIN.append([x0, y0, x1, y1])
             d.line([(x0 + x1) / 2, y0, (x0 + x1) / 2, y1], fill=frame, width=4)
             d.line([x0, (y0 + y1) / 2, x1, (y0 + y1) / 2], fill=frame, width=3)
             d.rectangle([x0 - 8, y1 + 4, x1 + 8, y1 + 12], fill=(200, 195, 185))  # sill
@@ -59,7 +72,7 @@ for row in range(S // 12):
 for r in range(2):
     for c in range(3):
         x0 = c * S / 3 + 30; x1 = (c + 1) * S / 3 - 30; y0 = r * S / 2 + 50; y1 = (r + 1) * S / 2 - 30
-        d.rectangle([x0, y0, x1, y1], fill=(45, 50, 50))
+        d.rectangle([x0, y0, x1, y1], fill=(45, 50, 50)); WIN.append([x0, y0, x1, y1])
         for gx in range(4):
             for gy in range(5):
                 gw = (x1 - x0) / 4; gh = (y1 - y0) / 5
@@ -164,7 +177,7 @@ def grid_facade(name, bg, win, cols, rows, frame, mull_w=6, band=None, lit=0.03,
             x0, y0 = c_ * cw + mull_w, r * rh + (band or mull_w)
             x1, y1 = (c_ + 1) * cw - mull_w, (r + 1) * rh - mull_w
             col = (220, 200, 150) if random.random() < lit else win
-            d.rectangle([x0, y0, x1, y1], fill=col)
+            d.rectangle([x0, y0, x1, y1], fill=col); WIN.append([x0, y0, x1, y1])
     if vert_fins:
         for c_ in range(cols + 1):
             d.rectangle([c_ * cw - vert_fins // 2, 0, c_ * cw + vert_fins // 2, S], fill=frame)
@@ -328,7 +341,7 @@ def lap(d, step, line, base_shadow):
 def win(d, x0, y0, w, h, trim=(250, 250, 248), glass=(52, 62, 74), mull=2, arch=False, shutters=None, sill=True, tw=12):
     d.rectangle([x0 - tw, y0 - tw - (18 if arch else 0), x0 + w + tw, y0 + h + tw], fill=trim)
     if arch: d.pieslice([x0 - tw, y0 - tw - 40, x0 + w + tw, y0 + tw + 20], 180, 360, fill=trim)
-    d.rectangle([x0, y0, x0 + w, y0 + h], fill=glass)
+    d.rectangle([x0, y0, x0 + w, y0 + h], fill=glass); WIN.append([x0, y0, x0 + w, y0 + h])
     if mull >= 1: d.line([x0, y0 + h * 0.48, x0 + w, y0 + h * 0.48], fill=trim, width=7)
     if mull >= 2: d.line([x0 + w / 2, y0, x0 + w / 2, y0 + h], fill=trim, width=5)
     if sill: d.rectangle([x0 - tw - 8, y0 + h + tw - 2, x0 + w + tw + 8, y0 + h + tw + 10], fill=(230, 228, 222))

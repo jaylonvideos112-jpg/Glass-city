@@ -56,6 +56,8 @@ The test `chunk_data_schema` (tests/test_runner.gd) enforces this.
 | `scripts/bars.gd` | bar exteriors per chunk, enter/exit, procedural themed interiors (data table `THEMES`) |
 | `scripts/hud.gd` | radar, street/district names, prompts |
 | `scripts/perf.gd` | F3 overlay, `--benchmark` mode, budgets |
+| `scripts/time_of_day.gd` | clock and calendar, sun and moon, sky colours, night lights (windows, lamps), save/load of world state |
+| `scripts/weather.gd` | seasonal weather chain, blended looks, rain/snow particles, lightning |
 | `scripts/demo.gd` | scripted capture modes for screenshots/videos (`--demo=shots/fly/drive/walk/bars`) |
 | `shaders/facade.gdshader` | parametric facades (windows, brick/stone, storefronts, curtain wall) from per-vertex data |
 | `tests/test_runner.gd` | in-game automated tests (`--test`) |
@@ -68,6 +70,6 @@ The test `chunk_data_schema` (tests/test_runner.gd) enforces this.
    the facade shader, with `default_facade()` guesses replaced by photo- or fact-matched specs from `source_data/facades.json`.
 
 ## Engine-neutral vs Godot-specific
-* Neutral: everything under `tools/pipeline/` and `source_data/`, the intermediates, `manifest.json`, the bar theme table.
+* Neutral: everything under `tools/pipeline/` and `source_data/` (including `climate.json`: clock, sun, sky, weather odds), the intermediates, `manifest.json`, the bar theme table.
 * Godot-specific: the chunk binary (Godot Variant encoding), `.gd` scripts, `.gdshader`. For Unreal, add an exporter
   that writes the same chunk content as glTF + JSON; the facade shader logic is documented in its header comment.
