@@ -113,6 +113,7 @@ func update(world_pos: Vector3) -> void:
 			regions.erase(r)
 
 func _decode(r: Vector2i, ks: Array[Vector2i]) -> void:
+	if not is_instance_valid(streamer): return      # shutting down
 	var cs: float = streamer.chunk_size
 	var v := PackedVector3Array()
 	var n := PackedVector3Array()

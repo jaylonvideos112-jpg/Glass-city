@@ -1,5 +1,18 @@
 # Changelog
 
+## Money and wanted level (2026-11-15)
+* **Money (`scripts/money.gd`, `source_data/economy.json`):** cash plus a digital wallet in a made-up payment app
+  (placeholder name "GlassPay"). You start with $120 cash and $400 in the app. Paying takes cash first, then the app.
+  72 ATMs, one outside every bank (made-up bank names, `source_data/atms.json` from `make_atms.py`):
+  E withdraws $100, R deposits all your cash. Drinks at the bar counter cost $7. Saved (section `money`). HUD top-left.
+* **Wanted level (`scripts/police.gd`, `source_data/police.json`):** hitting a car (1 star), hitting a person (2),
+  ramming a police car (2), running a red light in front of police (1). It counts if police see it or a bystander
+  reports it. Police units (stars, +1 from 3 stars) come with sirens, re-routing to where you were last seen. Stay out
+  of sight 12 s + 5 s per star and you lose them (stars blink while they search). If a unit stops next to you while
+  you're stopped: busted - one night in jail (Bible), released 8 am outside the nearest police station, fined $150
+  per star. Your car now physically bumps AI cars. Police/fire/hospital locations in `source_data/stations.json`.
+* `@chase` screenshot shot. 2 new tests.
+
 ## NPC schedules and stats saves (2026-11-15)
 * **NPC schedules (Bible stage 3), `source_data/npc_schedules.json`:** pedestrians have roles (worker, student,
   shopper, resident, night owl), each with an hourly routine per area type (downtown, near bars, residential) and

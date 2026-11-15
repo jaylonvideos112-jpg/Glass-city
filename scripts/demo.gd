@@ -241,7 +241,22 @@ func _shots(dt: float) -> void:
 	var cam: Camera3D = main.camera
 	var pos = s[1]
 	var look = s[2]
-	if String(s[0]).begins_with("@") and main.services:
+	if s[0] == "@chase" and main.police:
+		# HUD on, 3 stars, camera behind the player looking at the nearest police unit
+		main.hud.visible = true
+		if main.police.stars == 0:
+			main.police.report("hit_ped", main.focus_world(), true)
+			main.police.report("hit_car", main.focus_world(), true)
+		var us: Array = main.police.units()
+		var pl: Vector3 = main.player.global_position + main.world_offset
+		if us.is_empty() or shot_wait < 6.0:
+			shot_wait += dt
+			main.police._manage_units(dt)
+			return
+		var u: Vector3 = us[0]["pos"]
+		var dirv: Vector3 = (u - pl); dirv.y = 0; dirv = dirv.normalized()
+		pos = pl - dirv * 7.0 + Vector3(0, 2.6, 0); look = u + Vector3(0, 1.0, 0)
+	elif String(s[0]).begins_with("@") and main.services:
 		# "@bus" / "@responder": chase-cam on a service vehicle near the player (spawned if none)
 		var sv = main.services
 		var list: Array = sv.buses() if s[0] == "@bus" else sv.responders()

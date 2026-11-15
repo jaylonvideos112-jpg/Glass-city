@@ -38,6 +38,8 @@ var audio: Node = null
 var world_state: Node = null
 var services: Node = null
 var stats: Node = null
+var money: Node = null
+var police: Node = null
 var peds: Node = null
 var input_enabled := true
 var env: Environment
@@ -108,6 +110,9 @@ func _ready() -> void:
 	world_state.register("player", self)
 	stats = load("res://scripts/stats.gd").new(); stats.name = "Stats"; stats.main = self; add_child(stats)
 	world_state.register("stats", stats)
+	money = load("res://scripts/money.gd").new(); money.name = "Money"; money.main = self; add_child(money)
+	world_state.register("money", money)
+	police = load("res://scripts/police.gd").new(); police.name = "Police"; police.main = self; add_child(police)
 	if OS.get_cmdline_user_args().has("--load-world") or (world_state.enabled and not OS.get_cmdline_user_args().has("--new-game")):
 		world_state.load_file()
 	player.collision_mask |= 2      # bump into traffic
@@ -211,12 +216,16 @@ func _unhandled_input(e: InputEvent) -> void:
 		cam_yaw -= e.relative.x * 0.0035
 		cam_pitch = clamp(cam_pitch - e.relative.y * 0.0035, -1.2, 0.5)
 	if e.is_action_pressed("enter"):
+		if current_car == null and money and money.try_withdraw(player.global_position):
+			return
 		if current_car == null and bars.try_interact(player):
 			return
 		if not bars.inside:
 			toggle_vehicle()
 	if e.is_action_pressed("reset_car") and current_car:
 		current_car.reset_upright()
+	elif e.is_action_pressed("reset_car") and money:
+		money.try_deposit(player.global_position)
 	if e.is_action_pressed("toggle_help"):
 		hud.toggle_help()
 

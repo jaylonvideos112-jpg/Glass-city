@@ -25,6 +25,7 @@ func _ready() -> void:
 	center_of_mass_mode = RigidBody3D.CENTER_OF_MASS_MODE_CUSTOM
 	center_of_mass = Vector3(0, -0.25, 0)
 	angular_damp = 0.6
+	collision_mask = 1 | 2      # also bump into AI traffic (layer 2)
 	var cs := CollisionShape3D.new()
 	var bs := BoxShape3D.new()
 	bs.size = Vector3(1.86, 0.7, 4.5)

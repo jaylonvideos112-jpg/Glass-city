@@ -1,0 +1,11 @@
+{
+  "_doc": "Money (scripts/money.gd) and prices. app_name is the made-up phone payment app (placeholder name).",
+  "app_name": "GlassPay",
+  "start_cash": 120,
+  "start_wallet": 400,
+  "atm_withdraw": 100,
+  "prices": {
+    "drink": 7,
+    "shot": 5
+  }
+}

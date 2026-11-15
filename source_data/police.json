@@ -1,0 +1,16 @@
+{
+  "_doc": "Wanted level (scripts/police.gd). crimes = stars added. Distances in metres, times in seconds.",
+  "crimes": {"hit_car": 1, "hit_ped": 2, "ram_police": 2, "run_red": 1},
+  "witness_police_m": 80,
+  "witness_ped_m": 35,
+  "witness_ped_chance": 0.5,
+  "min_hit_speed": 3.0,
+  "sight_m": 90,
+  "search_s": 12,
+  "search_s_per_star": 5,
+  "bust_m": 12,
+  "bust_s": 3.0,
+  "unit_spawn_m": [140, 240],
+  "bust_fine_per_star": 150,
+  "jail_release_hour": 8
+}

@@ -10,6 +10,7 @@ var top_speed_mps := 0.0
 var days_played := 0.0
 var bars_visited := {}       # bar name -> visits
 var emergencies_seen := 0
+var times_busted := 0
 var _last := Vector3.INF
 
 func _ready() -> void:
@@ -33,12 +34,13 @@ func _physics_process(dt: float) -> void:
 
 func get_save_data() -> Dictionary:
 	return {"walked_m": walked_m, "driven_m": driven_m, "top_speed_mps": top_speed_mps, "days_played": days_played,
-		"bars_visited": bars_visited, "emergencies_seen": emergencies_seen}
+		"bars_visited": bars_visited, "emergencies_seen": emergencies_seen, "times_busted": times_busted}
 
 func apply_save_data(d: Dictionary) -> void:
 	walked_m = float(d.get("walked_m", 0.0)); driven_m = float(d.get("driven_m", 0.0))
 	top_speed_mps = float(d.get("top_speed_mps", 0.0)); days_played = float(d.get("days_played", 0.0))
 	bars_visited = d.get("bars_visited", {}); emergencies_seen = int(d.get("emergencies_seen", 0))
+	times_busted = int(d.get("times_busted", 0))
 
 func summary() -> String:
 	return "Walked %.1f km, drove %.1f km, top speed %d mph, %d bars visited, %.1f days" % [walked_m / 1000.0, driven_m / 1000.0,

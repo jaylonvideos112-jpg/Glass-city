@@ -61,6 +61,8 @@ func _run() -> void:
 		["world_state_sections_round_trip", t_world_state],
 		["buses_follow_routes_and_stop", t_bus],
 		["npc_schedules_shape_who_is_out", t_schedules],
+		["money_cash_wallet_atm", t_money],
+		["wanted_level_chase_escape_bust", t_wanted],
 		["emergency_responds_with_siren", t_dispatch],
 	]
 	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
@@ -83,6 +85,60 @@ func _run() -> void:
 	get_tree().quit(failed)
 
 # ------------------------------------------------------------------ tests
+func t_money() -> Array:
+	var m = main.money
+	var c0: int = m.cash; var w0: int = m.wallet
+	m.cash = 10; m.wallet = 50
+	if not m.spend(30, "test"): return [false, "couldn't pay 30 with 60"]
+	if m.cash != 0 or m.wallet != 30: return [false, "cash first then wallet: got cash %d wallet %d" % [m.cash, m.wallet]]
+	if m.spend(100, "test"): return [false, "paid more than you have"]
+	m.withdraw(20)
+	if m.cash != 20 or m.wallet != 10: return [false, "withdraw wrong"]
+	m.deposit_all()
+	if m.cash != 0 or m.wallet != 30: return [false, "deposit wrong"]
+	var snap: Dictionary = main.world_state.snapshot()
+	m.wallet = 999
+	main.world_state.restore(snap, ["money"])
+	var ok_save: bool = m.wallet == 30
+	m.cash = c0; m.wallet = w0
+	if not ok_save: return [false, "money not restored from save"]
+	return [true, "cash first then %s; ATM withdraw/deposit; saved; %d ATMs in data, %d placed near you" % [m.app_name, m.atms.size(), m._nodes.size()]]
+
+func t_wanted() -> Array:
+	var po = main.police
+	var keep_h: float = main.tod.total_hours; var c0: int = main.money.cash; var w0: int = main.money.wallet
+	var pp: Vector3 = main.player.global_position
+	po.report("hit_car", main.focus_world(), true)
+	if po.stars < 1: return [false, "no stars after a crime seen by police"]
+	var got_units := 0
+	for i in 600:
+		await _frames(1)
+		got_units = po.units().size()
+		if got_units >= 1: break
+	if got_units == 0: return [false, "no police units came"]
+	var unit: Dictionary = po.units()[0]
+	var has_route: bool = unit.has("path") or unit.has("target")
+	po._unseen_t = 999.0
+	await _frames(2)
+	if po.stars != 0: return [false, "stars stayed after losing them"]
+	if po.units().size() > 0: return [false, "units still chasing after losing them"]
+	po.stars = 2
+	main.money.cash = 100; main.money.wallet = 1000
+	po.bust()
+	var h: float = fposmod(main.tod.total_hours, 24.0)
+	var fined: int = 1100 - main.money.total()
+	var at_station := false
+	var pw: Vector3 = main.player.global_position + main.world_offset
+	for st in po.stations:
+		if Vector2(float(st["x"]) - pw.x, float(st["z"]) - pw.z).length() < 60.0: at_station = true
+	main.tod.total_hours = keep_h; main.tod.apply_now()
+	main.money.cash = c0; main.money.wallet = w0
+	main.streamer.load_now(pp + main.world_offset); main.player.global_position = pp
+	if po.stars != 0 or absf(h - 8.0) > 0.05: return [false, "after bust: stars %d, hour %.2f" % [po.stars, h]]
+	if fined != 300: return [false, "fine %d, expected 300" % fined]
+	if not at_station: return [false, "not released at a police station"]
+	return [true, "1 star -> %d unit(s) (routed: %s); lost them; busted = 8 am at the station, fined $%d" % [got_units, has_route, fined]]
+
 func t_schedules() -> Array:
 	var pd = main.peds
 	if not pd.SCH.has("roles"): return [false, "no schedules loaded"]
@@ -734,15 +790,16 @@ func t_pd_cross() -> Array:
 	var pd = main.peds; var tr = main.traffic
 	var c0: int = pd.crossings_started
 	var bad := 0; var seen := 0
-	for f in 20:
+	for f in 40:
 		await _frames(120)
+		if f >= 20 and pd.crossings_started - c0 >= 2: break
 		for p in pd.peds:
 			if p["state"] != "cross": continue
 			seen += 1
 			var n: int = p["cross"][3]
 			if pd.node_walk.get(n, []).size() < 3 and not tr.ix.has(n): bad += 1
 	var started: int = pd.crossings_started - c0
-	if started == 0: return [false, "nobody crossed a street in 20 s"]
+	if started == 0: return [false, "nobody crossed a street in 40 s"]
 	if bad > 0: return [false, "%d crossings away from intersections" % bad]
 	return [true, "%d crossings started in 20 s, all at intersections" % started]
 

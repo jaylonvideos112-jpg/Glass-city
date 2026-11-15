@@ -31,6 +31,7 @@ var interior: Node3D = null
 var exit_point := Vector3.ZERO  # local position of the interior exit
 var return_xf: Transform3D      # where to put the player back outside (world coords, not rebased-local)
 var current_theme := ""
+var drinks := 0                # drinks bought (this session)
 var _mats := {}
 var _saved_env := {}
 
@@ -188,9 +189,17 @@ func nearest_door(local_pos: Vector3, max_d := 2.6) -> Dictionary:
 func near_exit(local_pos: Vector3) -> bool:
 	return inside and interior != null and local_pos.distance_to(interior.global_transform * exit_point) < 2.4
 
+func near_counter(local_pos: Vector3) -> bool:
+	if not inside or interior == null or not interior.has_meta("counter"): return false
+	var c: Vector3 = interior.global_transform * (interior.get_meta("counter") as Vector3)
+	return Vector2(local_pos.x - c.x, local_pos.z - c.z).length() < 2.2 or (absf(local_pos.z - c.z) < 1.2 and absf(local_pos.x - c.x) < 4.0)
+
 func prompt(local_pos: Vector3) -> String:
 	if inside:
-		return "Press E to leave %s" % current_theme if near_exit(local_pos) else ""
+		if near_exit(local_pos): return "Press E to leave %s" % current_theme
+		if near_counter(local_pos) and main.get("money"):
+			return "Press E to buy a drink ($%d)" % int(main.money.E["prices"]["drink"])
+		return ""
 	var d := nearest_door(local_pos)
 	return ("Press E to enter %s" % d["theme"]) if not d.is_empty() else ""
 
@@ -199,6 +208,13 @@ func try_interact(player: Node3D) -> bool:
 	if inside:
 		if near_exit(player.global_position):
 			exit_bar(player)
+			return true
+		if near_counter(player.global_position) and main.get("money"):
+			var price: int = int(main.money.E["prices"]["drink"])
+			if main.money.spend(price, "Drink at " + current_theme):
+				drinks += 1
+				main.hud.flash("Bought a drink at %s  -$%d" % [current_theme, price])
+			else: main.hud.flash("You can't afford a drink")
 			return true
 		return false
 	var d := nearest_door(player.global_position)
@@ -289,6 +305,7 @@ func build_interior(theme: String) -> Node3D:
 	exit_point = Vector3(0, 1.0, D * 0.5 - 1.0)
 	# bar counter along the back wall, back-bar shelves with bottles, taps
 	var cz: float = -D * 0.5 + 2.6
+	root.set_meta("counter", Vector3(0, 0, cz + 0.9))   # where you stand to order
 	var cw: float = W * (0.62 if big else 0.7)
 	_box(root, Vector3(cw, 1.08, 0.7), Vector3(0, 0.54, cz), _tex("wood_dark", Color(0.85, 0.75, 0.65), 0.6), true)
 	_box(root, Vector3(cw + 0.2, 0.06, 0.85), Vector3(0, 1.11, cz), _mat(acc.darkened(0.45), 0.25, 0.0, 0.3))

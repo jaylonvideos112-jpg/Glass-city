@@ -433,7 +433,9 @@ func _step(c: Dictionary, dt: float, wspeed: float, on_edge: Dictionary) -> void
 	var halt := false
 	if c.has("stops") and c["stops"].has(e["b"]) and c.get("served", -1) != e["b"]: halt = true
 	if c.get("target", -1) == e["b"]: halt = true
-	if halt:
+	if halt and c.get("chase", false):
+		pass                    # police units hold where you were last seen until police.gd re-routes them
+	elif halt:
 		if to_end < 3.0 and c["v"] < 0.4:
 			c["dwell"] = float(c.get("dwell", 0.0)) + dt
 			var need: float = float(SV["on_scene_s"]) if c.get("target", -1) == e["b"] else float(SV["bus_dwell_s"])
@@ -443,6 +445,7 @@ func _step(c: Dictionary, dt: float, wspeed: float, on_edge: Dictionary) -> void
 					c.erase("target"); c["siren"] = false; c.erase("path"); c["next"] = _choose_next(c)
 					emit_signal("scene_cleared", c)
 				else: c["served"] = e["b"]
+	if halt:
 		var g3: float = maxf(to_end - 1.5, 0.0)
 		if g3 < gap: gap = g3; lv = 0.0
 	if ctrl == "yellow":
