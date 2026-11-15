@@ -503,7 +503,7 @@ func t_tr_density() -> Array:
 	tod.set_date("fall", 3, 3.0); var night: int = main.traffic.target_count()
 	tod.set_date("fall", 3, 17.0); var rush: int = main.traffic.target_count()
 	tod.total_hours = keep; tod.apply_now()
-	if rush < 20 or night > rush * 0.3: return [false, "3 am %d cars vs 5 pm %d" % [night, rush]]
+	if rush < 20 or night > rush * 0.3: return [false, "3 am %d cars vs 5 pm %d (road km near %.2f, edges %d, focus %s)" % [night, rush, main.traffic._road_km_near, main.traffic.edges.size(), main.focus_world().snapped(Vector3.ONE)]]
 	return [true, "3 am %d cars, 5 pm %d cars" % [night, rush]]
 
 func t_tr_move() -> Array:

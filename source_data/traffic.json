@@ -6,7 +6,7 @@
     "spawn_max_m": 230,
     "despawn_m": 280,
     "full_sim_m": 300,
-    "cars_per_road_km": 9,
+    "cars_per_road_km": 16,
     "_doc_cars_per_road_km": "peak cars per km of drivable road within spawn_max_m of the player; caps max_cars so a lone country road doesn't get every car"
   },
   "density_by_hour": [
