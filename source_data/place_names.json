@@ -1,0 +1,15 @@
+{
+  "_note": "Owner-picked parody names for the real towns (2026-11-15). build_city.py swaps these whole words in place labels and in names of businesses, schools, parks and buildings. Rivers, lakes and streets are not touched (streets use street_names.json).",
+  "Toledo": "Glass City",
+  "Sylvania": "Pinewick",
+  "Perrysburg": "Kingsferry",
+  "Maumee": "Stonebridge",
+  "Oregon": "Eastshore",
+  "Northwood": "Gatesboro",
+  "Rossford": "Furnace Hill",
+  "Holland": "Windmill Park",
+  "Ottawa Hills": "Velvet Ridge",
+  "Walbridge": "Switchyard",
+  "Millbury": "Harvest Mill",
+  "Point Place": "Gull Shores"
+}

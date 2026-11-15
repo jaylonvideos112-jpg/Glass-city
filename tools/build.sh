@@ -13,13 +13,13 @@ set -e
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 WORK="${GLASSCITY_WORK:-$(dirname "$REPO")}"
 P="$REPO/tools/pipeline"
-BBOX="41.5050 -83.8130 41.7330 -83.3040"            # S W N E: the island (source_data/island.json) plus sea margin
+BBOX="41.4560 -83.9160 41.7900 -83.2400"            # S W N E: the whole island (source_data/island.json) plus sea margin
 DT_BBOX="41.6420 -83.5510 41.6625 -83.5280"         # downtown test box
 cd "$WORK"
 export COUNTY=osm LIDAR=lidar/buildings.pkl LIDAR2=lidar/county.pkl LIDAR3=lidar/downtown_exact.pkl
 export BARS="$REPO/source_data/bars.json" FACADES="$REPO/source_data/facades.json"
 build() {   # $1 = bbox
-  rm -rf /tmp/glasscity_build && python3 "$P/build_city.py" osm/city /tmp/glasscity_build $1
+  rm -rf /tmp/glasscity_build && python3 "$P/build_city.py" "${OSMSRC:-osm/city_all}" /tmp/glasscity_build $1
   [ -d "$REPO/data/aerial" ] && mv "$REPO/data/aerial" /tmp/glasscity_aerial_keep || true
   rm -rf "$REPO/data" && mkdir -p "$REPO/data" && cp -r /tmp/glasscity_build/* "$REPO/data/"
   [ -d /tmp/glasscity_aerial_keep ] && mv /tmp/glasscity_aerial_keep "$REPO/data/aerial" || true

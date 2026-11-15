@@ -1,5 +1,13 @@
 # Changelog
 
+## Island countryside and town names (2026-11-15)
+* The island is now real data in the middle and made-up countryside around it: about 690 farmsteads (house, barn,
+  some silos, driveways), 160 woodlots, 4 villages, 101 real roads continued outward and a 166 km coast road.
+* Real data is clipped to the real box (roads split at the edge so made-up roads join the traffic graph).
+* New parody town names (Glass City, Pinewick, Kingsferry, ...), from `source_data/place_names.json`.
+* Build box grown to the whole island (`tools/build.sh`); all real tiles are staged in `osm/city_all`.
+* Known limits: no aerial imagery or LiDAR for the made-up land yet (plain green ground); fields are not drawn.
+
 ## v0.5 (in progress), Step 3a: time of day and weather
 * **Clock and calendar:** 1 real hour per game day (decision log 2026-11-14); 4 seasons × 12 days, weekdays, years.
   HUD shows time, date and weather. F6 = time ×60.

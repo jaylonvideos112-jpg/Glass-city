@@ -111,7 +111,12 @@ def island_outline():
     ring = json.load(open(os.path.join(SRC, "island.json")))["ring"]
     g = Polygon([(lon, lat) for lat, lon in ring])
     assert g.is_valid, "island outline self-intersects"
-    assert max(lat for lat, _ in ring) < 41.7325, "island crosses into Michigan"
+    d = json.load(open(os.path.join(SRC, "island.json")))
+    S_, W_, N_, E_ = d["real"]   # real data box; the made-up countryside (and the land that replaces Michigan) lies outside it
+    lats = [lat for lat, _ in ring]; lons = [lon for _, lon in ring]
+    assert min(lats) < S_ and max(lats) > N_ and min(lons) < W_ and max(lons) > E_, "made-up land must surround the real box"
+    names = json.load(open(os.path.join(SRC, "place_names.json")))
+    assert names.get("Toledo") == "Glass City" and len({v for k, v in names.items() if not k.startswith("_")}) == len([k for k in names if not k.startswith("_")]), "town names must be unique"
     towns = {"Toledo": (41.6528, -83.5379), "Sylvania": (41.7187, -83.7130), "Holland": (41.6217, -83.7116), "Maumee": (41.5628, -83.6538),
              "Perrysburg": (41.5570, -83.6272), "Rossford": (41.6098, -83.5644), "Northwood": (41.6056, -83.4838), "Oregon": (41.6437, -83.4869),
              "Walbridge": (41.5878, -83.4930), "Ottawa Hills": (41.6642, -83.6430), "Millbury": (41.5662, -83.4277)}

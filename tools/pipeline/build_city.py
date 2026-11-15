@@ -31,6 +31,9 @@ T0 = time.time()
 def P(lat, lon):
     return ((lon - LON0) * math.pi / 180 * R * COSLAT, (lat - LAT0) * math.pi / 180 * R)
 
+def _LL(x, y):
+    return (LAT0 + y / R * 180 / math.pi, LON0 + x / (R * COSLAT) * 180 / math.pi)
+
 def log(*a):
     print(f"[{time.time() - T0:6.1f}s]", *a, flush=True)
 
@@ -201,6 +204,61 @@ if COUNTY and os.path.exists(os.path.join(COUNTY, "county_osm.json")):
     els = [e for e in els if not (e["type"] == "way" and f"w{e['id']}" in _drop)] + json.load(open(os.path.join(COUNTY, "county_osm.json")))["elements"]
     ATTACH = {k: {"c:" + a: str(v) for a, v in d.items()} for k, d in json.load(open(os.path.join(COUNTY, "county_attach.json"))).items()}
     del _drop
+# ---- made-up countryside (owner decision 2026-11-15): real data stays inside island.json "real"; outside it only
+# the generated land from make_countryside.py (FICTION env, default osm/fiction/countryside.json) is used
+_islp0 = os.environ.get("ISLAND", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source_data", "island.json"))
+_REALBOX = json.load(open(_islp0)).get("real") if os.path.exists(_islp0) and os.environ.get("ISLAND", "1") != "0" else None
+if _REALBOX:
+    _rs, _rw, _rn, _re = _REALBOX
+    _RB = box(*P(_rs, _rw), *P(_rn, _re))
+    _inr = lambda g: _rs <= g["lat"] <= _rn and _rw <= g["lon"] <= _re
+    _kept = []; _cut = 0
+    for e in els:
+        if e.get("tags", {}).get("fictional"): _kept.append(e); continue
+        if e["type"] == "node":
+            if _inr(e): _kept.append(e)
+            else: _cut += 1
+            continue
+        if e["type"] == "relation":
+            gs = [g for m in e.get("members", []) for g in m.get("geometry", []) or [] if g]
+            if not gs or any(_inr(g) for g in gs): _kept.append(e)   # e.g. the Maumee River multipolygon; area clipped below
+            else: _cut += 1
+            continue
+        g = e.get("geometry", []); ns = e.get("nodes", [])
+        if not g: continue
+        ins = [bool(q) and _inr(q) for q in g]
+        if all(ins): _kept.append(e); continue
+        if not any(ins): _cut += 1; continue
+        t = e.get("tags", {})
+        closed = len(g) > 3 and g[0] == g[-1]
+        if closed:   # areas: clip to the real box (largest piece)
+            try:
+                pg = Polygon([P(q["lat"], q["lon"]) for q in g]).buffer(0).intersection(_RB)
+                pg = max(polys_of(pg), key=lambda a: a.area) if not pg.is_empty else None
+            except Exception: pg = None
+            if pg is None or pg.area < 20: _cut += 1; continue
+            if "building" in t and pg.area < 0.6 * Polygon([P(q["lat"], q["lon"]) for q in g]).buffer(0).area: _cut += 1; continue
+            e = dict(e); cs = list(pg.exterior.coords)
+            e["geometry"] = [dict(zip(("lat", "lon"), _LL(x, y))) for x, y in cs]; e["nodes"] = [-(e["id"] * 1000 + i) for i in range(len(cs) - 1)] + [-(e["id"] * 1000)]
+            _kept.append(e); continue
+        # lines: split into the runs that are inside the box (made-up roads continue from the last inside node)
+        run = []; k = 0
+        for i, ok in enumerate(ins + [False]):
+            if ok: run.append(i); continue
+            if len(run) >= 2:
+                e2 = dict(e); e2["id"] = e["id"] + k * 10_000_000_000_000; k += 1
+                e2["geometry"] = [g[j] for j in run]
+                if len(ns) == len(g): e2["nodes"] = [ns[j] for j in run]
+                _kept.append(e2)
+            run = []
+    log("real data clipped to the real box: kept", len(_kept), "dropped", _cut)
+    els = _kept; del _kept
+    _fic = os.environ.get("FICTION", os.path.join(os.path.dirname(os.path.abspath(SRC.rstrip("/"))), "fiction", "countryside.json"))
+    if os.path.exists(_fic) and not any(e.get("tags", {}).get("fictional") for e in els[:0]):
+        _fe = json.load(open(_fic))["elements"]
+        _have = {(e["type"], e["id"]) for e in els}
+        els += [e for e in _fe if (e["type"], e["id"]) not in _have]
+        log("made-up countryside elements", len(_fe))
 if len(sys.argv) >= 7: bbox = list(map(float, sys.argv[3:7]))
 S, W, N, E = bbox
 bx0, by0 = P(S, W); bx1, by1 = P(N, E)
@@ -235,6 +293,21 @@ def area_geom(e): return way_poly(e) if e["type"] == "way" else rel_poly(e)
 def tags(e): return e.get("tags", {})
 
 # ---------------------------------------------------------------- places (neighbourhood names for HUD + styling)
+# ---- parody town names (source_data/place_names.json): whole-word swap in labels and POI/building names
+import re as _re
+_pnp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source_data", "place_names.json")
+TOWN_MAP = {k: v for k, v in json.load(open(_pnp)).items() if not k.startswith("_")} if os.path.exists(_pnp) else {}
+if TOWN_MAP:
+    _tre = _re.compile(r"\b(" + "|".join(_re.escape(k) for k in sorted(TOWN_MAP, key=len, reverse=True)) + r")\b")
+    _tn = 0
+    for e in els:
+        t = e.get("tags")
+        if not t or "highway" in t or "waterway" in t or t.get("natural") in ("water", "coastline") or t.get("water"): continue
+        for k in ("name", "official_name", "operator", "brand"):
+            v = t.get(k)
+            if v and _tre.search(v):
+                t[k] = _tre.sub(lambda m: TOWN_MAP[m.group(1)], v); _tn += 1
+    log("town names swapped in", _tn, "tags")
 places = []
 for e in els:
     if e["type"] == "node" and "place" in tags(e) and tags(e).get("name"):
@@ -250,7 +323,8 @@ for e in els:
     t = tags(e)
     if t.get("natural") == "water" or t.get("waterway") == "riverbank":
         g = area_geom(e)
-        if g is not None: water.append(g)
+        if g is not None and _REALBOX and not t.get("fictional"): g = g.intersection(_RB)
+        if g is not None and not g.is_empty: water.append(g)
 coast = [LineString(way_pts(e)) for e in els if e["type"] == "way" and tags(e).get("natural") == "coastline" and len(way_pts(e)) > 1]
 if coast:
     big = BBOX.buffer(500)
@@ -272,17 +346,33 @@ if coast:
 _islp = os.environ.get("ISLAND", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source_data", "island.json"))
 ISLAND = None
 if os.path.exists(_islp) and os.environ.get("ISLAND", "1") != "0":
-    ISLAND = Polygon([P(a, b) for a, b in json.load(open(_islp))["ring"]]).buffer(0)
+    _isd = json.load(open(_islp))
+    ISLAND = unary_union([Polygon([P(a, b) for a, b in _isd["ring"]], [[P(a, b) for a, b in h] for h in _isd.get("holes", [])]).buffer(0)]
+                         + [Polygon([P(a, b) for a, b in r]).buffer(0) for r in _isd.get("islets", [])])
     sea = BBOX.buffer(400).difference(ISLAND)
     if not sea.is_empty: water.append(sea)
     log("island km2", round(ISLAND.intersection(BBOX).area / 1e6, 1))
+# the real Lake Erie shore (member ways of the Lake Erie relation, osm/extra/erie.json): the tiles have no
+# coastline ways, so faces of (shore + bbox) that hold a lake seed point become water (Maumee Bay etc.)
+_eriep = os.path.join(os.path.dirname(os.path.abspath(SRC.rstrip("/"))), "extra", "erie.json")
+if os.path.exists(_eriep) and not _REALBOX:   # with the made-up island the lake is already "outside the island"
+    _el = [LineString([P(q["lat"], q["lon"]) for q in e["geometry"]]) for e in json.load(open(_eriep))["elements"] if len(e.get("geometry", [])) > 1]
+    _bb = BBOX.buffer(500)
+    _cl = unary_union(_el).intersection(_bb)
+    _seeds = [Point(*P(41.70, -83.40)), Point(*P(41.735, -83.33)), Point(*P(41.72, -83.45))]
+    _lake = [pg for pg in polygonize(unary_union([_bb.exterior, _cl])) if any(pg.contains(sd) for sd in _seeds)]
+    if _REALBOX: _lake = [q for pg in _lake for q in polys_of(pg.intersection(_RB.buffer(30)))]   # the real lake only; outside it is the island coast
+    water.extend(_lake)
+    log("lake erie faces", len(_lake), "km2", round(sum(pg.area for pg in _lake) / 1e6, 1))
 WATER = unary_union(water).intersection(BBOX.buffer(400)).buffer(0) if water else Polygon()
 if ISLAND is not None:
     BBOX_P = shapely.prepared.prep(BBOX.intersection(ISLAND))   # buildings, roads, props, labels only on the island
     # beach: a sand strip along the made-up coast (not along the real river/lake shores inside the island)
-    BEACH = ISLAND.exterior.buffer(28).intersection(ISLAND).intersection(BBOX)
+    BEACH_W = 40.0
+    BEACH = unary_union([q.exterior.buffer(BEACH_W) for q in polys_of(ISLAND)]).intersection(ISLAND).intersection(BBOX)
+    INLAND_P = shapely.prepared.prep(ISLAND.buffer(-(BEACH_W + 4.0)).difference(WATER))
 else:
-    BEACH = Polygon()
+    BEACH = Polygon(); INLAND_P = None
 WATER_TREE_SRC = polys_of(WATER)
 log("water km2", round(WATER.area / 1e6, 2))
 
@@ -416,15 +506,15 @@ if _sigd:
 for _e in els:   # signal/stop nodes fetched with the map tiles (newer tiles include them)
     if _e["type"] == "node" and _e.get("tags", {}).get("highway") in ("traffic_signals", "stop", "give_way"):
         _sig[_e["id"]] = {"traffic_signals": "signal", "stop": "stop", "give_way": "yield"}[_e["tags"]["highway"]]
-IX_SOURCE = "osm" if _sig else "inferred"
+IX_SOURCE = f"osm for {len(_sig)} nodes, inferred elsewhere"
 for nid, lst in node_classes.items():
     approaches = sum(1 if end else 2 for _, end in lst)
     if approaches < 3: continue
     cl = sorted(c for c, _ in lst)
     if cl[0] <= 1 and all(c <= 1 for c in cl): continue            # freeway merges: no control
-    if _sig:
-        ctrl = _sig.get(nid) or ("stop_minor" if cl[0] <= 4 and cl[-1] >= 5 else "")
-    else:
+    if nid in _sig and _sig[nid]:
+        ctrl = _sig[nid]          # real OSM signal / stop sign
+    else:                         # not mapped (or area without signal data): infer from road classes
         major = [c for c in cl if c <= 4]
         if len(major) >= 2 and len(lst) >= 2 and cl[1] <= 4: ctrl = "signal"
         elif major: ctrl = "stop_minor"
@@ -1250,9 +1340,12 @@ def bar_door(c, p, theme, h):
     dx_, dy_ = mx + nx * 0.25, my + ny * 0.25
     yaw = math.atan2(-nx, ny)   # Godot yaw so that local -Z points out of the building
     c.bars.append([theme, dx_ - c.ox, -(dy_ - c.oy), float(yaw), float(min(h, 12.0)), float(L)])
+_coast_dropped = 0
 for e, g in buildings:
     cp = g.representative_point()
     if not BBOX_P.contains(cp): continue
+    if INLAND_P is not None and not INLAND_P.contains(g):   # anything touching the beach or the lake is removed
+        _coast_dropped += 1; continue
     key_ = f"{e['type'][0]}{e['id']}"
     if part_tree is not None:
         hits = [k for k in part_tree.query(g) if g.contains(parts[k][1].representative_point())]
@@ -1268,6 +1361,7 @@ _ex_tree = STRtree(_ex) if _ex else None
 for k_, (e, g) in enumerate(parts):
     cp = g.representative_point()
     if _ex_tree is not None and any(_ex[i].contains(cp) for i in _ex_tree.query(cp)): continue
+    if INLAND_P is not None and not INLAND_P.contains(g): continue
     if BBOX_P.contains(cp): bjobs[rkey(cp.x, cp.y)].append((e, g, cp, ("part", k_)))
 
 labels_done = set()
@@ -1412,6 +1506,8 @@ for ri in range(rx0, rx1 + 1):
         roads_r = safe(lambda a, b: a.difference(b), clip(local_union(T_ROAD, rb)), water_r)
         side_r = safe(lambda a, b: a.difference(b), clip(local_union(T_SIDE, rb)), unary_union([roads_r, water_r]))
         taken = unary_union([water_r, roads_r, side_r])
+        beach_r = safe(lambda a, b: a.difference(b), clip(BEACH), taken) if not BEACH.is_empty else Polygon()
+        taken = unary_union([taken, beach_r])
         park_r = safe(lambda a, b: a.difference(b), clip(local_union(T_PARK, rb)), taken)
         taken = unary_union([taken, park_r])
         forest_r = safe(lambda a, b: a.difference(b), clip(local_union(T_FOREST, rb)), taken)
@@ -1420,8 +1516,6 @@ for ri in range(rx0, rx1 + 1):
         taken = unary_union([taken, parking_r])
         ind_r = safe(lambda a, b: a.difference(b), clip(local_union(T_IND, rb)), taken)
         taken = unary_union([taken, ind_r])
-        beach_r = safe(lambda a, b: a.difference(b), clip(BEACH), taken) if not BEACH.is_empty else Polygon()
-        taken = unary_union([taken, beach_r])
         generic = safe(lambda a, b: a.difference(b), Rg, taken)
         add_area(beach_r, "sand", 0.0, 6.0, True, GROUND_COL_Y)
         add_area(generic, "lot", 0.0, 8.0, True, GROUND_COL_Y)
