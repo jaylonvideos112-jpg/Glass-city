@@ -104,6 +104,23 @@ def climate_schema():
         assert v["hours"][0] <= v["hours"][1], f"{k} spell hours reversed"
     return f"{len(st)} weather states"
 
+@test
+def island_outline():
+    import math
+    from shapely.geometry import Polygon, Point
+    ring = json.load(open(os.path.join(SRC, "island.json")))["ring"]
+    g = Polygon([(lon, lat) for lat, lon in ring])
+    assert g.is_valid, "island outline self-intersects"
+    assert max(lat for lat, _ in ring) < 41.7325, "island crosses into Michigan"
+    towns = {"Toledo": (41.6528, -83.5379), "Sylvania": (41.7187, -83.7130), "Holland": (41.6217, -83.7116), "Maumee": (41.5628, -83.6538),
+             "Perrysburg": (41.5570, -83.6272), "Rossford": (41.6098, -83.5644), "Northwood": (41.6056, -83.4838), "Oregon": (41.6437, -83.4869),
+             "Walbridge": (41.5878, -83.4930), "Ottawa Hills": (41.6642, -83.6430), "Millbury": (41.5662, -83.4277)}
+    out = [n for n, (la, lo) in towns.items() if not g.contains(Point(lo, la))]
+    assert not out, f"towns outside the island: {out}"
+    c = math.cos(math.radians(41.63))
+    km2 = Polygon([(lo * 111.32 * c, la * 110.57) for la, lo in ring]).area
+    return f"{km2:.0f} km2, all {len(towns)} towns inside"
+
 for name, ok, detail in results:
     print(f"[data-test] {'PASS' if ok else 'FAIL'} {name}  ({detail})")
 failed = sum(1 for r in results if not r[1])

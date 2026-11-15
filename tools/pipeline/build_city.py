@@ -268,7 +268,21 @@ if coast:
     lake = [p for p in parts if sum(p.contains(s) for s in samples[:: max(1, len(samples) // 400)]) > 0]
     water.extend(lake)
     log("coastline segments", len(samples), "lake polys", len(lake))
+# ---- the island (owner decision 2026-11-15): everything outside source_data/island.json is Lake Erie
+_islp = os.environ.get("ISLAND", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source_data", "island.json"))
+ISLAND = None
+if os.path.exists(_islp) and os.environ.get("ISLAND", "1") != "0":
+    ISLAND = Polygon([P(a, b) for a, b in json.load(open(_islp))["ring"]]).buffer(0)
+    sea = BBOX.buffer(400).difference(ISLAND)
+    if not sea.is_empty: water.append(sea)
+    log("island km2", round(ISLAND.intersection(BBOX).area / 1e6, 1))
 WATER = unary_union(water).intersection(BBOX.buffer(400)).buffer(0) if water else Polygon()
+if ISLAND is not None:
+    BBOX_P = shapely.prepared.prep(BBOX.intersection(ISLAND))   # buildings, roads, props, labels only on the island
+    # beach: a sand strip along the made-up coast (not along the real river/lake shores inside the island)
+    BEACH = ISLAND.exterior.buffer(28).intersection(ISLAND).intersection(BBOX)
+else:
+    BEACH = Polygon()
 WATER_TREE_SRC = polys_of(WATER)
 log("water km2", round(WATER.area / 1e6, 2))
 
@@ -1406,7 +1420,10 @@ for ri in range(rx0, rx1 + 1):
         taken = unary_union([taken, parking_r])
         ind_r = safe(lambda a, b: a.difference(b), clip(local_union(T_IND, rb)), taken)
         taken = unary_union([taken, ind_r])
+        beach_r = safe(lambda a, b: a.difference(b), clip(BEACH), taken) if not BEACH.is_empty else Polygon()
+        taken = unary_union([taken, beach_r])
         generic = safe(lambda a, b: a.difference(b), Rg, taken)
+        add_area(beach_r, "sand", 0.0, 6.0, True, GROUND_COL_Y)
         add_area(generic, "lot", 0.0, 8.0, True, GROUND_COL_Y)
         add_area(park_r, "grass", 0.0, 8.0, True, GROUND_COL_Y)
         add_area(forest_r, "forest_floor", 0.0, 8.0, True, GROUND_COL_Y)

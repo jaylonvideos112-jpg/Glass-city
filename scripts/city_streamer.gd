@@ -67,6 +67,7 @@ func _make_materials() -> void:
 	for i in tints.size():
 		materials["siding%d" % i] = _tex_mat("siding", tints[i])
 	materials["roof"] = _tex_mat("roof")
+	materials["sand"] = _tex_mat("sand", Color(0.95, 0.9, 0.78))   # island beaches
 	var fac := ShaderMaterial.new()
 	fac.shader = load("res://shaders/facade.gdshader")
 	var nt := NoiseTexture2D.new()

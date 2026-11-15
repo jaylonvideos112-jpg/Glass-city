@@ -109,13 +109,13 @@ func _ready() -> void:
 			demo = Demo.new(); demo.main = self; demo.mode = a.substr(7); add_child(demo)
 			input_enabled = false
 
-## Placeholder land beyond the generated area so the horizon isn't a void.
+## Beyond the generated area: open Lake Erie all the way to the horizon (the map is an island).
 func _build_outskirts() -> void:
 	var bb: Array = streamer.manifest["bbox"]   # [minx, minz, maxx, maxz]
-	var m := StandardMaterial3D.new()
-	m.albedo_texture = load("res://textures/grass.png")
-	m.albedo_color = Color(0.74, 0.79, 0.66)
-	m.uv1_scale = Vector3(400, 400, 1)
+	var m: Material = streamer.materials.get("water")
+	if m == null:
+		var sm := StandardMaterial3D.new(); sm.albedo_color = Color(0.2, 0.32, 0.4); sm.roughness = 0.1; m = sm
+	var wy: float = streamer.manifest.get("water_y", -1.6)
 	var far := 12000.0
 	var x0: float = bb[0]; var z0: float = bb[1]; var x1: float = bb[2]; var z1: float = bb[3]
 	var rects := [
@@ -130,8 +130,14 @@ func _build_outskirts() -> void:
 		pm.size = r.size
 		mi.mesh = pm
 		mi.material_override = m
-		mi.position = Vector3(r.position.x + r.size.x * 0.5, -0.02, r.position.y + r.size.y * 0.5)
+		mi.position = Vector3(r.position.x + r.size.x * 0.5, wy, r.position.y + r.size.y * 0.5)
 		world.add_child(mi)
+		# deep lakebed under the open water (the water shader shades by depth and needs a floor)
+		var bed := MeshInstance3D.new(); bed.mesh = pm
+		var bm := StandardMaterial3D.new(); bm.albedo_color = Color(0.08, 0.12, 0.13); bm.roughness = 1.0
+		bed.material_override = bm
+		bed.position = mi.position - Vector3(0, 9.0, 0)
+		world.add_child(bed)
 
 ## Find a spot near p (sliding along the road, trying several side offsets) that is open ground, not a roof.
 func _clear_spot(p: Vector3, road_dir: Vector3, sides: Array) -> Vector3:

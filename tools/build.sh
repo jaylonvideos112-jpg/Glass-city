@@ -13,7 +13,7 @@ set -e
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 WORK="${GLASSCITY_WORK:-$(dirname "$REPO")}"
 P="$REPO/tools/pipeline"
-BBOX="41.5706 -83.7000 41.7306 -83.4500"            # S W N E (whole map, matches manifest bbox)
+BBOX="41.5050 -83.8130 41.7330 -83.3040"            # S W N E: the island (source_data/island.json) plus sea margin
 DT_BBOX="41.6420 -83.5510 41.6625 -83.5280"         # downtown test box
 cd "$WORK"
 export COUNTY=osm LIDAR=lidar/buildings.pkl LIDAR2=lidar/county.pkl LIDAR3=lidar/downtown_exact.pkl
@@ -33,7 +33,7 @@ case "${1:-city}" in
             python3 "$P/dt_overrides.py" lidar/downtown_exact.pkl
             build "$BBOX" ;;
   textures) python3 "$P/make_textures.py" "$REPO/textures" ;;
-  fetch)    python3 "$P/fetch_city.py" 41.5706 -83.7000 41.7306 -83.4500 5 5 osm/city ;;
+  fetch)    python3 "$P/fetch_city.py" 41.5050 -83.8130 41.7330 -83.3040 8 12 osm/city ;;
   *) echo "unknown stage: $1"; exit 2 ;;
 esac
 echo "done: $1"

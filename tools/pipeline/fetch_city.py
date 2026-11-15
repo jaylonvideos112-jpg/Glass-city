@@ -8,7 +8,7 @@ OUT = sys.argv[7]
 WI = int(sys.argv[8]) if len(sys.argv) > 8 else 0
 WC = int(sys.argv[9]) if len(sys.argv) > 9 else 1
 os.makedirs(OUT, exist_ok=True)
-URLS = ["http://overpass-api.de/api/interpreter", "https://overpass-api.de/api/interpreter"]
+URLS = ["https://maps.mail.ru/osm/tools/overpass/api/interpreter", "https://overpass-api.de/api/interpreter", "https://overpass.private.coffee/api/interpreter"]
 
 def q(s, w, n, e):
     b = f"({s},{w},{n},{e})"
@@ -45,9 +45,9 @@ while True:
     i, j = todo[0]
     s, w = S + i * dlat, W + j * dlon
     path = f"{OUT}/{i}_{j}.json"; tmp = path + f".tmp{WI}"
-    r = subprocess.run(["curl", "-sS", "-m", "300", "-A", "GlassCityBuilder/0.3", "-G",
+    r = subprocess.run(["curl", "-sS", "-m", "150", "-A", "GlassCityBuilder/0.3", "-G",
                         "--data-urlencode", "data=" + q(s, w, s + dlat, w + dlon),
-                        URLS[attempt % 2], "-o", tmp, "-w", "%{http_code}"], capture_output=True, text=True)
+                        URLS[0 if attempt % 4 != 3 else 1 + (attempt // 4) % (len(URLS) - 1)], "-o", tmp, "-w", "%{http_code}"], capture_output=True, text=True)
     attempt += 1
     code = r.stdout.strip()
     ok = False
