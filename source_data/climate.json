@@ -1,32 +1,244 @@
 {
   "_doc": "Clock, sun and weather data for GLASS CITY (Bible section 6). Engine-neutral: the Godot and future Unreal builds both read this file. Sun times are computed from latitude and season rather than stored; colours are sRGB hex.",
-  "location": {"lat": 41.6528, "lon": -83.5379, "solar_noon_standard": 12.6, "dst_seasons": ["spring", "summer", "fall"]},
-  "clock": {"real_seconds_per_game_day": 3600, "days_per_season": 12, "seasons": ["spring", "summer", "fall", "winter"],
-            "season_day_of_year": {"spring": 79, "summer": 172, "fall": 266, "winter": 355},
-            "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-            "start": {"season": "fall", "day": 3, "hour": 16.5, "weekday": 4}},
-  "sky": {
-    "day":   {"top": "#4f7fbf", "horizon": "#b8c4cf", "ground": "#9ea590", "fog": "#b8c2cf", "ambient": 0.9},
-    "dusk":  {"top": "#3a4a78", "horizon": "#f0a070", "ground": "#6a5a50", "fog": "#c89a84", "ambient": 0.45},
-    "night": {"top": "#060a18", "horizon": "#1c2236", "ground": "#0c0e12", "fog": "#141a26", "ambient": 0.13}
+  "location": {
+    "lat": 41.6528,
+    "lon": -83.5379,
+    "solar_noon_standard": 12.6,
+    "dst_seasons": [
+      "spring",
+      "summer",
+      "fall"
+    ]
   },
-  "occupancy_by_hour": [0.35, 0.3, 0.25, 0.22, 0.22, 0.3, 0.55, 0.7, 0.6, 0.45, 0.45, 0.45, 0.45, 0.45, 0.45, 0.5, 0.6, 0.8, 0.95, 1.0, 1.0, 0.9, 0.7, 0.5],
+  "clock": {
+    "real_seconds_per_game_day": 3600,
+    "days_per_season": 12,
+    "seasons": [
+      "spring",
+      "summer",
+      "fall",
+      "winter"
+    ],
+    "season_day_of_year": {
+      "spring": 79,
+      "summer": 172,
+      "fall": 266,
+      "winter": 355
+    },
+    "weekdays": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ],
+    "start": {
+      "season": "fall",
+      "day": 3,
+      "hour": 16.5,
+      "weekday": 4
+    }
+  },
+  "sky": {
+    "day": {
+      "top": "#4f7fbf",
+      "horizon": "#b8c4cf",
+      "ground": "#9ea590",
+      "fog": "#b8c2cf",
+      "ambient": 0.9
+    },
+    "dusk": {
+      "top": "#3a4a78",
+      "horizon": "#f0a070",
+      "ground": "#6a5a50",
+      "fog": "#c89a84",
+      "ambient": 0.45
+    },
+    "night": {
+      "top": "#060a18",
+      "horizon": "#1c2236",
+      "ground": "#0c0e12",
+      "fog": "#141a26",
+      "ambient": 0.13
+    }
+  },
+  "occupancy_by_hour": [
+    0.35,
+    0.3,
+    0.25,
+    0.22,
+    0.22,
+    0.3,
+    0.55,
+    0.7,
+    0.6,
+    0.45,
+    0.45,
+    0.45,
+    0.45,
+    0.45,
+    0.45,
+    0.5,
+    0.6,
+    0.8,
+    0.95,
+    1.0,
+    1.0,
+    0.9,
+    0.7,
+    0.5
+  ],
   "weather": {
     "_doc": "states and their look; 'next' gives per-season odds of what follows when a spell ends; spells last min..max game hours",
     "states": {
-      "clear":    {"cloud": 0.05, "sun": 1.0,  "fog": 1.0, "precip": "",     "rate": 0.0, "dark": 0.0,  "hours": [5, 14]},
-      "partly":   {"cloud": 0.35, "sun": 0.85, "fog": 1.2, "precip": "",     "rate": 0.0, "dark": 0.05, "hours": [3, 10]},
-      "overcast": {"cloud": 0.85, "sun": 0.35, "fog": 1.8, "precip": "",     "rate": 0.0, "dark": 0.25, "hours": [3, 10]},
-      "rain":     {"cloud": 0.95, "sun": 0.22, "fog": 3.0, "precip": "rain", "rate": 1.0, "dark": 0.4,  "hours": [2, 6]},
-      "storm":    {"cloud": 1.0,  "sun": 0.12, "fog": 3.5, "precip": "rain", "rate": 2.2, "dark": 0.6,  "hours": [1, 3]},
-      "fog":      {"cloud": 0.7,  "sun": 0.4,  "fog": 14.0,"precip": "",     "rate": 0.0, "dark": 0.2,  "hours": [2, 6]},
-      "snow":     {"cloud": 0.95, "sun": 0.3,  "fog": 4.0, "precip": "snow", "rate": 1.0, "dark": 0.3,  "hours": [2, 8]}
+      "clear": {
+        "cloud": 0.05,
+        "sun": 1.0,
+        "fog": 1.0,
+        "precip": "",
+        "rate": 0.0,
+        "dark": 0.0,
+        "hours": [
+          5,
+          14
+        ]
+      },
+      "partly": {
+        "cloud": 0.35,
+        "sun": 0.85,
+        "fog": 1.2,
+        "precip": "",
+        "rate": 0.0,
+        "dark": 0.05,
+        "hours": [
+          3,
+          10
+        ]
+      },
+      "overcast": {
+        "cloud": 0.85,
+        "sun": 0.35,
+        "fog": 1.8,
+        "precip": "",
+        "rate": 0.0,
+        "dark": 0.25,
+        "hours": [
+          3,
+          10
+        ]
+      },
+      "rain": {
+        "cloud": 0.95,
+        "sun": 0.22,
+        "fog": 3.0,
+        "precip": "rain",
+        "rate": 1.0,
+        "dark": 0.4,
+        "hours": [
+          2,
+          6
+        ]
+      },
+      "storm": {
+        "cloud": 1.0,
+        "sun": 0.12,
+        "fog": 3.5,
+        "precip": "rain",
+        "rate": 2.2,
+        "dark": 0.6,
+        "hours": [
+          1,
+          3
+        ]
+      },
+      "fog": {
+        "cloud": 0.7,
+        "sun": 0.4,
+        "fog": 14.0,
+        "precip": "",
+        "rate": 0.0,
+        "dark": 0.2,
+        "hours": [
+          2,
+          6
+        ]
+      },
+      "snow": {
+        "cloud": 0.95,
+        "sun": 0.3,
+        "fog": 4.0,
+        "precip": "snow",
+        "rate": 1.0,
+        "dark": 0.3,
+        "hours": [
+          2,
+          8
+        ]
+      }
     },
     "next": {
-      "spring": {"clear": 0.25, "partly": 0.25, "overcast": 0.2, "rain": 0.18, "storm": 0.05, "fog": 0.07, "snow": 0.0},
-      "summer": {"clear": 0.38, "partly": 0.3,  "overcast": 0.1, "rain": 0.1,  "storm": 0.1,  "fog": 0.02, "snow": 0.0},
-      "fall":   {"clear": 0.25, "partly": 0.25, "overcast": 0.25,"rain": 0.15, "storm": 0.02, "fog": 0.08, "snow": 0.0},
-      "winter": {"clear": 0.15, "partly": 0.2,  "overcast": 0.3, "rain": 0.05, "storm": 0.0,  "fog": 0.05, "snow": 0.25}
+      "spring": {
+        "clear": 0.25,
+        "partly": 0.25,
+        "overcast": 0.2,
+        "rain": 0.18,
+        "storm": 0.05,
+        "fog": 0.07,
+        "snow": 0.0
+      },
+      "summer": {
+        "clear": 0.38,
+        "partly": 0.3,
+        "overcast": 0.1,
+        "rain": 0.1,
+        "storm": 0.1,
+        "fog": 0.02,
+        "snow": 0.0
+      },
+      "fall": {
+        "clear": 0.25,
+        "partly": 0.25,
+        "overcast": 0.25,
+        "rain": 0.15,
+        "storm": 0.02,
+        "fog": 0.08,
+        "snow": 0.0
+      },
+      "winter": {
+        "clear": 0.15,
+        "partly": 0.2,
+        "overcast": 0.3,
+        "rain": 0.05,
+        "storm": 0.0,
+        "fog": 0.05,
+        "snow": 0.25
+      }
     }
+  },
+  "surface": {
+    "_doc": "ground wetness and snow cover, in game hours",
+    "wet_hours": 0.5,
+    "dry_hours": 3.0,
+    "dry_hours_night": 6.0,
+    "snow_build_hours": 5.0,
+    "melt_per_hour": {
+      "winter": 0.03,
+      "spring": 0.35,
+      "summer": 1.0,
+      "fall": 0.2
+    },
+    "rain_melt_per_hour": 0.3,
+    "snow_wetness_on_melt": 0.6
+  },
+  "lights": {
+    "_doc": "street lamps and car lights",
+    "lamp_pool_radius": 7.5,
+    "lamp_pool_energy": 0.55,
+    "real_lamp_lights": 24,
+    "real_lamp_range": 15.0,
+    "real_lamp_energy": 1.6,
+    "headlight_on_night": 0.25
   }
 }

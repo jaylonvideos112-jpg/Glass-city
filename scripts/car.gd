@@ -13,6 +13,10 @@ var throttle := 0.0   # -1..1
 var steer_in := 0.0   # -1..1 (positive = left)
 var handbrake := false
 var driven := false
+var lights_on := false            # set by time_of_day.gd (night or dark weather)
+var _heads: Array[SpotLight3D] = []
+var _hl_mat: StandardMaterial3D
+var _tl_mat: StandardMaterial3D
 var wheels: Array[VehicleWheel3D] = []
 
 func _ready() -> void:
@@ -83,8 +87,18 @@ func _build_model() -> void:
 	_box(Vector3(1.62, 0.08, 2.0), Vector3(0, 1.44, 0.25), paint)          # roof
 	_box(Vector3(1.9, 0.2, 0.3), Vector3(0, 0.45, -2.25), dark)            # front bumper
 	_box(Vector3(1.9, 0.2, 0.3), Vector3(0, 0.45, 2.25), dark)             # rear bumper
-	var hl := _mat(Color(1, 0.97, 0.85)); hl.emission_enabled = true; hl.emission = Color(1, 0.95, 0.8); hl.emission_energy_multiplier = 1.5
-	var tl := _mat(Color(0.8, 0.05, 0.05)); tl.emission_enabled = true; tl.emission = Color(0.9, 0.0, 0.0)
+	var hl := _mat(Color(1, 0.97, 0.85)); hl.emission_enabled = true; hl.emission = Color(1, 0.95, 0.8); hl.emission_energy_multiplier = 0.3
+	var tl := _mat(Color(0.8, 0.05, 0.05)); tl.emission_enabled = true; tl.emission = Color(0.9, 0.0, 0.0); tl.emission_energy_multiplier = 0.3
+	_hl_mat = hl; _tl_mat = tl
+	for s in [-0.65, 0.65]:
+		var sp := SpotLight3D.new()
+		sp.position = Vector3(s, 0.75, -2.35)
+		sp.rotation_degrees = Vector3(-7, 0, 0)
+		sp.spot_range = 38.0; sp.spot_angle = 26.0; sp.spot_attenuation = 1.2
+		sp.light_color = Color(1.0, 0.95, 0.85); sp.light_energy = 0.0
+		sp.shadow_enabled = false
+		sp.visible = false
+		add_child(sp); _heads.append(sp)
 	for s in [-0.65, 0.65]:
 		_box(Vector3(0.35, 0.14, 0.05), Vector3(s, 0.75, -2.26), hl)
 		_box(Vector3(0.35, 0.14, 0.05), Vector3(s, 0.75, 2.26), tl)
@@ -103,6 +117,7 @@ func _physics_process(_dt: float) -> void:
 		engine_force = 0.0
 		brake = 8.0
 		steering = 0.0
+		_update_lights()
 		return
 	var s := speed_mps()
 	# steering gets tighter at low speed, gentler at high speed
@@ -128,8 +143,17 @@ func _physics_process(_dt: float) -> void:
 		brake = 1.5
 	for w in wheels:
 		w.wheel_friction_slip = 1.3 if (handbrake and not w.use_as_steering) else 2.6
+	_update_lights()
 	if handbrake:
 		brake = max(brake, 30.0)
+
+func _update_lights() -> void:
+	var braking := brake > 2.0 and driven
+	for sp in _heads:
+		sp.visible = lights_on and driven
+		sp.light_energy = 6.0 if lights_on else 0.0
+	_hl_mat.emission_energy_multiplier = 3.0 if lights_on else 0.3
+	_tl_mat.emission_energy_multiplier = (4.0 if braking else (1.6 if lights_on else 0.3))
 
 func reset_upright() -> void:
 	var yaw := global_rotation.y

@@ -13,6 +13,14 @@
   F7 cycles the weather.
 * **Persistence:** time and weather are saved on quit (`user://world_state.json`).
 * 6 new in-game tests and 1 new data test (23 total).
+* **Street lamps:** about 4× more downtown (the map builder had been dropping every lamp that stood on a sidewalk);
+  each casts a warm pool of light, and the 24 nearest the camera give off real light.
+* **Car lights:** headlights at night or in dark weather (real spotlights on the driven car); tail lights brighten
+  when braking.
+* **Wet and snowy ground:** rain darkens roads and makes them glossy (lamp light reflects), then they dry over a few
+  hours. Snow builds on flat ground and roofs, roads stay clearer than sidewalks (plowed), it melts by season, and
+  melting leaves slush.
+* Test harness now fails a test that crashes instead of silently skipping it.
 * Fix: window emission masks lit whole walls (Godot's emission ADD operator); now MULTIPLY.
 
 ## v0.4 (in progress), Stage 0 foundation + realistic city

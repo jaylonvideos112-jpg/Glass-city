@@ -91,6 +91,8 @@ func _ready() -> void:
 		if m is StandardMaterial3D and m.emission_texture != null: tod.register_night_material(m)
 	streamer._lamp_mesh()
 	tod.register_lamp_material(streamer.lamp_bulb_mat)
+	tod.register_ground_materials(streamer.materials)
+	var sl = load("res://scripts/street_lights.gd").new(); sl.name = "StreetLights"; sl.main = self; add_child(sl)
 	tod.apply_now()
 	perf = Perf.new(); perf.main = self; add_child(perf)
 	for a in OS.get_cmdline_user_args():

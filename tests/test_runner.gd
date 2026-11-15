@@ -40,11 +40,19 @@ func _run() -> void:
 		["weather_respects_seasons", t_weather_seasons],
 		["weather_changes_the_look", t_weather_look],
 		["world_state_save_load", t_persist],
+		["street_lamps_light_at_night", t_lamps],
+		["car_headlights_at_night", t_headlights],
+		["rain_wets_and_dries_the_ground", t_wet],
+		["snow_builds_and_melts", t_snow],
 	]
 	for t in tests:
 		var t0 := Time.get_ticks_msec()
-		var r: Array = await t[1].call()
+		var r = await t[1].call()
+		if not (r is Array) or r.size() < 2:
+			r = [false, "test crashed (script error, see log above)"]
 		_record(t[0], r, Time.get_ticks_msec() - t0)
+	if results.size() != tests.size():
+		_record("all_tests_ran", [false, "%d of %d tests reported" % [results.size(), tests.size()]], 0)
 	var failed := results.filter(func(x): return not x["pass"]).size()
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(out_path).get_base_dir())
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
@@ -308,3 +316,82 @@ func t_persist() -> Array:
 	if not ok: return [false, "load_state failed"]
 	if abs(back - saved) > 0.001 or bs != "snow": return [false, "restored %.2f h / %s, expected %.2f h / snow" % [back, bs, saved]]
 	return [true, "time and weather restored"]
+
+func t_lamps() -> Array:
+	var tod = main.tod
+	var keep: float = tod.total_hours
+	var pools := 0; var heads := 0
+	for k in main.streamer.loaded:
+		var r: Node3D = main.streamer.loaded[k]
+		if r.has_node("lamp_pools"): pools += (r.get_node("lamp_pools") as MultiMeshInstance3D).multimesh.instance_count
+		if r.has_meta("lamp_heads"): heads += r.get_meta("lamp_heads").size()
+	tod.set_date("fall", 3, 23.0)
+	var gn: float = tod.globals["night_level"]
+	var sl = main.get_node("StreetLights")
+	sl._t = 0.0; sl._process(0.0)
+	var lit := 0
+	for o in sl.lights: if o.visible: lit += 1
+	tod.set_date("fall", 3, 13.0)
+	var gd: float = tod.globals["night_level"]
+	sl._t = 0.0; sl._process(0.0)
+	var lit_day := 0
+	for o in sl.lights: if o.visible: lit_day += 1
+	tod.total_hours = keep; tod.apply_now()
+	if pools < 50: return [false, "only %d lamp light pools in %d loaded chunks" % [pools, main.streamer.loaded.size()]]
+	if gn < 0.9 or gd > 0.05: return [false, "pool glow night=%.2f day=%.2f" % [gn, gd]]
+	if lit < 8 or lit_day > 0: return [false, "real lamp lights: %d at night, %d by day" % [lit, lit_day]]
+	return [true, "%d lamp pools, %d real lights at night, none by day" % [pools, lit]]
+
+func t_headlights() -> Array:
+	var tod = main.tod; var w = main.weather
+	var keep: float = tod.total_hours; var ks: String = w.state
+	w.set_state("clear"); w.snap()
+	var c = main.cars[0]
+	tod.set_date("summer", 4, 23.0)
+	await _frames(2)
+	var on_n: bool = c.lights_on; var e_n: float = c._hl_mat.emission_energy_multiplier
+	tod.set_date("summer", 4, 12.0)
+	await _frames(2)
+	var on_d: bool = c.lights_on
+	w.set_state(ks); w.snap(); tod.total_hours = keep; tod.apply_now()
+	if not on_n or e_n < 1.0: return [false, "headlights off at 11 pm"]
+	if on_d: return [false, "headlights on at noon in clear weather"]
+	return [true, "on at night, off at noon"]
+
+func t_wet() -> Array:
+	var tod = main.tod; var w = main.weather
+	var ks: String = w.state; var kw: float = tod.wetness; var kn: float = tod.snow_cover
+	tod.wetness = 0.0; tod.snow_cover = 0.0
+	w.set_state("rain"); tod.step_surface(1.0)
+	var wet: float = tod.wetness
+	tod.apply_now()
+	var g: float = tod.globals["wetness"]
+	var asphalt: StandardMaterial3D = main.streamer.materials["asphalt"]
+	var r_wet: float = asphalt.roughness
+	w.set_state("clear"); for i in 12: tod.step_surface(1.0)
+	var dry: float = tod.wetness
+	tod.apply_now()
+	var r_dry: float = asphalt.roughness
+	tod.wetness = kw; tod.snow_cover = kn; w.set_state(ks); w.snap(); tod.apply_now()
+	if wet < 0.9 or g < 0.9: return [false, "after 1 h of rain wetness=%.2f (shader %.2f)" % [wet, g]]
+	if r_wet > r_dry - 0.3: return [false, "wet asphalt not glossier (%.2f vs %.2f)" % [r_wet, r_dry]]
+	if dry > 0.05: return [false, "still wet (%.2f) 12 h after rain" % dry]
+	return [true, "1 h rain -> %.2f wet, dry again after 12 h" % wet]
+
+func t_snow() -> Array:
+	var tod = main.tod; var w = main.weather
+	var keep: float = tod.total_hours; var ks: String = w.state; var kw: float = tod.wetness; var kn: float = tod.snow_cover
+	tod.snow_cover = 0.0
+	tod.set_date("winter", 3, 10.0); w.set_state("snow")
+	for i in 6: tod.step_surface(1.0)
+	var built: float = tod.snow_cover
+	w.set_state("clear"); for i in 6: tod.step_surface(1.0)
+	var winter_keep: float = tod.snow_cover
+	tod.set_date("spring", 2, 12.0)
+	for i in 6: tod.step_surface(1.0)
+	var spring: float = tod.snow_cover
+	tod.total_hours = keep; tod.wetness = kw; tod.snow_cover = kn; w.set_state(ks); w.snap(); tod.apply_now()
+	if built < 0.9: return [false, "6 h of snow gave only %.2f cover" % built]
+	if winter_keep < 0.6: return [false, "snow melted too fast in winter (%.2f left after 6 h)" % winter_keep]
+	if spring > 0.1: return [false, "snow still %.2f after 6 spring hours" % spring]
+	return [true, "6 h snow -> %.2f, winter 6 h later %.2f, spring melts to %.2f" % [built, winter_keep, spring]]

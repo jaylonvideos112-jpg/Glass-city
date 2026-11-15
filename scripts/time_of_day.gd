@@ -24,6 +24,12 @@ var fog_base := 0.00022           # demo/camera code sets this; weather multipli
 var _night_mats: Array = []       # StandardMaterial3D with window emission masks
 var _lamp_mat: StandardMaterial3D
 var _acc := 0.0
+var wetness := 0.0                # 0 dry .. 1 soaked (rain), drives the global shader parameter
+var snow_cover := 0.0             # 0 none .. 1 full cover
+var _surf_last := -1.0
+var globals := {}                 # last values pushed to the global shader parameters (readable at runtime)
+var _ground: Array = []           # [StandardMaterial3D, base albedo, base roughness, snow factor]
+const GROUND := {"asphalt": 0.45, "sidewalk": 0.85, "concrete": 0.7, "concrete_dk": 0.7, "yellowline": 0.4, "whiteline": 0.4, "crosswalk": 0.5}   # roads get plowed
 
 func _ready() -> void:
 	C = JSON.parse_string(FileAccess.get_file_as_string(CLIMATE_PATH))
@@ -57,6 +63,8 @@ func _ready() -> void:
 			if p.size() == 3: set_date(p[0], int(p[1]), float(p[2]))
 			else: set_hour(float(p[0]))
 		if a == "--load-world": load_state()
+		if a.begins_with("--wet="): wetness = float(a.substr(6))
+		if a.begins_with("--snowcover="): snow_cover = float(a.substr(12))
 	if not InputMap.has_action("time_fast"):
 		for pair in [["time_fast", KEY_F6], ["weather_next", KEY_F7]]:
 			InputMap.add_action(pair[0])
@@ -122,7 +130,9 @@ func _unhandled_input(e: InputEvent) -> void:
 		main.hud.flash("Time x%d" % int(time_scale))
 
 func _process(dt: float) -> void:
-	total_hours += dt * 24.0 / sec_per_day * time_scale
+	var dh := dt * 24.0 / sec_per_day * time_scale
+	total_hours += dh
+	step_surface(dh)
 	_acc += dt
 	if _acc > 0.1 or time_scale > 1.0:   # lighting changes slowly; 10 Hz is plenty at normal speed
 		_acc = 0.0
@@ -133,6 +143,31 @@ func register_night_material(m: StandardMaterial3D) -> void:
 
 func register_lamp_material(m: StandardMaterial3D) -> void:
 	_lamp_mat = m
+
+func register_ground_materials(mats: Dictionary) -> void:
+	for k in GROUND:
+		var m = mats.get(k)
+		if m is StandardMaterial3D:
+			_ground.append([m, m.albedo_color, m.roughness, GROUND[k]])
+
+## Advance wetness/snow by elapsed game hours (also called directly by tests).
+func step_surface(dh: float) -> void:
+	if dh <= 0.0: return
+	var S: Dictionary = C["surface"]
+	var precip: String = main.weather.W["states"][main.weather.state]["precip"] if main.weather else ""
+	if precip == "rain":
+		wetness = min(1.0, wetness + dh / float(S["wet_hours"]))
+		snow_cover = max(0.0, snow_cover - dh * float(S["rain_melt_per_hour"]))
+	elif precip == "snow":
+		snow_cover = min(1.0, snow_cover + dh / float(S["snow_build_hours"]))
+		wetness = max(0.0, wetness - dh / float(S["dry_hours"]))
+	else:
+		var dry: float = S["dry_hours_night"] if night > 0.5 else S["dry_hours"]
+		var melt: float = float(S["melt_per_hour"][season_name()]) * dh
+		if snow_cover > 0.0 and melt > 0.0 and float(S["melt_per_hour"][season_name()]) > 0.1:
+			wetness = max(wetness, float(S["snow_wetness_on_melt"]) * minf(1.0, snow_cover * 2.0))   # slush
+		snow_cover = max(0.0, snow_cover - melt)
+		wetness = max(0.0, wetness - dh / dry)
 
 func _col(h: String) -> Color: return Color(h)
 
@@ -186,13 +221,25 @@ func apply_now() -> void:
 		m.emission_energy_multiplier = e * 0.9
 	if _lamp_mat:
 		_lamp_mat.emission_energy_multiplier = 2.5 * night
+	globals = {"night_level": night, "wetness": wetness, "snow_cover": snow_cover}
+	for k in globals: RenderingServer.global_shader_parameter_set(k, globals[k])
+	for g in _ground:
+		var m: StandardMaterial3D = g[0]
+		var s2: float = clampf(snow_cover * g[3], 0.0, 1.0)
+		var w2: float = wetness * (1.0 - s2)
+		m.albedo_color = (g[1] as Color).lerp(Color(0.92, 0.93, 0.96), s2) * (1.0 - 0.3 * w2)
+		m.roughness = lerp(float(g[2]), 0.22, w2)
+	# car lights
+	var on: bool = night > float(C.get("lights", {}).get("headlight_on_night", 0.25)) or float(w["dark"]) > 0.45
+	for car in main.cars:
+		if is_instance_valid(car): car.lights_on = on
 
 func is_night() -> bool: return night > 0.5
 
 # ------------------------------------------------------------------ persistence
 func save_state() -> void:
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	f.store_string(JSON.stringify({"total_hours": total_hours, "weather": main.weather.state if main.weather else "clear",
+	f.store_string(JSON.stringify({"total_hours": total_hours, "wetness": wetness, "snow_cover": snow_cover, "weather": main.weather.state if main.weather else "clear",
 		"weather_left": main.weather.hours_left if main.weather else 6.0}))
 	f.close()
 
@@ -201,6 +248,7 @@ func load_state() -> bool:
 	var d = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
 	if d == null: return false
 	total_hours = float(d["total_hours"])
+	wetness = float(d.get("wetness", 0.0)); snow_cover = float(d.get("snow_cover", 0.0))
 	if main.weather:
 		main.weather.set_state(d["weather"], float(d["weather_left"]))
 	apply_now()

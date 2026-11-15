@@ -333,7 +333,7 @@ for e in els:
         while d < L:
             sides = (1,) if hw in RESID else (-1, 1)
             for side in sides:
-                off = (w / 2 + 1.0) * side
+                off = (w / 2 + 0.7) * side
                 px, py = x0 + dx * d - dy * off, y0 + dy * d + dx * off
                 seg_jobs[rkey(px, py)].append(("lamp", px, py, math.atan2(-dy * side, -dx * side)))
             d += lamp_step
@@ -1343,6 +1343,7 @@ for ri in range(rx0, rx1 + 1):
             ring_walls(water_r, Rg.exterior, GROUND_COL_Y, BED_Y, "seawall")
         water_p = shapely.prepared.prep(water_r)
         hard = shapely.prepared.prep(unary_union([roads_r.buffer(0.5), water_r, side_r]))
+        lamp_bad = shapely.prepared.prep(unary_union([roads_r.buffer(0.2), water_r]))   # lamps stand ON the sidewalk
         # scatter trees in parks (sparse) and woods (dense)
         for g, dens in ((park_r, 220.0), (forest_r, 55.0)):
             for pg in polys_of(g):
@@ -1363,7 +1364,7 @@ for ri in range(rx0, rx1 + 1):
                     c.streets.append([j[1], j[2] - c.ox, -(j[3] - c.oy), j[4] - c.ox, -(j[5] - c.oy)])
             elif k == "lamp":
                 pt = Point(j[1], j[2])
-                if BBOX_P.contains(pt) and not hard.contains(pt):
+                if BBOX_P.contains(pt) and not lamp_bad.contains(pt):
                     c = chunk_at(j[1], j[2]); c.props.append(["lamp", j[1] - c.ox, -(j[2] - c.oy), 0.0, j[3]])
             elif k == "stree":
                 pt = Point(j[1], j[2])

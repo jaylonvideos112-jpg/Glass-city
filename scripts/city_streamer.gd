@@ -281,6 +281,20 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		root.add_child(_multimesh(_tree_mesh(), trees, true))
 	if not lamps.is_empty():
 		root.add_child(_multimesh(_lamp_mesh(), lamps, false))
+		# night light pools on the ground + head positions for street_lights.gd
+		var heads: Array = []
+		var pools: Array = []
+		for p in lamps:
+			var b := Basis(Vector3.UP, p[4])
+			heads.append(Vector3(p[1], p[3], p[2]) + b * Vector3(0, 6.6, -2.1))
+			var g: Vector3 = Vector3(p[1], p[3], p[2]) + b * Vector3(0, 0.07, -2.1)
+			pools.append(["pool", g.x, g.z, g.y, 0.0])
+		root.set_meta("lamp_heads", heads)
+		var pm := _multimesh(_pool_mesh(), pools, false)
+		pm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		pm.visibility_range_end = 450.0
+		pm.name = "lamp_pools"
+		root.add_child(pm)
 		for p in lamps:
 			var body := StaticBody3D.new()
 			var cs := CollisionShape3D.new()
@@ -369,6 +383,16 @@ func _tree_mesh() -> ArrayMesh:
 	am.surface_set_material(0, tm); am.surface_set_material(1, cm)
 	_tree_cache = am
 	return am
+
+var _pool_cache: PlaneMesh
+func _pool_mesh() -> PlaneMesh:
+	if _pool_cache: return _pool_cache
+	_pool_cache = PlaneMesh.new()
+	_pool_cache.size = Vector2(15, 15)
+	var m := ShaderMaterial.new()
+	m.shader = load("res://shaders/lamp_pool.gdshader")
+	_pool_cache.material = m
+	return _pool_cache
 
 func _lamp_mesh() -> ArrayMesh:
 	if _lamp_cache: return _lamp_cache
