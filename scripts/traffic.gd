@@ -29,6 +29,7 @@ var _body_mat: StandardMaterial3D
 var enabled := true
 var time_s := 0.0       # signal clock (real seconds)
 var spawned_total := 0
+var graph_version := 0
 
 func _ready() -> void:
 	T = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH))
@@ -74,6 +75,7 @@ func rebuild_graph() -> void:
 			if e["cls"] < best: best = e["cls"]; ax = atan2(e["dir"].x, e["dir"].z)
 		ix[nid]["axis"] = ax
 	_dirty = false
+	graph_version += 1
 	# cars whose edge vanished (chunk unloaded) are removed
 	for c in cars.duplicate():
 		if c["edge"] >= edges.size() or edges[c["edge"]]["a"] != c["ea"] or edges[c["edge"]]["b"] != c["eb"]:
@@ -86,7 +88,8 @@ func _add_edge(a: int, b: int, r: Array) -> void:
 	var L := pa.distance_to(pb)
 	if L < 0.05: return
 	var e := {"a": a, "b": b, "len": L, "dir": (pb - pa) / L, "cls": int(r[6]), "lanes": max(1, int(r[7])),
-		"oneway": int(r[8]) != 0, "speed": float(r[9])}
+		"oneway": int(r[8]) != 0, "speed": float(r[9]),
+		"w": float(r[10]) if r.size() > 10 else 8.0, "walk": (int(r[11]) == 1) if r.size() > 11 else int(r[6]) >= 2}
 	var id := edges.size()
 	edges.append(e)
 	if not nout.has(a): nout[a] = []
@@ -334,6 +337,7 @@ func _leader(c: Dictionary, on_edge: Dictionary) -> Array:
 	var here := lane_point(e, c["s"], c["lane"])
 	var right := Vector3(-e["dir"].z, 0, e["dir"].x)
 	var obst: Array = [main.focus_local() + main.world_offset]
+	if main.peds: obst.append_array(main.peds.crossing_points())
 	for pc in main.cars:
 		if is_instance_valid(pc) and pc != main.current_car: obst.append(pc.global_position + main.world_offset)
 	for pl in obst:

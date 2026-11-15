@@ -50,6 +50,11 @@ func _run() -> void:
 		["traffic_no_overlapping_cars", t_tr_overlap],
 		["traffic_stops_at_red_light", t_tr_red],
 		["traffic_stops_for_player", t_tr_player],
+		["peds_density_follows_hour", t_pd_density],
+		["peds_spawn_and_walk_on_sidewalks", t_pd_walk],
+		["peds_cross_only_at_intersections", t_pd_cross],
+		["traffic_stops_for_crossing_ped", t_pd_car_stops],
+		["peds_umbrellas_in_rain", t_pd_umbrella],
 	]
 	for t in tests:
 		var t0 := Time.get_ticks_msec()
@@ -520,3 +525,112 @@ func t_tr_player() -> Array:
 	if gap < 0.5: return [false, "drove into the player (gap %.1f m)" % gap]
 	if c["v"] > 0.5: return [false, "still moving at %.1f m/s next to the player" % c["v"]]
 	return [true, "stopped %.1f m short of the player" % gap]
+
+# ------------------------------------------------------------------ pedestrians
+func t_pd_density() -> Array:
+	var tod = main.tod; var keep: float = tod.total_hours
+	tod.set_date("fall", 3, 3.0); var night: int = main.peds.target_count()
+	tod.set_date("fall", 3, 12.5); var noon: int = main.peds.target_count()
+	tod.total_hours = keep; tod.apply_now()
+	if noon < 30 or night > noon * 0.25: return [false, "3 am %d people vs 12:30 pm %d" % [night, noon]]
+	return [true, "3 am %d people, 12:30 pm %d" % [night, noon]]
+
+## Distance from a world point to the nearest drivable road surface (negative = inside the carriageway).
+func _off_road(q: Vector3) -> float:
+	var tr = main.traffic
+	var best := 1e9
+	for e in tr.edges:
+		var a: Vector3 = tr.npos[e["a"]]; var b: Vector3 = tr.npos[e["b"]]
+		if (a - q).length() > 200.0 and (b - q).length() > 200.0: continue
+		var cp := Geometry3D.get_closest_point_to_segment(Vector3(q.x, 0, q.z), a, b)
+		best = min(best, Vector2(cp.x - q.x, cp.z - q.z).length() - float(e.get("w", 8.0)) * 0.5)
+	return best
+
+func t_pd_walk() -> Array:
+	var tod = main.tod; var keep: float = tod.total_hours
+	tod.set_date("fall", 3, 12.5)
+	await _frames(360)
+	var pd = main.peds
+	var n: int = pd.count()
+	if n < 20: tod.total_hours = keep; return [false, "only %d people after 3 s (want %d)" % [n, pd.target_count()]]
+	if n > int(pd.P["budget"]["max_peds"]) + 8: tod.total_hours = keep; return [false, "%d people exceeds budget" % n]
+	var start := {}
+	for p in pd.peds: start[p["node"]] = p["pos"]
+	var in_road := 0; var worst := 1e9
+	for f in 8:
+		await _frames(150)
+		for p in pd.peds:
+			if p["state"] == "cross": continue
+			var d := _off_road(p["pos"])
+			worst = min(worst, d)
+			if d < -0.3: in_road += 1
+	var moved := 0; var m := 0
+	for p in pd.peds:
+		if start.has(p["node"]):
+			m += 1
+			if (p["pos"] - start[p["node"]]).length() > 5.0: moved += 1
+	tod.total_hours = keep; tod.apply_now()
+	if moved < m * 0.5: return [false, "only %d of %d people walked more than 5 m in 10 s" % [moved, m]]
+	if in_road > 0: return [false, "%d samples of people walking in the road (worst %.1f m inside)" % [in_road, -worst]]
+	return [true, "%d people, %d of %d walked >5 m in 10 s, closest to traffic %.1f m from the curb" % [n, moved, m, worst]]
+
+func t_pd_cross() -> Array:
+	var pd = main.peds; var tr = main.traffic
+	var c0: int = pd.crossings_started
+	var bad := 0; var seen := 0
+	for f in 20:
+		await _frames(120)
+		for p in pd.peds:
+			if p["state"] != "cross": continue
+			seen += 1
+			var n: int = p["cross"][3]
+			if pd.node_walk.get(n, []).size() < 3 and not tr.ix.has(n): bad += 1
+	var started: int = pd.crossings_started - c0
+	if started == 0: return [false, "nobody crossed a street in 20 s"]
+	if bad > 0: return [false, "%d crossings away from intersections" % bad]
+	return [true, "%d crossings started in 20 s, all at intersections" % started]
+
+func t_pd_car_stops() -> Array:
+	var tr = main.traffic; var pd = main.peds
+	var eid := -1
+	for i in tr.edges.size():
+		var e: Dictionary = tr.edges[i]
+		var near: float = (tr.npos[e["b"]] - main.focus_world()).length()
+		if near < 160.0 and e["len"] > 40.0 and e["cls"] >= 2 and e["cls"] <= 5 and not tr._occupied(i, e["len"] * 0.5, e["len"]):
+			eid = i; break
+	if eid < 0: return [false, "no clear edge"]
+	var e2: Dictionary = tr.edges[eid]
+	# a person standing in the crosswalk in the car's lane
+	var p: Dictionary = pd._spawn(pd.walk_edges[0], 0.0, 1)
+	var spot: Vector3 = tr.lane_point(e2, e2["len"] - 5.0, 0)
+	p["state"] = "cross"; p["cross"] = [spot, spot, eid, e2["b"]]; p["pos"] = spot
+	var c: Dictionary = tr._spawn_on(eid, max(1.0, e2["len"] - 40.0))
+	c["lane"] = 0; c["v"] = 5.0
+	for f in 1080:
+		await get_tree().physics_frame
+		p["state"] = "cross"; p["pos"] = spot; p["cross"] = [spot, spot, eid, e2["b"]]
+	var ok: bool = tr.cars.has(c) and c["ea"] == e2["a"] and c["eb"] == e2["b"]
+	var gap: float = (e2["len"] - 5.0) - c["s"] - c["len"] * 0.5
+	pd._despawn(p)
+	if not ok: return [false, "car drove through the crosswalk"]
+	if gap < 0.5 or c["v"] > 0.5: return [false, "car gap %.1f m, speed %.1f m/s" % [gap, c["v"]]]
+	return [true, "car stopped %.1f m before the person" % gap]
+
+func t_pd_umbrella() -> Array:
+	var w = main.weather; var pd = main.peds; var tod = main.tod
+	var keep: float = tod.total_hours; var ks: String = w.state
+	tod.set_date("fall", 3, 12.5)
+	w.set_state("rain"); w.snap()
+	await _frames(240)
+	var up := 0
+	for p in pd.peds: if p["umbrella"] > 0.9: up += 1
+	w.set_state("clear"); w.snap()
+	await _frames(240)
+	var dry := 0
+	for p in pd.peds: if p["umbrella"] > 0.1: dry += 1
+	w.set_state(ks); w.snap(); tod.total_hours = keep; tod.apply_now()
+	if pd.count() == 0: return [false, "no people"]
+	if up < pd.count() * 0.25: return [false, "only %d of %d umbrellas up in the rain" % [up, pd.count()]]
+	if dry > 0: return [false, "%d umbrellas still up when dry" % dry]
+	return [true, "%d of %d umbrellas up in rain, all down after" % [up, pd.count()]]
+

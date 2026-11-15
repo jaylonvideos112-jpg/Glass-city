@@ -33,6 +33,15 @@
     stop signs, yield, drive slower in rain and snow, and stop for the player and the player's cars.
   * Headlights and tail lights glow at night. Cars are one draw call each plus their lights.
   * 6 traffic tests.
+* **Pedestrians (step 3b part 2):**
+  * Up to 80 people walk the real sidewalks (road widths now exported per segment). They turn at the
+    corners and never walk down the median of a divided road.
+  * They cross only at intersections: on the walk phase at signals, otherwise when no car is close. Cars
+    stop for anyone in the crosswalk.
+  * 32 procedural people (skin tones, clothes, heights, builds, some in dresses), with walk cycles animated
+    in the shader (one draw call each). About half put up umbrellas in the rain.
+  * Density by hour, weekday, weather and area (downtown vs. elsewhere); `source_data/pedestrians.json`.
+  * 5 pedestrian tests.
 * Test harness now fails a test that crashes instead of silently skipping it.
 * Fix: window emission masks lit whole walls (Godot's emission ADD operator); now MULTIPLY.
 

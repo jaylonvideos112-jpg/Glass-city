@@ -313,10 +313,12 @@ def traffic_jobs(e, t, pts):
     ow = t.get("oneway", "")
     oneway = -1 if ow == "-1" else (1 if ow in ("yes", "true", "1") or hw in ("motorway", "motorway_link") or t.get("junction") == "roundabout" else 0)
     lanes = _lanes(t, cls, oneway); mps = _mph(t, cls) * 0.44704
+    w = road_width(t) or 7.0
+    walk = 1 if (hw in SIDEWALK_ON and t.get("sidewalk") != "no" and t.get("bridge") in (None, "no")) else 0
     for i in range(len(pts) - 1):
         (x0, y0), (x1, y1) = pts[i], pts[i + 1]
         if math.hypot(x1 - x0, y1 - y0) < 0.05: continue
-        seg_jobs[rkey((x0 + x1) / 2, (y0 + y1) / 2)].append(("rd", nodes[i], nodes[i + 1], x0, y0, x1, y1, cls, lanes, oneway, mps))
+        seg_jobs[rkey((x0 + x1) / 2, (y0 + y1) / 2)].append(("rd", nodes[i], nodes[i + 1], x0, y0, x1, y1, cls, lanes, oneway, mps, w, walk))
     for i, nid in enumerate(nodes):
         node_classes[nid].append((cls, i in (0, len(nodes) - 1)))
         node_xy[nid] = pts[i]
@@ -1428,7 +1430,7 @@ for ri in range(rx0, rx1 + 1):
                 mx, my = (j[3] + j[5]) / 2, (j[4] + j[6]) / 2
                 if BBOX_P.contains(Point(mx, my)):
                     c = chunk_at(mx, my)
-                    c.roads.append([j[1], j[2], float(j[3] - c.ox), float(-(j[4] - c.oy)), float(j[5] - c.ox), float(-(j[6] - c.oy)), j[7], j[8], j[9], float(j[10])])
+                    c.roads.append([j[1], j[2], float(j[3] - c.ox), float(-(j[4] - c.oy)), float(j[5] - c.ox), float(-(j[6] - c.oy)), j[7], j[8], j[9], float(j[10]), float(j[11]), j[12]])
             elif k == "ix":
                 if BBOX_P.contains(Point(j[2], j[3])):
                     c = chunk_at(j[2], j[3])

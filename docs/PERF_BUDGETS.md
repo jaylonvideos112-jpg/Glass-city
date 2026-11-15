@@ -18,6 +18,7 @@ Entry-level target (later, "Low" preset): 30 fps on GTX 1060 / RX 580 class at 1
 
 Values are mirrored in `scripts/perf.gd` (`BUDGET`), which colours the overlay red when over budget.
 | traffic cars (full simulation) | ≤ 60 within 280 m (`source_data/traffic.json` budget) | test `traffic_spawns_and_moves_in_lanes` |
+| pedestrians | ≤ 80 within 185 m, 1 draw call each | test `peds_spawn_and_walk_on_sidewalks` |
 | real lamp lights | 24 nearest the camera | `climate.json` lights |
 
 Future budgets (set before each system ships): NPCs within 150 m, physics bodies, audio voices,
