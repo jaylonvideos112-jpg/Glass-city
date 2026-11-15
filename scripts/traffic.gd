@@ -179,17 +179,22 @@ func _box(st: SurfaceTool, size: Vector3, pos: Vector3, col: Color) -> void:
 		st.set_color(col); st.set_normal(n[i]); st.add_vertex(v[i] + pos)
 
 ## low-level helpers for car shapes: a convex "slab" from 8 corner points (bottom 4, top 4), flat shaded
+const GLASS := Color(0.07, 0.09, 0.12)
+var _glass_st: SurfaceTool = null     # while set, glass faces go here (a see-through surface for drivable cars)
+var _glass_mat: StandardMaterial3D
+
 func _hexa(st: SurfaceTool, b: Array, t: Array, cols: Dictionary) -> void:
 	# b, t: [front-left, front-right, rear-right, rear-left] (front is -Z); cols: side/top/front/rear/bottom colours
 	var faces := [[b[0], b[1], t[1], t[0], "front"], [b[2], b[3], t[3], t[2], "rear"], [b[1], b[2], t[2], t[1], "side"],
 		[b[3], b[0], t[0], t[3], "side"], [t[0], t[1], t[2], t[3], "top"], [b[3], b[2], b[1], b[0], "bottom"]]
 	for f in faces:
 		var col: Color = cols.get(f[4], cols["side"])
+		var dst := _glass_st if (_glass_st != null and col == GLASS) else st
 		var a: Vector3 = f[0]; var bb: Vector3 = f[1]; var c: Vector3 = f[2]; var d: Vector3 = f[3]
 		var n := (bb - a).cross(c - a).normalized()
 		if n == Vector3.ZERO: n = (c - a).cross(d - a).normalized()
 		for v in [a, bb, c, a, c, d]:
-			st.set_color(col); st.set_normal(-n); st.add_vertex(v)
+			dst.set_color(col); dst.set_normal(-n); dst.add_vertex(v)
 
 func _corners(x: float, y: float, zf: float, zr: float) -> Array:
 	return [Vector3(-x, y, zf), Vector3(x, y, zf), Vector3(x, y, zr), Vector3(-x, y, zr)]
@@ -218,10 +223,12 @@ func vehicle_mesh(v: Dictionary, paint: Color, with_wheels := true) -> ArrayMesh
 	if _mesh_cache.has(key): return _mesh_cache[key]
 	var L: float = v["size"][0]; var W: float = v["size"][1]; var H: float = v["size"][2]
 	var body: String = v["body"]
-	var glass := Color(0.07, 0.09, 0.12); var dark := Color(0.06, 0.06, 0.07); var tire := Color(0.05, 0.05, 0.05)
+	var glass := GLASS; var dark := Color(0.06, 0.06, 0.07); var tire := Color(0.05, 0.05, 0.05)
 	var trim := Color(0.12, 0.12, 0.13); var chrome := Color(0.62, 0.64, 0.66); var hub := Color(0.55, 0.57, 0.6)
 	var paint_dark := paint.darkened(0.18)
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	if not with_wheels:      # drivable cars: tinted see-through windows (the driver shows through)
+		_glass_st = SurfaceTool.new(); _glass_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var hw := W * 0.5
 	var zf := -L * 0.5; var zr := L * 0.5
 	var floor_y := 0.3
@@ -326,6 +333,13 @@ func vehicle_mesh(v: Dictionary, paint: Color, with_wheels := true) -> ArrayMesh
 		_box(st3, Vector3(W * 0.18, 0.14, 0.04), Vector3(sx * hw * 0.7, belt - nose * H * 0.3 - 0.1 if not tall else sill + 0.5, zr - 0.03), Color.WHITE)
 	st2.commit(am); am.surface_set_material(1, _head_mat)
 	st3.commit(am); am.surface_set_material(2, _tail_mat)
+	if _glass_st != null:
+		if _glass_mat == null:
+			_glass_mat = StandardMaterial3D.new(); _glass_mat.albedo_color = Color(0.06, 0.08, 0.1, 0.74)
+			_glass_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; _glass_mat.roughness = 0.08; _glass_mat.metallic_specular = 0.9
+			_glass_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_glass_st.commit(am); am.surface_set_material(am.get_surface_count() - 1, _glass_mat)
+		_glass_st = null
 	_mesh_cache[key] = am
 	return am
 

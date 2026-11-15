@@ -38,3 +38,7 @@ night_level={
 "type": "float",
 "value": 0.0
 }
+
+[gui]
+
+theme/custom_font="res://fonts/Inter-SemiBold.otf"

@@ -225,3 +225,8 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 
 ## v0.2: whole city
 ## v0.1: downtown prototype
+
+## Polish pass 3
+- Player is visible in the driver's seat (legless seated body) through tinted see-through windows on drivable cars.
+- Bowling has a graphical aim meter (red / yellow / green sweet spot) instead of a text bar.
+- Inter is the project-wide UI font.

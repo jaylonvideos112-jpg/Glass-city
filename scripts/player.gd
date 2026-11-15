@@ -41,6 +41,7 @@ func _box(s: Vector3) -> BoxMesh:
 
 const Humans := preload("res://scripts/humans.gd")
 var _body: MeshInstance3D
+var seated_mesh: ArrayMesh      # same person without legs, for the driver's seat
 
 ## the protagonist: dark bomber jacket over a grey tee, dark jeans, white sneakers, short hair and a beard
 func _build_model() -> void:
@@ -50,6 +51,8 @@ func _build_model() -> void:
 	var mesh := Humans.build(look)
 	var mat := ShaderMaterial.new(); mat.shader = load("res://shaders/pedestrian.gdshader")
 	mesh.surface_set_material(0, mat)
+	look["seated"] = true
+	seated_mesh = Humans.build(look); seated_mesh.surface_set_material(0, mat)
 	_body = MeshInstance3D.new(); _body.mesh = mesh; _body.name = "Body"
 	model.add_child(_body)
 

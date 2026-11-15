@@ -178,10 +178,7 @@ static func score_frames(frames: Array) -> int:
 func _bowling_text() -> String:
 	var fr: Array = bowling["frames"]
 	var parts := fr.map(func(f): return "/".join(f.map(func(x): return "X" if x == 10 else str(x))))
-	var m: float = bowling["meter"]
-	var bar := ""
-	for k in 21: bar += "|" if absi(k - int(m * 20)) == 0 else ("+" if k == 10 else "-")
-	return "BOWLING  frame %d/10  ·  score %d\n%s\n[%s]   Space = roll (aim for the middle)" % [mini(fr.size() + 1, 10), score_frames(fr), "  ".join(parts), bar]
+	return "BOWLING  frame %d/10  ·  score %d\n%s\nSpace = roll  ·  stop the marker in the green" % [mini(fr.size() + 1, 10), score_frames(fr), "  ".join(parts)]
 
 # ------------------------------------------------------------------ per frame
 func _process(dt: float) -> void:
@@ -198,14 +195,16 @@ func _process(dt: float) -> void:
 			fishing["state"] = "wait"; fishing["t"] = rng.randf_range(4.0, 10.0)
 			_overlay.text = "It got away... wait for another bite"
 		if main.current_car != null: stop_fishing()
+	if bowling.is_empty() and main.hud and main.hud.meter >= 0.0: main.hud.meter = -1.0
 	if not bowling.is_empty():
 		bowling["meter"] = 0.5 + 0.5 * sin(Time.get_ticks_msec() / 260.0)
 		_overlay.text = _bowling_text()
+		main.hud.meter = bowling["meter"]
 		if bowling["frames"].size() >= 10:
 			var sc := score_frames(bowling["frames"])
 			bowling_best = maxi(bowling_best, sc)
 			main.hud.flash("Bowling: you scored %d" % sc)
-			bowling = {}; _overlay.visible = false
+			bowling = {}; _overlay.visible = false; main.hud.meter = -1.0
 
 func _unhandled_input(e: InputEvent) -> void:
 	if not (e is InputEventKey and e.pressed and not e.echo): return

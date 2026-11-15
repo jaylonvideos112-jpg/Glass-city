@@ -80,8 +80,8 @@ static func build(look: Dictionary) -> ArrayMesh:
 		4:
 			frustum(st, SIDES, Vector3(0, 0, 0.0), hy + 0.17, hy + 0.27, Vector2(0.12, 0.13), Vector2(0.09, 0.1), top2, 0, 0, true)
 			box(st, Vector3(0.17, 0.02, 0.12), Vector3(0, hy + 0.18, -0.14), top2, 0, 0)
-	# --- legs (tapered thigh -> ankle) and shoes
-	for sgn in [-1, 1]:
+	# --- legs (tapered thigh -> ankle) and shoes (none for a seated driver)
+	for sgn in ([] if look.get("seated", false) else [-1, 1]):
 		var leg := 1 if sgn < 0 else 2
 		var lx: float = 0.1 * sgn * w
 		var leg_col: Color = bot if legs == 0 else skin

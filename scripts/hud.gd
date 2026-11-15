@@ -33,7 +33,9 @@ var cur_street := ""
 var _hint_t := 12.0
 var _money_shown := -1
 var _money_pop := 0.0
-var _overlays: Array = []      # [panel, label]: the panel shows while its label is visible
+var _overlays: Array = []
+var meter := -1.0               # 0..1 shows the minigame aim meter (bowling); < 0 hides it
+var meter_ctl: Control      # [panel, label]: the panel shows while its label is visible
 
 const C_TEXT := Color(0.96, 0.96, 0.97)
 const C_DIM := Color(0.78, 0.82, 0.88)
@@ -124,6 +126,11 @@ func _ready() -> void:
 	bars.offset_left = 28; bars.offset_top = -52; bars.offset_right = 288; bars.offset_bottom = -26
 	bars.draw.connect(_draw_bars)
 	add_child(bars)
+	meter_ctl = Control.new()
+	meter_ctl.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	meter_ctl.offset_left = -220; meter_ctl.offset_right = 220; meter_ctl.offset_top = -150; meter_ctl.offset_bottom = -110
+	meter_ctl.draw.connect(_draw_meter)
+	add_child(meter_ctl)
 
 func _label(size: int, font: Font = null, col := C_TEXT) -> Label:
 	var l := Label.new()
@@ -273,6 +280,8 @@ func _process(dt: float) -> void:
 	for o in _overlays: o[0].visible = o[1].visible
 	radar.queue_redraw()
 	bars.queue_redraw()
+	meter_ctl.visible = meter >= 0.0
+	if meter >= 0.0: meter_ctl.queue_redraw()
 
 ## prompt text with key caps: "Press E to ..." -> "[E]  ..."
 func _set_prompt(t: String) -> void:
@@ -292,6 +301,18 @@ static func _commas(n: int) -> String:
 		out = "," + s.substr(s.length() - 3) + out
 		s = s.substr(0, s.length() - 3)
 	return ("-" if n < 0 else "") + s + out
+
+## aim meter: a track, a green sweet spot in the middle, a white marker
+func _draw_meter() -> void:
+	var w: float = meter_ctl.size.x; var h := 22.0
+	var sb := StyleBoxFlat.new(); sb.bg_color = Color(0.03, 0.04, 0.06, 0.85)
+	sb.corner_radius_top_left = 8; sb.corner_radius_top_right = 8; sb.corner_radius_bottom_left = 8; sb.corner_radius_bottom_right = 8
+	meter_ctl.draw_style_box(sb, Rect2(0, 0, w, h + 12))
+	meter_ctl.draw_rect(Rect2(8, 6, w - 16, h), Color(0.75, 0.25, 0.2, 0.7))
+	meter_ctl.draw_rect(Rect2(8 + (w - 16) * 0.3, 6, (w - 16) * 0.4, h), Color(0.9, 0.75, 0.25, 0.85))
+	meter_ctl.draw_rect(Rect2(8 + (w - 16) * 0.45, 6, (w - 16) * 0.1, h), Color(0.35, 0.85, 0.35))
+	var x: float = 8 + (w - 16) * clampf(meter, 0.0, 1.0)
+	meter_ctl.draw_rect(Rect2(x - 3, 2, 6, h + 8), Color.WHITE)
 
 func _draw_bars() -> void:
 	if main == null or not (main.get("needs") and main.needs): return

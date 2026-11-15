@@ -285,6 +285,20 @@ func _roster_start_cars() -> void:
 		o.queue_free()
 		if i == 0: vehicles.add_owned(c)
 
+## the player shown in the driver's seat (head and shoulders through the windows)
+func _seat_driver(c: Node, on: bool) -> void:
+	var d: Node = c.get_node_or_null("Driver")
+	if not on:
+		if d: d.queue_free()
+		return
+	if d or player.get("_body") == null: return
+	var mi := MeshInstance3D.new(); mi.name = "Driver"; mi.mesh = player.seated_mesh
+	var H: float = float(c.spec["size"][2]) if not c.spec.is_empty() else 1.45
+	var L: float = float(c.spec["size"][0]) if not c.spec.is_empty() else 4.5
+	var cab0: float = 0.2
+	mi.position = Vector3(-0.4, minf(0.32, H - 1.42) - 0.93 * 1.04 + 0.1, -L * 0.5 + L * (cab0 + 0.24))
+	c.add_child(mi)
+
 func toggle_vehicle() -> void:
 	if current_car == null:
 		var c := nearest_car()
@@ -295,11 +309,13 @@ func toggle_vehicle() -> void:
 		current_car = c
 		c.driven = true
 		player.visible = false
+		_seat_driver(c, true)
 		player.process_mode = Node.PROCESS_MODE_DISABLED
 		player.get_child(0).disabled = true
 		cam_yaw = c.global_rotation.y
 	else:
 		var c := current_car
+		_seat_driver(c, false)
 		c.driven = false
 		c.throttle = 0; c.steer_in = 0
 		current_car = null
