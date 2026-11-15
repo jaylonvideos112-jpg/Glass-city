@@ -33,7 +33,7 @@ func _ready() -> void:
 	for m in V["models"]: roster[m["id"]] = m
 	dealers = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/dealers.json"))["dealers"]
 	rng.seed = 808
-	_cat_label = Label.new(); _cat_label.position = Vector2(30, 140); _cat_label.visible = false
+	_cat_label = Label.new(); _cat_label.position = Vector2(30, 160); _cat_label.visible = false
 	_cat_label.add_theme_font_size_override("font_size", 20)
 	_cat_label.add_theme_color_override("font_outline_color", Color.BLACK); _cat_label.add_theme_constant_override("outline_size", 6)
 	if main.hud: main.hud.add_child(_cat_label)

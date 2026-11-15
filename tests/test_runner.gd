@@ -71,6 +71,8 @@ func _run() -> void:
 		["steal_car_from_traffic", t_carjack],
 		["buy_car_new_and_used", t_dealer],
 		["car_damage_repair_upgrade_views", t_damage],
+		["needs_hunger_stamina_fitness_weight", t_needs],
+		["activities_food_gym_games_fishing_bowling", t_activities],
 		["police_close_in_offroad_and_helicopter", t_police_heli],
 		["emergency_responds_with_siren", t_dispatch],
 	]
@@ -147,6 +149,84 @@ func t_wanted() -> Array:
 	if fined != 300: return [false, "fine %d, expected 300" % fined]
 	if not at_station: return [false, "not released at a police station"]
 	return [true, "1 star -> %d unit(s) (routed: %s); lost them; busted = 8 am at the station, fined $%d" % [got_units, has_route, fined]]
+
+func t_needs() -> Array:
+	var nd = main.needs; var tod = main.tod
+	var keep := [nd.hunger, nd.stamina, nd.fitness, nd.weight_kg, nd.kcal_today, nd.burn_today]
+	nd.hunger = 80.0
+	var sec_per_game_h: float = float(tod.sec_per_day) / 24.0 / tod.time_scale
+	nd._process(sec_per_game_h * 6.0)          # 6 game hours
+	var drained: float = 80.0 - nd.hunger
+	nd.eat("restaurant")
+	var fed: bool = nd.hunger > 80.0 - drained
+	var p = main.player
+	nd.stamina = nd.max_stamina()
+	p.sprint = true; p.velocity = Vector3(8, 0, 0)
+	nd._process(2.0)
+	p.sprint = false; p.velocity = Vector3.ZERO
+	var used: float = nd.max_stamina() - nd.stamina
+	var w0: float = nd.weight_kg
+	nd.kcal_today = 5000.0; nd.burn_today = 0.0; nd.close_day()
+	var gained: float = nd.weight_kg - w0
+	var w1: float = nd.weight_kg
+	nd.kcal_today = 800.0; nd.burn_today = 600.0; nd.close_day()
+	var lost: float = w1 - nd.weight_kg
+	nd.hunger = keep[0]; nd.stamina = keep[1]; nd.fitness = keep[2]; nd.weight_kg = keep[3]; nd.kcal_today = keep[4]; nd.burn_today = keep[5]
+	if drained < 15.0 or drained > 25.0: return [false, "hunger drained %.1f in 6 game hours" % drained]
+	if not fed: return [false, "eating didn't fill you up"]
+	if used < 10.0: return [false, "sprinting used only %.1f stamina" % used]
+	if gained <= 0.0 or lost <= 0.0: return [false, "weight: +%.2f on a big day, -%.2f on a light one" % [gained, lost]]
+	return [true, "hunger -%.0f in 6 h; sprint -%.0f stamina in 2 s; a 5000 kcal day +%.2f kg, a light active day -%.2f kg" % [drained, used, gained, lost]]
+
+func t_activities() -> Array:
+	var ac = main.activities; var nd = main.needs; var inv = main.inventory; var tod = main.tod
+	var keep_h: float = tod.total_hours; var c0: int = main.money.cash; var w0: int = main.money.wallet
+	var hk: float = nd.hunger; var fk: float = nd.fitness
+	main.money.cash = 0; main.money.wallet = 1000
+	nd.hunger = 20.0
+	ac.eat_out("fast_food")
+	var ate: bool = nd.hunger > 60.0 and main.money.wallet == 1000 - int(ac.L["food"]["fast_food"]["price"])
+	ac.buy_groceries()
+	var g: int = inv.count("food", "Groceries (1 meal)")
+	var f0: float = nd.fitness
+	ac.workout()
+	var fitter: bool = nd.fitness > f0
+	# a Swamp Hens game: find a game day evening
+	var day := int(floor(tod.total_hours / 24.0)) + 1
+	for i in 7:
+		if ac.L["sports"]["game_days"].has(day % 7): break
+		day += 1
+	tod.total_hours = day * 24.0 + 19.0; tod.apply_now()
+	var game_ok: bool = ac.game_on() and ac.watch_game()
+	tod.total_hours = day * 24.0 + 10.0; tod.apply_now()
+	var no_game_morning: bool = not ac.game_on()
+	var movie_ok: bool = ac.watch_movie()
+	# fishing: cast, a bite, reel in
+	ac.start_fishing(0)
+	ac.fishing["state"] = "bite"
+	var fish: Dictionary = ac.reel()
+	ac.stop_fishing()
+	var fish_ok: bool = not fish.is_empty() and inv.count("food", "Fish fillet") >= 1 and inv.fish_log.has(fish["name"])
+	# bowling: 300 for a perfect game; a played game finishes after 10 frames
+	var perfect: int = ac.score_frames([[10], [10], [10], [10], [10], [10], [10], [10], [10], [10, 10, 10]])
+	ac.start_bowling()
+	var rolls := 0
+	while not ac.bowling.is_empty() and ac.bowling["frames"].size() < 10 and rolls < 30:
+		ac.roll(0.5); rolls += 1
+	var sc: int = ac.score_frames(ac.bowling["frames"]) if not ac.bowling.is_empty() else 0
+	ac.bowling = {}; ac._overlay.visible = false
+	inv.items = {"weapons": {}, "food": {}, "misc": {}}; inv.fish_log = {}
+	tod.total_hours = keep_h; tod.apply_now(); main.money.cash = c0; main.money.wallet = w0
+	nd.hunger = hk; nd.fitness = fk
+	if not ate: return [false, "eating out didn't charge/feed"]
+	if g != 3: return [false, "groceries gave %d meals" % g]
+	if not fitter: return [false, "gym didn't raise fitness"]
+	if not (game_ok and no_game_morning): return [false, "ballgame schedule wrong (evening %s, morning off %s)" % [game_ok, no_game_morning]]
+	if not movie_ok: return [false, "movie failed"]
+	if not fish_ok: return [false, "fishing didn't land a fish"]
+	if perfect != 300: return [false, "perfect game scored %d" % perfect]
+	if sc < 150: return [false, "dead-centre bowling only scored %d" % sc]
+	return [true, "ate out, groceries, gym, Swamp Hens game, movie, caught a %s (%.1f kg), bowled %d (perfect = 300)" % [fish["name"], fish["kg"], sc]]
 
 func t_roster() -> Array:
 	var tr = main.traffic; var vh = main.vehicles

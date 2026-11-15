@@ -14,6 +14,7 @@ var radar: Control
 var money_label: Label
 var wanted_label: Label
 var job_label: Label
+var needs_label: Label
 var flash_t := 0.0
 var cur_street := ""
 
@@ -60,6 +61,8 @@ func _ready() -> void:
 	wanted_label.modulate = Color(1.0, 0.85, 0.3)
 	job_label = _label(18, Vector2(30, 102))
 	job_label.modulate = Color(0.85, 0.92, 1.0)
+	needs_label = _label(16, Vector2(30, 126))
+	needs_label.modulate = Color(0.9, 0.9, 0.9)
 	prompt_label = _label(22, Vector2.ZERO)
 	prompt_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	prompt_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
@@ -126,6 +129,10 @@ func _process(dt: float) -> void:
 	if main.get("money") and main.money:
 		money_label.text = "$%d   %s $%d" % [main.money.cash, main.money.app_name, main.money.wallet]
 	if main.get("jobs") and main.jobs: job_label.text = main.jobs.status_line()
+	if main.get("needs") and main.needs:
+		var nd = main.needs
+		var warn := "  ·  HUNGRY" if nd.hunger < 20.0 else ""
+		needs_label.text = "Health %d   Stamina %d/%d   Hunger %d   Fitness %d%s" % [int(nd.health), int(nd.stamina), int(nd.max_stamina()), int(nd.hunger), int(nd.fitness), warn]
 	if main.get("police") and main.police:
 		var n: int = main.police.stars
 		var blink: bool = main.police.searching and fmod(Time.get_ticks_msec() / 400.0, 2.0) < 1.0
@@ -145,6 +152,9 @@ func _process(dt: float) -> void:
 		if bp == "": bp = main.money.prompt(main.player.global_position) if main.get("money") and main.money else ""
 		if bp == "": bp = main.bars.prompt(main.player.global_position) if main.bars else ""
 		if bp == "" and main.get("vehicles") and main.vehicles: bp = main.vehicles.prompt(main.player.global_position)
+		if main.get("activities") and main.activities:
+			var ap: String = main.activities.prompt(main.player.global_position)
+			if ap != "": bp = (bp + "\n" + ap) if bp != "" else ap
 		if bp != "": prompt_label.text = bp
 		else: prompt_label.text = "Press E to get in" if (main.nearest_car() != null and not main.bars.inside) else ""
 	flash_t -= dt

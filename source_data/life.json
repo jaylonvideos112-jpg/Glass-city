@@ -1,0 +1,33 @@
+{
+  "_doc": "Player needs and activities (scripts/needs.gd, inventory.gd, activities.gd). Bible: only health and stamina are formal attributes, plus moderate hunger and basic fitness; weight changes gradually from what you eat and do (a simulation, not a body ideal).",
+  "needs": {
+    "hunger_hours_to_empty": 30,
+    "starving_health_per_hour": 4,
+    "stamina_sprint_per_s": 9,
+    "stamina_regen_per_s": 6,
+    "hungry_regen_factor": 0.4,
+    "fitness_decay_per_day": 0.4,
+    "fitness_per_km_run": 0.25,
+    "base_burn_kcal_day": 2400,
+    "run_kcal_per_km": 70,
+    "start": {"health": 100, "stamina": 100, "hunger": 80, "fitness": 30, "weight_kg": 86}
+  },
+  "food": {
+    "fast_food":  {"label": "a combo meal", "price": 9,  "hunger": 45, "kcal": 1100, "hours": 0.4},
+    "restaurant": {"label": "dinner",       "price": 19, "hunger": 70, "kcal": 900,  "hours": 1.0},
+    "home_meal":  {"label": "a home-cooked meal", "price": 0, "hunger": 65, "kcal": 700, "hours": 0.7},
+    "snack":      {"label": "a snack",      "price": 3,  "hunger": 15, "kcal": 300,  "hours": 0.05},
+    "fish_meal":  {"label": "grilled fish", "price": 0,  "hunger": 55, "kcal": 500,  "hours": 0.6}
+  },
+  "groceries": {"price": 28, "meals": 3, "snack_price": 3},
+  "gym": {"price": 10, "hours": 1.0, "fitness": 2.5, "kcal": 550},
+  "bowling": {"price": 7},
+  "cinema": {"price": 11, "hours": 2.0, "movies": ["Lake Effect", "Night Shift at the Glassworks", "Walleye Season", "The Swamp Hens Story", "Fast Lane to Pinewick", "Ice on the Maumee"]},
+  "sports": {"team": "Glass City Swamp Hens", "league": "minor league baseball", "ticket": 15, "hours": 3.0, "game_hours": [18.5, 21.5], "game_days": [1, 3, 4, 5, 6],
+             "opponents": ["Lansing Lugwrenches", "Columbus Cutters", "Indy Indigo Hawks", "Buffalo Bricks", "Louisville Batmen"]},
+  "fishing": {"wait_s": [4, 14], "bite_window_s": 1.4, "species": [
+    {"name": "Walleye", "kg": [0.8, 4.5], "w": 30}, {"name": "Yellow Perch", "kg": [0.1, 0.5], "w": 30},
+    {"name": "White Bass", "kg": [0.3, 1.5], "w": 18}, {"name": "Smallmouth Bass", "kg": [0.5, 2.8], "w": 10},
+    {"name": "Channel Catfish", "kg": [1.0, 9.0], "w": 9}, {"name": "Freshwater Drum", "kg": [0.5, 4.0], "w": 7},
+    {"name": "Muskellunge", "kg": [4.0, 15.0], "w": 1}], "sell_per_kg": 6}
+}

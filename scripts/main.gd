@@ -44,6 +44,9 @@ var jobs: Node = null
 var business: Node = null
 var homes: Node = null
 var vehicles: Node = null
+var needs: Node = null
+var inventory: Node = null
+var activities: Node = null
 var peds: Node = null
 var input_enabled := true
 var env: Environment
@@ -126,6 +129,13 @@ func _ready() -> void:
 	vehicles = load("res://scripts/vehicles.gd").new(); vehicles.name = "Vehicles"; vehicles.main = self; add_child(vehicles)
 	_roster_start_cars()
 	world_state.register("vehicles", vehicles)
+	needs = load("res://scripts/needs.gd").new(); needs.name = "Needs"; needs.main = self; add_child(needs)
+	world_state.register("needs", needs)
+	player.needs = needs
+	inventory = load("res://scripts/inventory.gd").new(); inventory.name = "Inventory"; inventory.main = self; add_child(inventory)
+	world_state.register("inventory", inventory)
+	activities = load("res://scripts/activities.gd").new(); activities.name = "Activities"; activities.main = self; add_child(activities)
+	world_state.register("activities", activities)
 	if OS.get_cmdline_user_args().has("--load-world") or (world_state.enabled and not OS.get_cmdline_user_args().has("--new-game")):
 		world_state.load_file()
 	player.collision_mask |= 2      # bump into traffic

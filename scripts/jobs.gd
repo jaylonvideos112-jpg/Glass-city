@@ -41,7 +41,7 @@ func _ready() -> void:
 	_beam.material_override = m; _beam.visible = false; _beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	main.world.add_child(_beam)
 	_board_label = Label.new()
-	_board_label.position = Vector2(30, 140)
+	_board_label.position = Vector2(30, 160)
 	_board_label.add_theme_font_size_override("font_size", 20)
 	_board_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	_board_label.add_theme_constant_override("outline_size", 6)

@@ -1,5 +1,19 @@
 # Changelog
 
+## Needs, inventory, activities (2026-11-15)
+* **Needs (`scripts/needs.gd`, `source_data/life.json`):** health and stamina (the Bible's only formal attributes),
+  hunger and fitness. Hunger empties over ~30 game hours (starving slowly costs health); sprinting uses stamina; max
+  stamina and sprint speed grow with fitness; fitness rises with the gym and running and fades slowly. Weight moves
+  each day with calories eaten vs burned (shown in lb; a simulation, not a body ideal). HUD line under the job line.
+* **Inventory (`scripts/inventory.gd`):** weapons / food / misc, no weight limits. I opens it; numbers eat food.
+* **Activities (`scripts/activities.gd`, places in `source_data/activities.json` from `make_activities.py`),
+  T at each place:** eat at restaurants and fast food; buy groceries (3 home meals + a snack) and cook at home;
+  gyms (17) - an hour's workout; bowling alleys (9) - a 10-frame game with a timing meter (Space); ballparks (42) -
+  watch the Glass City Swamp Hens (minor-league baseball, evenings on game days); cinemas (4) - a movie; fishing
+  (20 spots on the river and creeks) - cast, wait for the bite, Space; 7 local species, biggest catches logged,
+  fish can be cooked at home.
+* 2 new tests (52 game tests in all).
+
 ## Vehicles: roster, ownership, dealers, stealing, damage, shops, camera views (2026-11-15)
 * **Roster (`source_data/vehicles.json`):** 18 made-up models from 10 made-up makes (Halden, Corvane, Takumi, Hanzo,
   Overmark - "built in Glass City", Bulward, Kessler, Strato, Pellam, Freightline), each with size, body shape,

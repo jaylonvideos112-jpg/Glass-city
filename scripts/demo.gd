@@ -241,7 +241,22 @@ func _shots(dt: float) -> void:
 	var cam: Camera3D = main.camera
 	var pos = s[1]
 	var look = s[2]
-	if s[0] == "@roster" and main.vehicles:
+	if s[0] == "@bowling" and main.activities:
+		# HUD + the bowling game overlay, mid-game, over the street view
+		main.hud.visible = true
+		var ac = main.activities
+		if ac.bowling.is_empty() and not has_meta("bowled"):
+			set_meta("bowled", true)
+			main.money.wallet += 10
+			ac.start_bowling()
+			for r in [0.5, 0.47, 0.55, 0.5, 0.3, 0.62, 0.5, 0.52]: ac.roll(r)
+		var pl: Vector3 = main.player.global_position + main.world_offset
+		pos = pl + Vector3(-5, 2.5, 6); look = pl + Vector3(0, 1.5, 0)
+		if shot_wait < 2.0:
+			shot_wait += dt
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP)
+			return
+	elif s[0] == "@roster" and main.vehicles:
 		# every roster model parked in a row, photographed from the side
 		if not has_meta("roster_done"):
 			set_meta("roster_done", true)

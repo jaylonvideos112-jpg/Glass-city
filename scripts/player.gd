@@ -9,6 +9,7 @@ const GRAVITY := 18.0
 var cam_yaw := 0.0        # set by camera rig
 var input_dir := Vector2.ZERO   # x = strafe, y = forward (can be driven by demo)
 var sprint := false
+var needs: Node = null          # needs.gd (stamina limits sprinting, fitness speeds it up)
 var want_jump := false
 var model: Node3D
 var anim_t := 0.0
@@ -61,7 +62,8 @@ func _physics_process(dt: float) -> void:
 	var move := (right * input_dir.x + fwd * input_dir.y)
 	if move.length() > 1.0:
 		move = move.normalized()
-	var spd := SPRINT if sprint else WALK
+	var can_run: bool = needs == null or needs.can_sprint()
+	var spd: float = (SPRINT * (needs.sprint_mult() if needs else 1.0)) if (sprint and can_run) else WALK
 	var target := move * spd
 	var accel := 12.0 if is_on_floor() else 3.0
 	velocity.x = move_toward(velocity.x, target.x, accel * spd * dt)
