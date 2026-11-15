@@ -241,7 +241,19 @@ func _shots(dt: float) -> void:
 	var cam: Camera3D = main.camera
 	var pos = s[1]
 	var look = s[2]
-	if s[0] == "@heli" and main.police:
+	if (s[0] == "@worksign" or s[0] == "@homesign") and main.jobs:
+		# street-level view of the nearest "now hiring" / "for rent" sign, HUD on
+		main.hud.visible = true
+		var sys = main.jobs if s[0] == "@worksign" else main.homes
+		if sys._signs.is_empty() or shot_wait < 4.0:
+			shot_wait += dt
+			sys._sign_t = 0.0
+			return
+		var n: Node3D = sys._signs.values()[0]
+		var sp2: Vector3 = n.global_position + main.world_offset
+		var fw2: Vector3 = -n.global_transform.basis.z
+		pos = sp2 + fw2 * 4.5 + n.global_transform.basis.x * 1.5 + Vector3(0, 1.8, 0); look = sp2 + Vector3(0, 1.8, 0)
+	elif s[0] == "@heli" and main.police:
 		main.hud.visible = true
 		if main.police.stars < 4:
 			for i in 2: main.police.report("hit_ped", main.focus_world(), true)

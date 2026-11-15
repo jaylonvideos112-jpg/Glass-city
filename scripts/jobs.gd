@@ -234,11 +234,11 @@ func _update_signs() -> void:
 		root.look_at(root.global_position + (s["face"] as Vector3), Vector3.UP)
 		var post := MeshInstance3D.new(); var pm := BoxMesh.new(); pm.size = Vector3(0.1, 2.2, 0.1); post.mesh = pm; post.position.y = 1.1
 		root.add_child(post)
-		var board_m := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(1.4, 0.8, 0.06); board_m.mesh = bm; board_m.position.y = 2.2
+		var board_m := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(2.5, 0.85, 0.06); board_m.mesh = bm; board_m.position.y = 2.2
 		var mat := StandardMaterial3D.new(); mat.albedo_color = Color(0.95, 0.95, 0.9); board_m.material_override = mat
 		root.add_child(board_m)
 		var d := def_for(pl["kind"])
-		var lab := Label3D.new(); lab.font_size = 34; lab.pixel_size = 0.005; lab.modulate = Color(0.1, 0.1, 0.12)
+		var lab := Label3D.new(); lab.font_size = 34; lab.pixel_size = 0.0042; lab.modulate = Color(0.1, 0.1, 0.12); lab.width = 560.0; lab.autowrap_mode = TextServer.AUTOWRAP_OFF
 		lab.text = "%s\nNOW HIRING: %s\n$%d/h · %d:00-%d:00" % [pl["name"], d["title"], d["pay"], d["shift"][0], d["shift"][1]]
 		lab.position = Vector3(0, 2.2, -0.04); lab.rotation.y = PI; root.add_child(lab)
 		root.set_meta("place", id)
