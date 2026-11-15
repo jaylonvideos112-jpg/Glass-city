@@ -11,5 +11,14 @@
   "Ottawa Hills": "Velvet Ridge",
   "Walbridge": "Switchyard",
   "Millbury": "Harvest Mill",
-  "Point Place": "Gull Shores"
+  "Point Place": "Gull Shores",
+  "_water_note": "Owner-picked river and lake names (2026-11-15). Swapped first, in water features and in any business/park/building name (e.g. Maumee Bay State Park -> Stone Ridge Bay State Park).",
+  "_water": {
+    "Maumee River": "Stone Ridge River",
+    "Maumee Bay": "Stone Ridge Bay",
+    "Ottawa River": "Northfork River",
+    "Swan Creek": "Mallard Creek",
+    "Crane Creek": "Egret Creek",
+    "Lake Erie": "Lake Glassmere"
+  }
 }

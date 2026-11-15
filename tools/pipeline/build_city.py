@@ -297,6 +297,17 @@ def tags(e): return e.get("tags", {})
 import re as _re
 _pnp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source_data", "place_names.json")
 TOWN_MAP = {k: v for k, v in json.load(open(_pnp)).items() if not k.startswith("_")} if os.path.exists(_pnp) else {}
+WATER_MAP = json.load(open(_pnp)).get("_water", {}) if os.path.exists(_pnp) else {}
+if WATER_MAP:   # rivers, bays and the lake: every name except streets (street_names.json handles those)
+    _wre = _re.compile(r"\b(" + "|".join(_re.escape(k) for k in sorted(WATER_MAP, key=len, reverse=True)) + r")\b")
+    _wn = 0
+    for e in els:
+        t = e.get("tags")
+        if not t or "highway" in t: continue
+        for k in ("name", "official_name", "operator", "alt_name"):
+            v = t.get(k)
+            if v and _wre.search(v): t[k] = _wre.sub(lambda m: WATER_MAP[m.group(1)], v); _wn += 1
+    log("water names swapped in", _wn, "tags")
 if TOWN_MAP:
     _tre = _re.compile(r"\b(" + "|".join(_re.escape(k) for k in sorted(TOWN_MAP, key=len, reverse=True)) + r")\b")
     _tn = 0

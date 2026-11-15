@@ -109,7 +109,7 @@ func _ready() -> void:
 			demo = Demo.new(); demo.main = self; demo.mode = a.substr(7); add_child(demo)
 			input_enabled = false
 
-## Beyond the generated area: open Lake Erie all the way to the horizon (the map is an island).
+## Beyond the generated area: open Lake Glassmere (Lake Erie) all the way to the horizon (the map is an island).
 func _build_outskirts() -> void:
 	var bb: Array = streamer.manifest["bbox"]   # [minx, minz, maxx, maxz]
 	var m: Material = streamer.materials.get("water")
@@ -276,7 +276,7 @@ func _physics_process(dt: float) -> void:
 				last_safe = f + world_offset
 
 func _respawn() -> void:
-	hud.flash("WASTED... you can't swim in the Maumee.")
+	hud.flash("WASTED... you can't swim in the Stone Ridge.")
 	var p := last_safe - world_offset + Vector3(0, 1.0, 0)
 	if current_car:
 		current_car.global_position = p + Vector3(0, 0.5, 0)
