@@ -60,6 +60,7 @@ func _run() -> void:
 		["far_city_hlod_covers_horizon", t_hlod],
 		["world_state_sections_round_trip", t_world_state],
 		["buses_follow_routes_and_stop", t_bus],
+		["npc_schedules_shape_who_is_out", t_schedules],
 		["emergency_responds_with_siren", t_dispatch],
 	]
 	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
@@ -82,6 +83,26 @@ func _run() -> void:
 	get_tree().quit(failed)
 
 # ------------------------------------------------------------------ tests
+func t_schedules() -> Array:
+	var pd = main.peds
+	if not pd.SCH.has("roles"): return [false, "no schedules loaded"]
+	var keep: float = main.tod.total_hours
+	main.tod.set_date("fall", 3, 8.5)     # a Wednesday-ish morning
+	var morning: Dictionary = pd.role_weights("downtown", 8.5)
+	var night_dt: Dictionary = pd.role_weights("nightlife", 23.0)
+	var g_work_am: String = pd.goal_for("worker", 8.0); var g_work_pm: String = pd.goal_for("worker", 17.0)
+	var g_owl: String = pd.goal_for("night_owl", 21.0)
+	main.tod.total_hours = keep; main.tod.apply_now()
+	var top_am: String = morning.keys().reduce(func(a, b): return a if morning[a] >= morning[b] else b)
+	var top_night: String = night_dt.keys().reduce(func(a, b): return a if night_dt[a] >= night_dt[b] else b)
+	if top_am != "worker": return [false, "downtown at 8:30 mostly %s" % top_am]
+	if not (top_night in ["night_owl", "student"]): return [false, "bars at 11 pm mostly %s" % top_night]
+	if g_work_am != "downtown" or g_work_pm != "home" or g_owl != "bar": return [false, "goals: worker %s/%s, night owl %s" % [g_work_am, g_work_pm, g_owl]]
+	var roles := {}
+	for p in pd.peds: roles[p.get("role", "")] = roles.get(p.get("role", ""), 0) + 1
+	if roles.has(""): return [false, "people without a role: %d" % roles[""]]
+	return [true, "8:30 downtown mostly workers, 11 pm bars mostly %s; on the street now %s" % [top_night, roles]]
+
 func t_bus() -> Array:
 	var sv = main.services
 	if sv.routes.size() < 8: return [false, "only %d bus routes" % sv.routes.size()]

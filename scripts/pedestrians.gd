@@ -26,6 +26,8 @@ func _ready() -> void:
 	_mat = ShaderMaterial.new()
 	_mat.shader = load("res://shaders/pedestrian.gdshader")
 	for i in 32: _meshes.append(_make_person())
+	if FileAccess.file_exists("res://source_data/npc_schedules.json"):
+		SCH = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/npc_schedules.json"))
 	for a in OS.get_cmdline_user_args():
 		if a == "--no-peds": enabled = false
 
@@ -151,15 +153,76 @@ func sidewalk_point(eid: int, s: float, side: int, off: float) -> Vector3:
 	return main.traffic.npos[e["a"]] + e["dir"] * s + right * side * (float(e.get("w", 8.0)) * 0.5 + off)
 
 # ------------------------------------------------------------------ population
+## NPC schedules (source_data/npc_schedules.json): who is out here, now
+var SCH: Dictionary = {}
+
+## "downtown", "nightlife" (near a bar door) or "residential"
+func area_at(p: Vector3) -> String:
+	if main.bars:
+		var r: float = float(SCH.get("nightlife_radius_m", 220.0))
+		for d in main.bars.doors:
+			if is_instance_valid(d["node"]):
+				var q: Vector3 = d["node"].global_position + main.world_offset
+				if Vector2(q.x - p.x, q.z - p.z).length() < r: return "nightlife"
+	if Vector2(p.x, p.z).length() < float(P["area"]["downtown_radius_m"]): return "downtown"
+	return "residential"
+
+## role -> how many of that role are out here now (share x activity x weekend factor)
+func role_weights(area: String, hour: float) -> Dictionary:
+	var out := {}
+	var h := int(hour) % 24
+	var weekend: bool = main.tod.weekday_name() in ["Saturday", "Sunday"]
+	for r in SCH.get("roles", {}):
+		var R: Dictionary = SCH["roles"][r]
+		var w: float = float(R["share"]) * float(R[area][h]) * (float(R.get("weekend", 1.0)) if weekend else 1.0)
+		out[r] = w
+	return out
+
+## the hour-keyed goal of a role ("downtown", "home", "bar", "wander")
+func goal_for(role: String, hour: float) -> String:
+	var g: Dictionary = SCH["roles"][role].get("goal", {})
+	var best := "wander"; var bh := -1
+	var h := int(hour) % 24
+	for k in g:   # latest key at or before now (wrapping round midnight)
+		var kh := int(k)
+		var dh := (h - kh + 24) % 24
+		if bh < 0 or dh < bh: bh = dh; best = g[k]
+	return best
+
 func target_count() -> int:
 	var tod = main.tod
-	var d: float = P["density_by_hour"][int(tod.hour()) % 24]
-	if tod.weekday_name() in ["Saturday", "Sunday"]: d *= float(P["weekend_factor"])
-	if main.weather: d *= float(P["weather_density"].get(main.weather.state, 1.0))
+	var d: float
 	var f: Vector3 = main.focus_world()
-	if Vector2(f.x, f.z).length() > float(P["area"]["downtown_radius_m"]): d *= float(P["area"]["outside_factor"])
+	if SCH.has("roles"):
+		d = 0.0
+		var ws := role_weights(area_at(f), tod.hour())
+		for r in ws: d += ws[r]
+		d = minf(d / 0.75, 1.0)          # a busy downtown lunchtime ~ fills the budget
+	else:
+		d = P["density_by_hour"][int(tod.hour()) % 24]
+		if tod.weekday_name() in ["Saturday", "Sunday"]: d *= float(P["weekend_factor"])
+		if Vector2(f.x, f.z).length() > float(P["area"]["downtown_radius_m"]): d *= float(P["area"]["outside_factor"])
+	if main.weather: d *= float(P["weather_density"].get(main.weather.state, 1.0))
 	if main.bars and main.bars.inside: d = 0.0
 	return int(round(float(P["budget"]["max_peds"]) * d))
+
+## where a person with this goal is heading (world xz), or null to wander
+func goal_point(goal: String, from: Vector3):
+	match goal:
+		"downtown": return Vector3(0, 0, 0)
+		"home":
+			var v := Vector3(from.x, 0, from.z)
+			return from + (v.normalized() if v.length() > 1.0 else Vector3(1, 0, 0)) * 3000.0
+		"bar":
+			var best = null; var bd := 1e9
+			if main.bars:
+				for d in main.bars.doors:
+					if not is_instance_valid(d["node"]): continue
+					var q: Vector3 = d["node"].global_position + main.world_offset
+					var dd := (q - from).length()
+					if dd < bd: bd = dd; best = q
+			return best
+	return null
 
 func _spawn(eid: int, s: float, side: int) -> Dictionary:
 	var mi := MeshInstance3D.new()
@@ -172,7 +235,17 @@ func _spawn(eid: int, s: float, side: int) -> Dictionary:
 	var p := {"node": mi, "edge": eid, "ea": e["a"], "eb": e["b"], "s": s, "side": side, "dir": 1 if rng.randf() < 0.5 else -1,
 		"off": rng.randf_range(o[0], o[1]), "speed": rng.randf_range(sp[0], sp[1]), "phase": rng.randf() * TAU,
 		"state": "walk", "cross": [], "wait": 0.0, "y": 0.0, "ray_t": 0.0, "pos": Vector3.ZERO, "yaw": 0.0,
-		"has_umb": rng.randf() < float(P["umbrella_share_in_rain"]), "umbrella": 0.0}
+		"has_umb": rng.randf() < float(P["umbrella_share_in_rain"]), "umbrella": 0.0, "role": "", "goal": "wander"}
+	if SCH.has("roles"):
+		var ws := role_weights(area_at(main.traffic.npos[e["a"]]), main.tod.hour())
+		var tot := 0.0
+		for r in ws: tot += ws[r]
+		var x := rng.randf() * tot
+		for r in ws:
+			x -= ws[r]
+			if x <= 0.0: p["role"] = r; break
+		if p["role"] == "": p["role"] = ws.keys()[0] if not ws.is_empty() else "resident"
+		p["goal"] = goal_for(p["role"], main.tod.hour())
 	p["umbrella"] = 1.0 if raining and p["has_umb"] else 0.0
 	p["pos"] = sidewalk_point(eid, s, side, p["off"])
 	peds.append(p)
@@ -236,6 +309,19 @@ func _at_node(p: Dictionary) -> void:
 		if k != p["edge"] and lk.y - lk.x > 2.0: opts.append(k)
 	if opts.is_empty(): opts = [p["edge"]]            # dead end: turn around
 	var nk: int = opts[rng.randi() % opts.size()]
+	if p.get("role", "") != "": p["goal"] = goal_for(p["role"], main.tod.hour())   # plans change with the hour
+	var gp = goal_point(p.get("goal", "wander"), here) if opts.size() > 1 else null
+	if gp != null and rng.randf() < float(SCH.get("goal_bias", 0.75)):
+		# head roughly toward where this person is going (work, home, the bar)
+		var bestd := -2.0
+		for k in opts:
+			var ok: Dictionary = tr.edges[k]
+			var far_end: Vector3 = tr.npos[ok["b"]] if ok["a"] == n else tr.npos[ok["a"]]
+			var nn: Vector3 = tr.npos[n]
+			var dirv: Vector3 = far_end - nn; dirv.y = 0
+			var to_g: Vector3 = (gp as Vector3) - nn; to_g.y = 0
+			var sc: float = dirv.normalized().dot(to_g.normalized()) + rng.randf_range(0.0, 0.3)
+			if sc > bestd: bestd = sc; nk = k
 	var ne: Dictionary = tr.edges[nk]
 	var ndir := 1 if ne["a"] == n else -1
 	var lim := _limits(nk)
