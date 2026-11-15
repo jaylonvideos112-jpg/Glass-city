@@ -44,6 +44,12 @@ func _run() -> void:
 		["car_headlights_at_night", t_headlights],
 		["rain_wets_and_dries_the_ground", t_wet],
 		["snow_builds_and_melts", t_snow],
+		["traffic_road_graph", t_tr_graph],
+		["traffic_density_follows_hour", t_tr_density],
+		["traffic_spawns_and_moves_in_lanes", t_tr_move],
+		["traffic_no_overlapping_cars", t_tr_overlap],
+		["traffic_stops_at_red_light", t_tr_red],
+		["traffic_stops_for_player", t_tr_player],
 	]
 	for t in tests:
 		var t0 := Time.get_ticks_msec()
@@ -136,6 +142,9 @@ func t_walk() -> Array:
 
 func t_car() -> Array:
 	var c = main.cars[0]
+	if main.traffic:   # this test is about the player's car, not about traffic jams
+		for tc in main.traffic.cars.duplicate():
+			if (tc["pos"] - (c.global_position + main.world_offset)).length() < 80.0: main.traffic._despawn(tc)
 	main.player.global_position = c.global_position + c.global_transform.basis.x * 2.0
 	await _frames(5)
 	main.toggle_vehicle()
@@ -395,3 +404,119 @@ func t_snow() -> Array:
 	if winter_keep < 0.6: return [false, "snow melted too fast in winter (%.2f left after 6 h)" % winter_keep]
 	if spring > 0.1: return [false, "snow still %.2f after 6 spring hours" % spring]
 	return [true, "6 h snow -> %.2f, winter 6 h later %.2f, spring melts to %.2f" % [built, winter_keep, spring]]
+
+# ------------------------------------------------------------------ traffic
+func _tr_reset_to_spawn() -> void:
+	var sp: Array = main.streamer.manifest["spawn"]
+	main.focus_override = null
+	if main.current_car: main.toggle_vehicle()
+	main.player.global_position = Vector3(sp[0], 0, sp[1]) - main.world_offset
+	main.streamer.load_now(Vector3(sp[0], 0, sp[1]))
+	main.player.global_position = main._clear_spot(Vector3(sp[0], 0, sp[1]), Vector3(0, 0, -1), [8.0, -8.0, 12.0]) - main.world_offset + Vector3(0, 0.2, 0)
+	await _frames(10)
+
+func t_tr_graph() -> Array:
+	await _tr_reset_to_spawn()
+	var tr = main.traffic
+	tr.rebuild_graph()
+	var sig := 0
+	for n in tr.ix: if tr.ix[n]["ctrl"] == "signal": sig += 1
+	if tr.edges.size() < 300: return [false, "only %d lane edges" % tr.edges.size()]
+	if sig < 5: return [false, "only %d signalised intersections downtown" % sig]
+	return [true, "%d directed edges, %d nodes, %d controlled intersections (%d signals)" % [tr.edges.size(), tr.npos.size(), tr.ix.size(), sig]]
+
+func t_tr_density() -> Array:
+	var tod = main.tod; var keep: float = tod.total_hours
+	tod.set_date("fall", 3, 3.0); var night: int = main.traffic.target_count()
+	tod.set_date("fall", 3, 17.0); var rush: int = main.traffic.target_count()
+	tod.total_hours = keep; tod.apply_now()
+	if rush < 20 or night > rush * 0.3: return [false, "3 am %d cars vs 5 pm %d" % [night, rush]]
+	return [true, "3 am %d cars, 5 pm %d cars" % [night, rush]]
+
+func t_tr_move() -> Array:
+	var tod = main.tod; var keep: float = tod.total_hours
+	tod.set_date("fall", 3, 17.0)
+	await _frames(360)   # 3 s
+	var tr = main.traffic
+	var n: int = tr.count()
+	if n < 10: tod.total_hours = keep; return [false, "only %d cars after 3 s (want %d)" % [n, tr.target_count()]]
+	if n > int(tr.T["budget"]["max_cars"]): tod.total_hours = keep; return [false, "%d cars exceeds budget" % n]
+	var start := {}
+	for c in tr.cars: start[c["node"]] = c["pos"]
+	await _frames(1200)  # 10 s
+	var moved := 0; var worst_lane := 0.0; var tot := 0.0; var m := 0
+	for c in tr.cars:
+		if not start.has(c["node"]): continue
+		var d: float = (c["pos"] - start[c["node"]]).length()
+		tot += d; m += 1
+		if d > 10.0: moved += 1
+		var lp: Vector3 = tr.lane_point(tr.edges[c["edge"]], c["s"], c["lane"])
+		worst_lane = max(worst_lane, Vector2(c["pos"].x - lp.x, c["pos"].z - lp.z).length())
+	tod.total_hours = keep; tod.apply_now()
+	if m == 0: return [false, "all cars despawned"]
+	if moved < m * 0.4: return [false, "only %d of %d cars moved more than 10 m in 10 s" % [moved, m]]
+	if worst_lane > 3.0: return [false, "a car is %.1f m off its lane" % worst_lane]
+	return [true, "%d cars, %d moved >10 m in 10 s (avg %.1f m/s), worst lane error %.1f m" % [n, moved, tot / m / 10.0, worst_lane]]
+
+func t_tr_overlap() -> Array:
+	var tr = main.traffic
+	var worst := 1e9; var pair := ""
+	for i in tr.cars.size():
+		for j in range(i + 1, tr.cars.size()):
+			var a: Dictionary = tr.cars[i]; var b: Dictionary = tr.cars[j]
+			var d: float = (a["pos"] - b["pos"]).length()
+			if d < worst: worst = d; pair = "%s/%s" % [a["type"], b["type"]]
+	if worst < 2.2: return [false, "two cars %.1f m apart (%s)" % [worst, pair]]
+	return [true, "closest pair %.1f m apart" % worst]
+
+func t_tr_red() -> Array:
+	var tr = main.traffic
+	# find a signal approach long enough to test on
+	var eid := -1
+	for i in tr.edges.size():
+		var e: Dictionary = tr.edges[i]
+		var near: float = (tr.npos[e["b"]] - main.focus_world()).length()
+		if near < 160.0 and e["len"] > 28.0 and tr.ix.has(e["b"]) and tr.ix[e["b"]]["ctrl"] == "signal" and not tr._occupied(i, e["len"] * 0.5, e["len"]):
+			eid = i; break
+	if eid < 0: return [false, "no clear signal approach found"]
+	var e2: Dictionary = tr.edges[eid]
+	# wind the signal clock until this approach has just turned red
+	var guard := 0
+	while tr.signal_state(eid) != "stop" and guard < 2000: tr.time_s += 0.1; guard += 1
+	var c: Dictionary = tr._spawn_on(eid, 1.0)
+	c["v"] = 6.0
+	var stop_at: float = e2["len"] - float(tr.T["driver"]["stop_line_m"])
+	var crossed := false
+	for f in 600:   # 5 s while red
+		await get_tree().physics_frame
+		if not tr.cars.has(c): return [false, "test car vanished"]
+		if c["ea"] != e2["a"] or c["eb"] != e2["b"] or c["s"] > stop_at + 0.8: crossed = true; break
+		if tr.signal_state(c["edge"]) != "stop": break
+	if crossed: return [false, "car ran the red light"]
+	return [true, "stopped %.1f m before the line, speed %.1f m/s" % [stop_at - c["s"], c["v"]]]
+
+func t_tr_player() -> Array:
+	var tr = main.traffic
+	var eid := -1
+	for i in tr.edges.size():
+		var e: Dictionary = tr.edges[i]
+		var near: float = (tr.npos[e["b"]] - main.focus_world()).length()
+		if near < 160.0 and e["len"] > 35.0 and not tr._occupied(i, e["len"] * 0.5, e["len"]) and e["cls"] >= 2 and e["cls"] <= 5:
+			var g: Vector3 = main._ground_from(tr.lane_point(e, e["len"] - 4.0, 0), 30.0)
+			if absf(g.y) < 1.0:   # street level (not a bridge over the river, where the player would fall in)
+				eid = i; break
+	if eid < 0: return [false, "no clear straight edge"]
+	var e2: Dictionary = tr.edges[eid]
+	var block: Vector3 = tr.lane_point(e2, e2["len"] - 4.0, 0)
+	main.player.global_position = block - main.world_offset + Vector3(0, 0.5, 0)
+	var c: Dictionary = tr._spawn_on(eid, max(1.0, e2["len"] - 50.0))
+	c["lane"] = 0; c["v"] = 5.0
+	for f in 1440:
+		await get_tree().physics_frame   # 12 s
+	main.player.global_position = block - main.world_offset + Vector3(0, 0.5, 0)
+	if not tr.cars.has(c): return [false, "test car vanished"]
+	if c["ea"] != e2["a"] or c["eb"] != e2["b"]: return [false, "car drove past the player onto the next road"]
+	var gap: float = (e2["len"] - 4.0) - c["s"] - c["len"] * 0.5
+	if gap < 0.5: return [false, "drove into the player (gap %.1f m)" % gap]
+	if c["v"] > 0.5: return [false, "still moving at %.1f m/s next to the player" % c["v"]]
+	return [true, "stopped %.1f m short of the player" % gap]

@@ -44,6 +44,8 @@ the Unreal 5 rebuild can reuse the pipeline and its JSON/intermediate outputs.
 | `labels` | Array | `[text, x, z, y]` landmark names |
 | `streets` | Array | street segments for the radar and street-name HUD |
 | `bars` | Array | `[brand, x, z, yaw, wall_h, wall_len]` bar doors (local −Z points out of the building) |
+| `roads` | Array | `[node_a, node_b, x0, z0, x1, z1, class, lanes, oneway(1/0/−1), speed m/s]` drivable segments (OSM node ids, class 0 motorway … 6 living street) |
+| `ix` | Array | `[node, x, z, control, major_class]` intersection control: `signal`, `stop_minor`, `all_stop`, `yield` |
 
 The test `chunk_data_schema` (tests/test_runner.gd) enforces this.
 
@@ -57,6 +59,8 @@ The test `chunk_data_schema` (tests/test_runner.gd) enforces this.
 | `scripts/hud.gd` | radar, street/district names, prompts |
 | `scripts/perf.gd` | F3 overlay, `--benchmark` mode, budgets |
 | `scripts/time_of_day.gd` | clock and calendar, sun and moon, sky colours, night lights (windows, lamps), save/load of world state |
+| `scripts/traffic.gd` | road graph from loaded chunks (world coords), signal timing, car spawning/despawning, IDM car following, procedural vehicle meshes |
+| `scripts/street_lights.gd` | pool of real lights moved to the lamps nearest the camera |
 | `scripts/weather.gd` | seasonal weather chain, blended looks, rain/snow particles, lightning |
 | `scripts/demo.gd` | scripted capture modes for screenshots/videos (`--demo=shots/fly/drive/walk/bars`) |
 | `shaders/facade.gdshader` | parametric facades (windows, brick/stone, storefronts, curtain wall) from per-vertex data |

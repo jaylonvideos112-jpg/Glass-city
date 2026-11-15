@@ -33,6 +33,7 @@ var bars: Node = null
 var perf: CanvasLayer = null
 var tod: Node = null
 var weather: Node3D = null
+var traffic: Node = null
 var input_enabled := true
 var env: Environment
 var cam_override := false
@@ -93,6 +94,9 @@ func _ready() -> void:
 	tod.register_lamp_material(streamer.lamp_bulb_mat)
 	tod.register_ground_materials(streamer.materials)
 	var sl = load("res://scripts/street_lights.gd").new(); sl.name = "StreetLights"; sl.main = self; add_child(sl)
+	traffic = load("res://scripts/traffic.gd").new(); traffic.name = "Traffic"; traffic.main = self; add_child(traffic)
+	player.collision_mask |= 2      # bump into traffic
+	for c in cars: c.collision_mask |= 2
 	tod.apply_now()
 	perf = Perf.new(); perf.main = self; add_child(perf)
 	for a in OS.get_cmdline_user_args():

@@ -81,6 +81,7 @@ class Chunk:
         self.col = []
         self.streets, self.labels, self.props = [], [], []
         self.bars = []
+        self.roads, self.ix = [], []    # traffic network: lane segments and intersection controls
 
 chunks = {}
 def ckey(x, y): return (math.floor(x / CHUNK), math.floor(y / CHUNK))
@@ -289,10 +290,42 @@ def road_width(t):
     except ValueError: pass
     return w
 
+# ---- traffic network (engine-neutral): every drivable segment with OSM node ids so the game can rebuild the graph
+TRAFFIC_CLASS = {"motorway": 0, "trunk": 1, "primary": 2, "secondary": 3, "tertiary": 4, "residential": 5,
+                 "unclassified": 5, "living_street": 6}
+for _b in list(TRAFFIC_CLASS):
+    if _b in ("motorway", "trunk", "primary", "secondary", "tertiary"): TRAFFIC_CLASS[_b + "_link"] = TRAFFIC_CLASS[_b]
+DEFAULT_MPH = {0: 65, 1: 55, 2: 35, 3: 35, 4: 30, 5: 25, 6: 15}
+node_classes = defaultdict(list)    # node id -> [(class, is_end_of_way)]
+node_xy = {}
+def _mph(t, cls):
+    v = t.get("maxspeed", "")
+    try: return float(v.split()[0]) if "mph" in v else (float(v) * 0.621 if v else DEFAULT_MPH[cls])
+    except ValueError: return DEFAULT_MPH[cls]
+def _lanes(t, cls, oneway):
+    try: return max(1, int(str(t.get("lanes", "")).split(";")[0]))
+    except ValueError: return {0: 4, 1: 4, 2: 4, 3: 2, 4: 2}.get(cls, 2) // (2 if oneway else 1) or 1
+def traffic_jobs(e, t, pts):
+    hw = t["highway"]
+    cls = TRAFFIC_CLASS.get(hw)
+    nodes = e.get("nodes", [])
+    if cls is None or len(nodes) != len(pts): return
+    ow = t.get("oneway", "")
+    oneway = -1 if ow == "-1" else (1 if ow in ("yes", "true", "1") or hw in ("motorway", "motorway_link") or t.get("junction") == "roundabout" else 0)
+    lanes = _lanes(t, cls, oneway); mps = _mph(t, cls) * 0.44704
+    for i in range(len(pts) - 1):
+        (x0, y0), (x1, y1) = pts[i], pts[i + 1]
+        if math.hypot(x1 - x0, y1 - y0) < 0.05: continue
+        seg_jobs[rkey((x0 + x1) / 2, (y0 + y1) / 2)].append(("rd", nodes[i], nodes[i + 1], x0, y0, x1, y1, cls, lanes, oneway, mps))
+    for i, nid in enumerate(nodes):
+        node_classes[nid].append((cls, i in (0, len(nodes) - 1)))
+        node_xy[nid] = pts[i]
+
 road_polys, side_polys, bridge_ways = [], [], []
 street_lines = []
 seg_jobs = defaultdict(list)       # region -> centerline / street / lamp / streettree jobs
 node_degree = defaultdict(int)
+
 for e in els:
     if e["type"] == "way" and "highway" in tags(e):
         for nid in e.get("nodes", []): node_degree[nid] += 1
@@ -307,6 +340,7 @@ for e in els:
     if len(pts) < 2: continue
     line = LineString(pts)
     drivable = hw in WIDTH
+    if drivable: traffic_jobs(e, t, pts)
     if t.get("bridge") not in (None, "no") and t.get("tunnel") in (None, "no"):
         bridge_ways.append((e, pts, w, drivable)); continue
     if drivable:
@@ -352,6 +386,34 @@ log("roads", len(road_polys), "bridges", len(bridge_ways))
 
 # ---------------------------------------------------------------- land use
 park, parking, forest, industrial = [], [], [], []
+
+# ---- intersection control: real OSM signals/stop signs if osm/extra/signals.json exists, else inferred from road classes
+_sig = {}
+_sigp = os.path.join(os.path.dirname(os.path.abspath(SRC.rstrip("/"))), "extra", "signals.json")
+try: _sigd = json.load(open(_sigp)) if os.path.exists(_sigp) else {}
+except ValueError: _sigd = {}
+if _sigd:
+    for _e in _sigd.get("elements", []):
+        _sig[_e["id"]] = {"traffic_signals": "signal", "stop": "stop", "give_way": "yield"}.get(_e.get("tags", {}).get("highway"), "")
+IX_SOURCE = "osm" if _sig else "inferred"
+for nid, lst in node_classes.items():
+    approaches = sum(1 if end else 2 for _, end in lst)
+    if approaches < 3: continue
+    cl = sorted(c for c, _ in lst)
+    if cl[0] <= 1 and all(c <= 1 for c in cl): continue            # freeway merges: no control
+    if _sig:
+        ctrl = _sig.get(nid) or ("stop_minor" if cl[0] <= 4 and cl[-1] >= 5 else "")
+    else:
+        major = [c for c in cl if c <= 4]
+        if len(major) >= 2 and len(lst) >= 2 and cl[1] <= 4: ctrl = "signal"
+        elif major: ctrl = "stop_minor"
+        elif approaches >= 4: ctrl = "all_stop"
+        else: ctrl = "yield"
+    if not ctrl: continue
+    x, y = node_xy[nid]
+    seg_jobs[rkey(x, y)].append(("ix", nid, x, y, ctrl, cl[0]))
+log("traffic: intersections", sum(1 for v in seg_jobs.values() for j in v if j[0] == "ix"), "controls from", IX_SOURCE)
+
 for e in els:
     t = tags(e)
     if "building" in t or "highway" in t or e["type"] == "node": continue
@@ -1298,7 +1360,7 @@ def flush_region():
             layers.append({"mat": "facade", "v": PV3(V), "n": PV3(Nn), "uv": PV2(U), "uv2": PV2(U2), "color": PCOL(CO), "c0": PF32(C0)})
             total_v += len(V)
         d = {"x": i, "z": j, "ox": c.ox, "oz": -c.oy, "layers": layers, "col": PV3(c.col),
-             "streets": c.streets, "labels": c.labels, "bars": c.bars,
+             "streets": c.streets, "labels": c.labels, "bars": c.bars, "roads": c.roads, "ix": c.ix,
              "props": [[p[0], float(p[1]), float(p[2]), float(p[3]), float(p[4])] for p in c.props]}
         raw = enc(d)
         with open(os.path.join(OUTDIR, "chunks", f"{i}_{j}.bin"), "wb") as f:
@@ -1362,6 +1424,15 @@ for ri in range(rx0, rx1 + 1):
                 if BBOX_P.contains(Point(mx, my)):
                     c = chunk_at(mx, my)
                     c.streets.append([j[1], j[2] - c.ox, -(j[3] - c.oy), j[4] - c.ox, -(j[5] - c.oy)])
+            elif k == "rd":
+                mx, my = (j[3] + j[5]) / 2, (j[4] + j[6]) / 2
+                if BBOX_P.contains(Point(mx, my)):
+                    c = chunk_at(mx, my)
+                    c.roads.append([j[1], j[2], float(j[3] - c.ox), float(-(j[4] - c.oy)), float(j[5] - c.ox), float(-(j[6] - c.oy)), j[7], j[8], j[9], float(j[10])])
+            elif k == "ix":
+                if BBOX_P.contains(Point(j[2], j[3])):
+                    c = chunk_at(j[2], j[3])
+                    c.ix.append([j[1], float(j[2] - c.ox), float(-(j[3] - c.oy)), j[4], j[5]])
             elif k == "lamp":
                 pt = Point(j[1], j[2])
                 if BBOX_P.contains(pt) and not lamp_bad.contains(pt):

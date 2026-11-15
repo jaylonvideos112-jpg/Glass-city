@@ -17,7 +17,10 @@ Entry-level target (later, "Low" preset): 30 fps on GTX 1060 / RX 580 class at 1
 | chunk build hitch | ≤ 4 ms per chunk on the main thread | (to instrument) |
 
 Values are mirrored in `scripts/perf.gd` (`BUDGET`), which colours the overlay red when over budget.
-Future budgets (set before each system ships): NPCs within 150 m, active traffic cars, physics bodies, audio voices,
+| traffic cars (full simulation) | ≤ 60 within 280 m (`source_data/traffic.json` budget) | test `traffic_spawns_and_moves_in_lanes` |
+| real lamp lights | 24 nearest the camera | `climate.json` lights |
+
+Future budgets (set before each system ships): NPCs within 150 m, physics bodies, audio voices,
 and network bandwidth per player (multiplayer).
 
 ## How to benchmark (on your PC)

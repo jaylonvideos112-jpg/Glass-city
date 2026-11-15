@@ -20,6 +20,19 @@
 * **Wet and snowy ground:** rain darkens roads and makes them glossy (lamp light reflects), then they dry over a few
   hours. Snow builds on flat ground and roofs, roads stay clearer than sidewalks (plowed), it melts by season, and
   melting leaves slush.
+* **Traffic (step 3b part 1):**
+  * The pipeline exports the drivable road network per chunk (segments with OSM node ids, road class, lanes,
+    one-way, speed limit) and 11,030 intersection controls.
+  * Controls are inferred from road classes: signals where major roads meet, stop signs on side streets,
+    all-way stops on 4-way residential corners. Real OSM signal data replaces this automatically once
+    `osm/extra/signals.json` downloads (Overpass was overloaded).
+  * Up to 60 cars around the player (`source_data/traffic.json`), with density by hour, weekend and weather.
+    The mix is ordinary Toledo traffic (sedans, SUVs, pickups, minivans, vans, box trucks, transit buses, rare
+    sports cars and police cruisers; fictional makers).
+  * Cars keep their lane, follow at safe gaps (Intelligent Driver Model), slow for turns, stop at red lights and
+    stop signs, yield, drive slower in rain and snow, and stop for the player and the player's cars.
+  * Headlights and tail lights glow at night. Cars are one draw call each plus their lights.
+  * 6 traffic tests.
 * Test harness now fails a test that crashes instead of silently skipping it.
 * Fix: window emission masks lit whole walls (Godot's emission ADD operator); now MULTIPLY.
 

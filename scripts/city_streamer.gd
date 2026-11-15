@@ -314,6 +314,8 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		lab.position = Vector3(l[1], l[3], l[2])
 		lab.visibility_range_end = 700.0
 		root.add_child(lab)
+	root.set_meta("roads", d.get("roads", []))
+	root.set_meta("ix", d.get("ix", []))
 	if bars != null and d.has("bars"):
 		for b in d["bars"]:
 			bars.add_exterior(root, b)
