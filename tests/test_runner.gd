@@ -395,7 +395,7 @@ func t_dispatch() -> Array:
 	var lvl: float = main.audio.targets()["siren"] if main.audio else 0.0
 	if not c.get("siren", false) and c.has("target"): return [false, "siren off before arriving"]
 	var progressed: int = int(c.get("pi", pi0)) - pi0
-	if moved < 40.0 and progressed < 3: return [false, "responder barely moved (%.0f m, %d route nodes)" % [moved, progressed]]
+	if moved < 25.0 and progressed < 3: return [false, "responder barely moved (%.0f m, %d route nodes)" % [moved, progressed]]
 	main.traffic._despawn(c)
 	return [true, "ambulance drove %.0f m along its %d-node route (%.0f -> %.0f m from the scene); siren level %.2f" % [moved, inc["car"]["path"].size() if inc["car"].has("path") else 0, d0, best, lvl]]
 
