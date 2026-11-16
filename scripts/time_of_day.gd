@@ -16,7 +16,7 @@ var start_weekday := 0
 
 var sun: DirectionalLight3D
 var moon: DirectionalLight3D
-var sky_mat: ProceduralSkyMaterial
+var sky_mat: ShaderMaterial
 var night := 0.0                  # 0 day .. 1 full night (drives window/lamp emission)
 var sun_alt := 0.0                # degrees
 var occupancy := 0.5
@@ -46,17 +46,14 @@ func _ready() -> void:
 	moon.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY   # no sky disc (a dark disc showed by day)
 	main.add_child(moon)
 	sky_mat = main.env.sky.sky_material
-	# cloud layer: a wrapping noise panorama, faded in by weather cloudiness (sky_cover_modulate alpha)
+	# cloud noise for shaders/sky.gdshader: one tileable fbm texture the shader layers at several scales
 	var nt := NoiseTexture2D.new()
 	var fn := FastNoiseLite.new()
-	fn.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	fn.frequency = 0.006
-	fn.fractal_octaves = 5
-	nt.noise = fn; nt.width = 1024; nt.height = 512; nt.seamless = true
-	nt.color_ramp = Gradient.new()
-	nt.color_ramp.set_color(0, Color(0, 0, 0)); nt.color_ramp.set_color(1, Color(1, 1, 1))
-	nt.color_ramp.set_offset(0, 0.42); nt.color_ramp.set_offset(1, 0.78)
-	sky_mat.sky_cover = nt
+	fn.noise_type = FastNoiseLite.TYPE_PERLIN
+	fn.frequency = 0.012
+	fn.fractal_octaves = 3
+	nt.noise = fn; nt.width = 512; nt.height = 512; nt.seamless = true; nt.generate_mipmaps = true
+	sky_mat.set_shader_parameter("cloud_noise", nt)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--time="):          # --time=21.5 or --time=summer,3,21.5
 			var p := a.substr(7).split(",")
@@ -208,14 +205,17 @@ func apply_now() -> void:
 		c = c.lerp(_col(P["dusk"][k]), dusk_f * 0.7 * (1.0 - float(w["cloud"]) * 0.6))
 		var grey := Color(c.get_luminance(), c.get_luminance(), c.get_luminance()) * 0.95
 		col[k] = c.lerp(grey, float(w["cloud"]) * 0.75).darkened(float(w["dark"]) * 0.5 * day_f)
-	sky_mat.sky_top_color = col["top"]
-	sky_mat.sky_horizon_color = col["horizon"]
-	sky_mat.ground_horizon_color = col["horizon"].darkened(0.1)
-	sky_mat.ground_bottom_color = col["ground"]
-	sky_mat.sun_angle_max = lerp(20.0, 4.0, float(w["cloud"]))
-	var cl: Color = Color(0.95, 0.95, 0.97).lerp(Color(0.5, 0.52, 0.56), float(w["dark"])) * lerp(0.08, 1.0, day_f)
-	cl = cl.lerp(Color(1.0, 0.7, 0.55), dusk_f * 0.5)
-	sky_mat.sky_cover_modulate = Color(cl.r, cl.g, cl.b, clampf(float(w["cloud"]) * 1.15, 0.0, 1.0))
+	var cloud := float(w["cloud"])
+	sky_mat.set_shader_parameter("zenith_color", col["top"])
+	sky_mat.set_shader_parameter("horizon_color", col["horizon"])
+	sky_mat.set_shader_parameter("ground_color", col["ground"])
+	sky_mat.set_shader_parameter("dusk_color", _col(P["dusk"]["horizon"]))
+	sky_mat.set_shader_parameter("dusk", dusk_f)
+	sky_mat.set_shader_parameter("night", night)
+	sky_mat.set_shader_parameter("cover", clampf(0.3 + cloud * 0.7, 0.0, 1.0))     # fair-weather cumulus even when "clear"
+	sky_mat.set_shader_parameter("overcast", smoothstep(0.55, 0.95, cloud))
+	sky_mat.set_shader_parameter("storm", float(w["dark"]))
+	sky_mat.set_shader_parameter("cirrus", 0.7 * (1.0 - cloud))
 	if main.bars == null or not main.bars.inside:
 		main.env.fog_light_color = col["fog"]
 		main.env.fog_density = fog_base * float(w["fog"])

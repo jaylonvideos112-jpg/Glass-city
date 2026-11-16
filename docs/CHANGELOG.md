@@ -353,3 +353,13 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
   jacket over a shirt, jeans / shorts / dress with the base mesh's skirt), beard on the jaw, hair or cap on the
   scalp (+ long-hair drape, bun, cap brim), real eyes (white/iris/pupil), brows and sneaker shells with soles.
   One draw call per person as before; the old code-built person is the fallback.
+
+## Sky with substance
+- `shaders/sky.gdshader` replaces the procedural gradient sky: deeper saturated zenith over a bright hazy horizon,
+  warm forward-scatter glow around the sun and a dusk band toward it, limb-darkened sun disc; drifting cumulus with
+  puffy relief (density read as a height map and lit by the sun), self-shadowing toward the sun, grey bellies,
+  silver linings and aerial perspective into the horizon; high cirrus streaks; an overcast stratus sheet for bad
+  weather; stars, moon and dark night clouds lit from below by the city glow.
+- `time_of_day.gd` drives it from the climate palette and weather (fair-weather cumulus even on "clear" days, more
+  cover, overcast and storm-dark bases as weather worsens). The sky's lighting probe updates incrementally with a
+  cheap cloud pass. Demo shot `@sky` frames the sky over the street.

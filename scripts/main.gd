@@ -621,13 +621,11 @@ func _update_camera(dt: float) -> void:
 func _setup_environment() -> void:
 	env = Environment.new()
 	var sky := Sky.new()
-	var sm := ProceduralSkyMaterial.new()
-	sm.sky_top_color = Color(0.32, 0.5, 0.75)
-	sm.sky_horizon_color = Color(0.72, 0.76, 0.8)
-	sm.ground_horizon_color = Color(0.62, 0.66, 0.6)
-	sm.ground_bottom_color = Color(0.4, 0.45, 0.38)
-	sm.sun_angle_max = 20.0
+	var sm := ShaderMaterial.new()                  # shaders/sky.gdshader: atmosphere, sunlit clouds, stars (time_of_day drives it)
+	sm.shader = load("res://shaders/sky.gdshader")
 	sky.sky_material = sm
+	sky.process_mode = Sky.PROCESS_MODE_INCREMENTAL # clouds drift; the lighting probe catches up over a few frames
+	sky.radiance_size = Sky.RADIANCE_SIZE_128
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY

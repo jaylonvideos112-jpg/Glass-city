@@ -256,6 +256,16 @@ func _shots(dt: float) -> void:
 			shot_wait += dt
 			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 50.0
 			return
+	elif s[0] == "@sky":
+		# looking up and out over the city: judging the sky and clouds
+		main.hud.visible = false
+		var pl: Vector3 = main.player.global_position + main.world_offset
+		main.player.visible = false
+		pos = pl + Vector3(0, 2.2, 3.0); look = pl + Vector3(45, 24, -70)
+		if shot_wait < 2.0:
+			shot_wait += dt
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 70.0
+			return
 	elif s[0] == "@props":
 		# close look at street furniture + a street light near the player (s[1] = kind, e.g. "hydrant")
 		main.hud.visible = false
