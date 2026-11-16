@@ -26,6 +26,7 @@ var money_label: Label
 var wallet_label: Label
 var wanted_label: Label
 var job_label: Label
+var weapon_label: Label
 var needs_label: Label          # unused text (bars replace it); kept for compatibility
 var toasts: VBoxContainer
 var flash_t := 0.0
@@ -91,6 +92,8 @@ func _ready() -> void:
 	_anchor(wanted_label, Control.PRESET_TOP_RIGHT, -30, 144, true)
 	job_label = _label(15, font_bold, Color(0.75, 0.88, 1.0))
 	_anchor(job_label, Control.PRESET_TOP_RIGHT, -34, 194, true)
+	weapon_label = _label(20, font_black, Color(0.96, 0.96, 0.94))
+	_anchor(weapon_label, Control.PRESET_TOP_RIGHT, -34, 218, true)
 	needs_label = _label(1, font_med); needs_label.visible = false
 	# ---- top left: notifications
 	toasts = VBoxContainer.new(); toasts.position = Vector2(28, 24); toasts.custom_minimum_size = Vector2(420, 0)
@@ -119,6 +122,7 @@ func _ready() -> void:
 	help_label.text = "CONTROLS\n\n" + \
 		"WASD  move / drive        Mouse  look        Shift  sprint        Space  jump / handbrake\n" + \
 		"F  get in / out of a car        E  use, talk, apply, clock in, doors        T  activity here (eat, gym, bowl...)\n" + \
+		"1-6  fists / bat or knife / pistol / shotgun / rifle / grenades    Right mouse (hold)  aim    Left mouse  fire / throw    R  reload    C  crouch\n" + \
 		"Left click  punch (tap: combo)   Right click  kick   Z / middle click  tackle   Q  guard (tap just before a hit = parry)   Ctrl  dodge   Space  struggle / get up\n" + \
 		"Tab  phone        J  job board        I  inventory        K  dealership catalogue\n" + \
 		"R  flip car / rent / deposit        B  buy / collect        G  garage        N  auto-deposit\n" + \
@@ -260,6 +264,7 @@ func _process(dt: float) -> void:
 		_money_pop = maxf(0.0, _money_pop - dt * 2.0)
 		money_label.scale = Vector2.ONE * (1.0 + 0.12 * _money_pop)
 	if main.get("jobs") and main.jobs: job_label.text = main.jobs.status_line()
+	if main.get("weapons") and main.weapons: weapon_label.text = main.weapons.ammo_line() if main.current_car == null else ""
 	if main.get("police") and main.police:
 		var n: int = main.police.stars
 		var blink: bool = main.police.searching and fmod(Time.get_ticks_msec() / 400.0, 2.0) < 1.0
@@ -285,6 +290,7 @@ func _process(dt: float) -> void:
 			if bz != "": bp = (bp + "\n" + bz) if bp != "" else bz
 		if bp == "": bp = main.money.prompt(main.player.global_position) if main.get("money") and main.money else ""
 		if bp == "": bp = main.bars.prompt(main.player.global_position) if main.bars else ""
+		if bp == "" and main.get("weapons") and main.weapons: bp = main.weapons.prompt(main.player.global_position)
 		if bp == "" and main.get("vehicles") and main.vehicles: bp = main.vehicles.prompt(main.player.global_position)
 		if main.get("activities") and main.activities:
 			var ap: String = main.activities.prompt(main.player.global_position)
@@ -365,6 +371,18 @@ func _draw_fish() -> void:
 
 func _draw_target() -> void:
 	if main == null or main.get("combat") == null or main.camera == null: return
+	var wpx = main.get("weapons")
+	if wpx and wpx.armed_gun() and main.current_car == null:
+		var c0: Vector2 = _tgt.size * 0.5
+		var gap: float = 5.0 + (2.0 if wpx.aiming else 12.0) * (2.0 if wpx.current == "shotgun" else 1.0)
+		var cc := Color(1, 1, 1, 0.9 if wpx.aiming else 0.45)
+		for v in [Vector2(1, 0), Vector2(-1, 0), Vector2(0, 1), Vector2(0, -1)]:
+			_tgt.draw_line(c0 + v * gap, c0 + v * (gap + 7.0), Color(0, 0, 0, 0.6), 4.0)
+			_tgt.draw_line(c0 + v * gap, c0 + v * (gap + 7.0), cc, 2.0)
+		_tgt.draw_circle(c0, 1.6, cc)
+		if wpx.hit_marker > 0.0:        # hit confirm
+			for v in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
+				_tgt.draw_line(c0 + v * 6.0, c0 + v * 13.0, Color(1, 0.3, 0.25, wpx.hit_marker * 4.0), 2.5)
 	var cbt = main.combat
 	if cbt.pstate in ["pinned", "down"]:
 		var vs: Vector2 = _tgt.size

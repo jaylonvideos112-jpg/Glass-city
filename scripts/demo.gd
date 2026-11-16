@@ -352,6 +352,23 @@ func _shots(dt: float) -> void:
 			cb2.escape = 0.35
 			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 60.0
 			return
+	elif s[0] == "@aim" and main.weapons:
+		# over-the-shoulder aim with a rifle, crosshair on the street
+		main.hud.visible = true
+		var wq = main.weapons
+		if not wq.owned.has("rifle"): wq.give("rifle")
+		if wq.current != "rifle": wq.equip("rifle")
+		wq.aiming = true
+		if shot_wait < 2.0:
+			shot_wait += dt
+			main._update_camera(0.2)
+			return
+		if shot_wait < 2.2:
+			shot_wait += dt
+			wq._cool = 0.0; wq.trigger()
+			main._update_camera(0.2)
+			return
+		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 30.0
 	elif s[0] == "@carshow":
 		# 3/4 view of the cars at the curb
 		main.hud.visible = false

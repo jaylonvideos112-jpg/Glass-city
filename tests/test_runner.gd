@@ -80,6 +80,7 @@ func _run() -> void:
 		["car_knocks_down_pedestrian_crowd_scatters", t_knockdown],
 		["melee_punch_kick_ko_fight_back_block", t_melee],
 		["fight_ai_takedown_pin_sweep_parry_adapt", t_fight_ai],
+		["weapons_shoot_reload_store_grenade_police", t_weapons],
 		["on_foot_feel_metrics", t_foot_feel],
 		["emergency_responds_with_siren", t_dispatch],
 	]
@@ -1627,3 +1628,71 @@ func t_fight_ai() -> Array:
 	main.needs.health = 100.0
 	if t1 <= t0 * 2: return [false, "no adaptation to guarding (%d -> %d grabs/shoves of 400)" % [t0, t1]]
 	return [true, "tackled + pinned (-%.0f from ground punches), struggled free; swept and got up; parried a hook; turtling raises grabs %d -> %d /400" % [gnp_loss, t0, t1]]
+
+
+func t_weapons() -> Array:
+	main.input_enabled = false
+	if main.current_car: main.toggle_vehicle()
+	var wp = main.weapons; var pl = main.player
+	main.needs.health = 100.0
+	main.police.stars = 0
+	# buy a pistol at a gun store
+	var c0: int = main.money.cash + main.money.wallet
+	main.money.wallet += 5000
+	wp.open_shop(0)
+	var pi := -1
+	for i in wp._shop_rows.size():
+		if wp._shop_rows[i][0] == "weapon" and wp._shop_rows[i][1] == "pistol": pi = i
+	if pi < 0 or not wp.buy(pi): return [false, "couldn't buy a pistol"]
+	wp.close_shop()
+	if not wp.owned.has("pistol") or int(wp.mag["pistol"]) <= 0: return [false, "bought pistol isn't loaded (owned %s mag %s ammo %s)" % [wp.owned, wp.mag, wp.ammo]]
+	wp.select_slot(3)
+	if wp.current != "pistol": return [false, "slot 3 didn't equip the pistol"]
+	# someone 8 m in front of the camera: aim at their chest and fire
+	var keep_h: float = main.tod.total_hours
+	main.tod.set_date("fall", 3, 12.5)
+	var p = null
+	for i in 240:
+		var f: Vector3 = main.focus_world()
+		for q in main.peds.peds:
+			if q["state"] == "walk" and (q["pos"] - f).length() < 150.0: p = q; break
+		if p != null: break
+		await _frames(10)
+	main.tod.total_hours = keep_h; main.tod.apply_now()
+	if p == null: return [false, "nobody around"]
+	var stand: Vector3 = p["pos"] + Vector3(8.0, 0, 0)
+	pl.global_position = Vector3(stand.x, float(p["y"]) + 0.1, stand.z) - main.world_offset; pl.velocity = Vector3.ZERO
+	main.cam_yaw = atan2(1.0, 0.0); main.cam_pitch = 0.0
+	wp.aiming = true
+	await _frames(20)
+	var chest: Vector3 = Vector3(p["pos"].x, float(p["y"]) + 1.25, p["pos"].z) - main.world_offset
+	main.camera.look_at(chest, Vector3.UP)
+	var hp0: float = main.combat.ped_hp(p)
+	var m0: int = int(wp.mag["pistol"])
+	wp._cool = 0.0
+	if not wp.trigger(): return [false, "pistol didn't fire"]
+	var landed: bool = float(p.get("hp", hp0)) < hp0 or p["state"] in ["fly", "down", "injured"]
+	if not landed: return [false, "shot at %.1f m missed" % (p["pos"] - (pl.global_position + main.world_offset)).length()]
+	if int(wp.mag["pistol"]) != m0 - 1: return [false, "ammo didn't go down"]
+	var stars_after: int = main.police.stars
+	# empty the magazine: reload kicks in
+	wp.mag["pistol"] = 1; wp._cool = 0.0; wp.trigger()
+	for i in 240: await _frames(1)
+	var reloaded: bool = int(wp.mag["pistol"]) > 0
+	wp.aiming = false
+	# grenade: knocks down people nearby
+	wp.owned["grenade"] = true; wp.ammo["grenade"] = 1
+	var near: Array = main.peds.peds.filter(func(q): return q["state"] == "walk")
+	var gtarget = near[0] if not near.is_empty() else null
+	var g_ok := true
+	if gtarget != null:
+		wp._explode(Vector3(gtarget["pos"].x, float(gtarget["y"]) + 0.3, gtarget["pos"].z) - main.world_offset)
+		g_ok = gtarget["state"] in ["fly", "down", "injured"]
+	main.needs.health = 100.0
+	main.police.stars = 0; main.police._release_units(); main.combat.dismiss_cops()
+	wp.equip("fists")
+	main.money.wallet = c0 - main.money.cash if c0 - main.money.cash >= 0 else main.money.wallet
+	if not reloaded: return [false, "never reloaded"]
+	if not g_ok: return [false, "grenade didn't floor someone at the blast"]
+	if stars_after < 2: return [false, "shooting someone only gave %d stars" % stars_after]
+	return [true, "bought + equipped pistol, hit at 8 m, ammo counted, auto-reload, grenade floored a bystander, police %d stars" % stars_after]

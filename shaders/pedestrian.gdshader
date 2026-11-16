@@ -46,6 +46,9 @@ void vertex() {
 	if (ia == 12 && part == 4) a = -0.6 * k;                      // drawing back the fist
 	if (ia == 12 && part == 3) a = 0.5;
 	if (ia == 13 && (part == 3 || part == 4)) a = 0.45;
+	if (ia == 14 && (part == 3 || part == 4)) a = 1.5;            // long gun at the shoulder
+	if (ia == 15 && part == 4) a = 1.57;                          // pistol: arm out
+	if (ia == 15 && part == 3) a = 1.3;
 	if (part >= 1 && part <= 4) {
 		vec3 p = VERTEX; p.y -= pivot;
 		float c = cos(a), s = sin(a);

@@ -8,7 +8,12 @@
   "flee_stop": 1,
   "car_theft": 1,
   "steal_police_car": 2,
-  "assault": 1
+  "assault": 1,
+  "shots_fired": 2,
+  "shoot_ped": 3,
+  "shoot_police": 4,
+  "explosion": 3,
+  "armed_assault": 2
  },
  "witness_police_m": 80,
  "witness_ped_m": 35,

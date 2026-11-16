@@ -285,3 +285,19 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 - You: tap Q right before a hit to PARRY (they stagger, your next hit x1.5), Z / middle click to tackle someone,
   ground punches on a downed opponent, Space to get up faster. Tackled opponents get up swinging.
 - HUD: struggle meter when pinned, knockdown prompt.
+
+## Weapons (Bible section 14)
+- source_data/weapons.json: bat, knife, pistol, pump shotgun, carbine rifle, grenades; ammo types; 8 gun stores
+  (E at the sign: buy guns and ammo with number keys).
+- 1-6 select fists / melee / pistol / shotgun / rifle / grenades. Hold right mouse to aim (over-the-shoulder camera,
+  crosshair, soft lock-on near the crosshair), left mouse to fire (rifle is automatic), R reload (auto when empty),
+  C crouch. Hip fire spreads wide; moving spreads more; crouching tightens it. Headshots x2.5.
+- Hitscan through the crosshair: people (capsule test), your cars (damage), the city (impacts); tracers, muzzle
+  flash, procedural gunshot and explosion sounds, hit markers. Grenades arc, bounce and blow after a fuse
+  (knock people and cars around, hurt you if you're close).
+- People shot go down injured (ambulance comes); gunfire makes everyone nearby run; melee weapons swing through
+  the fighting system with more damage and reach.
+- Police: gunfire, shooting people or officers, explosions are serious crimes; a burst of fire is one incident.
+  At 3+ stars (2 if you're armed) officers leave their cars armed (rifles at 5 stars) and fight on foot: they keep
+  distance, strafe, aim (telegraphed), fire bursts, need a clear line to your chest (cars and walls are cover,
+  crouching helps), move up when they lose sight of you. Some dirty fighters carry a pistol.

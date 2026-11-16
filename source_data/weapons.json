@@ -1,0 +1,168 @@
+{
+ "_doc": "Weapons (Bible section 14): arcade, fictional game stats only. slot = number key. Prices in $. Gun stores: places list (world x/z, sign at the nearest curb).",
+ "weapons": {
+  "fists": {
+   "slot": 1,
+   "type": "fists",
+   "name": "Fists",
+   "price": 0
+  },
+  "bat": {
+   "slot": 2,
+   "type": "melee",
+   "name": "Baseball bat",
+   "price": 60,
+   "dmg": 38,
+   "reach": 1.75
+  },
+  "knife": {
+   "slot": 2,
+   "type": "melee",
+   "name": "Folding knife",
+   "price": 90,
+   "dmg": 30,
+   "reach": 1.35
+  },
+  "pistol": {
+   "slot": 3,
+   "type": "gun",
+   "name": "Pistol",
+   "price": 650,
+   "dmg": 24,
+   "rate": 4.0,
+   "mag": 15,
+   "reload_s": 1.4,
+   "range": 70,
+   "spread": 0.9,
+   "hip_spread": 4.0,
+   "ammo": "pistol",
+   "pellets": 1,
+   "auto": false,
+   "loud": 60
+  },
+  "shotgun": {
+   "slot": 4,
+   "type": "gun",
+   "name": "Pump shotgun",
+   "price": 1200,
+   "dmg": 13,
+   "rate": 1.1,
+   "mag": 6,
+   "reload_s": 2.6,
+   "range": 28,
+   "spread": 4.5,
+   "hip_spread": 6.5,
+   "ammo": "shells",
+   "pellets": 8,
+   "auto": false,
+   "loud": 80
+  },
+  "rifle": {
+   "slot": 5,
+   "type": "gun",
+   "name": "Carbine rifle",
+   "price": 2400,
+   "dmg": 28,
+   "rate": 8.0,
+   "mag": 30,
+   "reload_s": 2.2,
+   "range": 130,
+   "spread": 0.7,
+   "hip_spread": 5.0,
+   "ammo": "rifle",
+   "pellets": 1,
+   "auto": true,
+   "loud": 90
+  },
+  "grenade": {
+   "slot": 6,
+   "type": "throw",
+   "name": "Grenade",
+   "price": 150,
+   "dmg": 140,
+   "radius": 7.5,
+   "fuse_s": 2.2,
+   "ammo": "grenade",
+   "loud": 120
+  }
+ },
+ "ammo": {
+  "pistol": {
+   "name": "Pistol ammo (30)",
+   "price": 35,
+   "box": 30
+  },
+  "shells": {
+   "name": "Shells (12)",
+   "price": 45,
+   "box": 12
+  },
+  "rifle": {
+   "name": "Rifle ammo (60)",
+   "price": 70,
+   "box": 60
+  },
+  "grenade": {
+   "name": "Grenade",
+   "price": 150,
+   "box": 1
+  }
+ },
+ "start_ammo": {
+  "pistol": 45,
+  "shells": 18,
+  "rifle": 90
+ },
+ "headshot_mult": 2.5,
+ "aim_assist_deg": 6.0,
+ "stores": [
+  {
+   "id": 0,
+   "name": "Lakeside Arms",
+   "x": -13141.6,
+   "z": 7932.4
+  },
+  {
+   "id": 1,
+   "name": "Glass City Gun & Pawn",
+   "x": -10600.8,
+   "z": 5872.8
+  },
+  {
+   "id": 2,
+   "name": "Maumee Sporting Goods",
+   "x": -7689.1,
+   "z": 8441.9
+  },
+  {
+   "id": 3,
+   "name": "Pinewick Firearms",
+   "x": -1665.2,
+   "z": 7292.7
+  },
+  {
+   "id": 4,
+   "name": "Kingsferry Outfitters",
+   "x": 3758.8,
+   "z": 7112.0
+  },
+  {
+   "id": 5,
+   "name": "Eastshore Arms",
+   "x": 6589.7,
+   "z": 5877.4
+  },
+  {
+   "id": 6,
+   "name": "Stonebridge Gun Club",
+   "x": -13054.8,
+   "z": 4153.1
+  },
+  {
+   "id": 7,
+   "name": "Harbor Ammo Supply",
+   "x": 5152.2,
+   "z": 1983.3
+  }
+ ]
+}

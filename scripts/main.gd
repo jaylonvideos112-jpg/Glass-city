@@ -138,6 +138,9 @@ func _ready() -> void:
 	player.needs = needs
 	player.hurt.connect(hurt)
 	combat = load("res://scripts/combat.gd").new(); combat.name = "Combat"; combat.main = self; add_child(combat)
+	weapons = load("res://scripts/weapons.gd").new(); weapons.name = "Weapons"; weapons.main = self; add_child(weapons)
+	world_state.register("weapons", weapons)
+	world_state.register("combat", combat)
 	Car.driver_hurt = hurt
 	inventory = load("res://scripts/inventory.gd").new(); inventory.name = "Inventory"; inventory.main = self; add_child(inventory)
 	world_state.register("inventory", inventory)
@@ -276,7 +279,9 @@ func nearest_car(max_d := 5.0) -> VehicleBody3D:
 
 # ------------------------------------------------------------------ injury, death and the hospital
 var dying := false
+var _aim_k := 0.0
 var combat: Node
+var weapons: Node
 var hospitals: Array = []
 var times_wasted := 0
 func hurt(amount: float, cause: String) -> void:
@@ -318,7 +323,7 @@ func _wake_in_hospital(cause: String) -> void:
 	times_wasted += 1
 	dying = false
 	input_enabled = true
-	if hud: hud.flash("You woke up in the hospital (%s) - medical bill $%d" % [{"fall": "bad fall", "crash": "car crash", "hit": "hit by a car", "drown": "nearly drowned"}.get(cause, cause), bill])
+	if hud: hud.flash("You woke up in the hospital (%s) - medical bill $%d" % [{"fall": "bad fall", "crash": "car crash", "hit": "hit by a car", "drown": "nearly drowned", "shot": "gunshot wounds", "explosion": "caught in a blast", "fight": "beaten up"}.get(cause, cause), bill])
 
 ## people on foot get hit by traffic that can't stop in time
 func _check_traffic_hits() -> void:
@@ -594,7 +599,11 @@ func _update_camera(dt: float) -> void:
 	else:
 		var target := player.global_position + Vector3(0, 1.6, 0)
 		var dir := Vector3(sin(cam_yaw) * cos(cam_pitch), -sin(cam_pitch), cos(cam_yaw) * cos(cam_pitch))
-		var desired := target + dir * cam_dist
+		var aim: bool = weapons != null and weapons.aiming
+		_aim_k = move_toward(_aim_k, 1.0 if aim else 0.0, dt * 6.0)
+		var crouch_drop: float = 0.45 if weapons != null and weapons.crouch else 0.0
+		target += Vector3(cos(cam_yaw), 0, -sin(cam_yaw)) * 0.75 * _aim_k - Vector3(0, crouch_drop, 0)   # over the right shoulder
+		var desired := target + dir * lerpf(cam_dist, 2.1, _aim_k)
 		# keep the camera out of walls
 		var q := PhysicsRayQueryParameters3D.create(target, desired)
 		q.exclude = [player.get_rid()]; q.collision_mask = 1
@@ -603,7 +612,7 @@ func _update_camera(dt: float) -> void:
 			desired = hit["position"] - dir * 0.3
 		camera.global_position = desired
 		camera.look_at(target, Vector3.UP)
-		camera.fov = lerp(camera.fov, base_fov, 0.1)
+		camera.fov = lerp(camera.fov, lerpf(base_fov, base_fov * 0.72, _aim_k), 0.15)
 
 # ------------------------------------------------------------------ environment
 func _setup_environment() -> void:

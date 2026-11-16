@@ -93,6 +93,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		elif e.physical_keycode == KEY_CTRL and e.pressed: dodge()
 
 func _can_fight() -> bool:
+	if main.get("weapons") and main.weapons.armed_gun(): return false      # guns use the mouse for aim / fire
 	return main.input_enabled and main.current_car == null and not main.dying and pstate == "" \
 		and not (main.bars and main.bars.inside) and not (main.get("phone") and main.phone.open)
 
@@ -257,6 +258,8 @@ func _resolve_hit() -> void:
 	var to: Vector3 = t["pos"] - me; to.y = 0
 	var kind: String = act["kind"]
 	var reach: float = float(C["kick_reach_m"] if kind == "kick" else C["reach_m"])
+	var wpn = main.get("weapons")
+	if wpn and wpn.kind() == "melee" and kind == "punch": reach = float(wpn.def(wpn.current)["reach"])
 	if kind == "tackle": reach = 1.3
 	if to.length() > reach + 0.4: return
 	var ai: Dictionary = t.get("ai", {})
@@ -269,6 +272,9 @@ func _resolve_hit() -> void:
 		"kick": dmg = float(C["kick_dmg"])
 		"tackle": dmg = 10.0
 		_: dmg = float(C["punch_dmg"][int(act["combo"])])
+	var wp = main.get("weapons")
+	if wp and wp.kind() == "melee" and kind == "punch":                # a bat or a knife swings through the same moves
+		dmg = float(wp.def(wp.current)["dmg"]) * (1.2 if int(act["combo"]) == 2 else 1.0)
 	if t["state"] in ["down", "injured"]: dmg *= 1.3                    # ground punches
 	if counter_bonus > 0.0: dmg *= 1.5; counter_bonus = 0.0
 	if blocked:
@@ -321,7 +327,7 @@ func hit_ped(p: Dictionary, dmg: float, dir: Vector3, heavy: bool, takedown := f
 		else: main.peds._flee(p, main.player.global_position + main.world_offset)
 	else:
 		ai["morale"] = float(ai.get("morale", 1.0)) - dmg / maxf(float(p["hp_max"]), 1.0) * (1.4 - float(C["styles"][_style_of(p)]["nerve"]))
-	if main.police: main.police.report("assault", p["pos"])
+	if main.police: main.police.report("armed_assault" if (main.get("weapons") and main.weapons.kind() == "melee") else "assault", p["pos"])
 	_call_friends(p)
 	for o in main.peds.peds:
 		if o != p and o["state"] in ["walk", "wait", "cross"] and (o["pos"] - p["pos"]).length() < 14.0 and not o.get("joining", false):
@@ -339,6 +345,7 @@ func _call_friends(p: Dictionary) -> void:
 
 func start_fight(p: Dictionary) -> void:
 	ped_hp(p); _style_of(p)
+	if not p.has("gun") and p["style"] == "dirty" and rng.randf() < 0.25: p["gun"] = "pistol"      # some carry
 	p["state"] = "fight"; p["fight_t"] = 0.0
 	p["ai"] = {"mode": "approach", "t": rng.randf_range(0.2, 0.6), "move": "", "circle": 1.0 if rng.randf() < 0.5 else -1.0,
 		"morale": 1.0, "counter": false}
@@ -382,6 +389,8 @@ func _choose_move(p: Dictionary, d: float) -> String:
 
 ## pedestrians.gd calls this every frame for anyone in the "fight" state
 func step_fighter(p: Dictionary, dt: float) -> void:
+	if p.get("gun", "") != "":
+		_step_shooter(p, dt); return
 	var me: Vector3 = main.player.global_position + main.world_offset
 	var to: Vector3 = me - p["pos"]; to.y = 0
 	var d := to.length()
@@ -461,6 +470,74 @@ func step_fighter(p: Dictionary, dt: float) -> void:
 				main.hurt(rng.randf_range(4.0, 7.0), "fight")
 			ai["gnp_t"] = float(ai.get("gnp_t", 0.0)) + dt
 
+# ------------------------------------------------------------------ armed opponents (police on foot, armed civilians)
+## keep 6-16 m, strafe, aim (telegraphed), fire short bursts; they need a clear line to your chest - cars and walls
+## are cover, and crouching lowers your chest. Lose sight of you for a while and they move up.
+func _step_shooter(p: Dictionary, dt: float) -> void:
+	var me: Vector3 = main.player.global_position + main.world_offset
+	var to: Vector3 = me - p["pos"]; to.y = 0
+	var d := to.length(); var dirn: Vector3 = to / maxf(d, 0.01)
+	var ai: Dictionary = p["ai"]
+	p["fight_t"] = float(p.get("fight_t", 0.0)) + dt
+	var cop: bool = p.get("cop", false)
+	if main.dying or d > 70.0 or (not cop and p["fight_t"] > 90.0) or (cop and main.police and main.police.stars == 0):
+		_end_fight(p); return
+	if float(p.get("react_t", 0.0)) > 0.0: return
+	p["yaw"] = lerp_angle(p["yaw"], atan2(-to.x, -to.z), clampf(dt * 8.0, 0.0, 1.0))
+	var vis: bool = _clear_shot(p)
+	ai["unseen"] = 0.0 if vis else float(ai.get("unseen", 0.0)) + dt
+	var want_lo := 6.0; var want_hi := 16.0
+	var mv := Vector3.ZERO
+	if d > want_hi or float(ai["unseen"]) > 2.5: mv = dirn                       # close in / flank
+	elif d < want_lo: mv = -dirn
+	if ai.get("strafe_t", 0.0) <= 0.0:
+		ai["strafe_t"] = rng.randf_range(1.0, 2.5); ai["circle"] = -float(ai.get("circle", 1.0)) if rng.randf() < 0.5 else float(ai.get("circle", 1.0))
+	ai["strafe_t"] = float(ai["strafe_t"]) - dt
+	if ai["mode"] != "aim" and ai["mode"] != "fire": mv += dirn.cross(Vector3.UP) * float(ai.get("circle", 1.0)) * 0.6
+	if mv.length() > 0.05:
+		p["pos"] = p["pos"] + mv.normalized() * float(p["speed"]) * (1.8 if mv.dot(dirn) > 0.5 else 1.2) * dt
+		p["phase"] = fmod(p["phase"] + dt * float(p["speed"]) * 9.0, TAU)
+	ai["t"] = float(ai["t"]) - dt
+	match ai["mode"]:
+		"aim":
+			if ai["t"] <= 0.0: ai["mode"] = "fire"; ai["shots"] = rng.randi_range(2, 4); ai["t"] = 0.0
+		"fire":
+			if ai["t"] <= 0.0:
+				ai["t"] = 0.32 if p["gun"] == "pistol" else 0.14
+				_npc_shot(p, d, vis)
+				ai["shots"] = int(ai["shots"]) - 1
+				if int(ai["shots"]) <= 0: ai["mode"] = "circle"; ai["t"] = rng.randf_range(0.8, 1.8)
+		_:
+			if ai["t"] <= 0.0 and vis and d < 40.0: ai["mode"] = "aim"; ai["t"] = rng.randf_range(0.5, 0.9)
+
+func _chest() -> Vector3:
+	var crouched: bool = main.get("weapons") and main.weapons.crouch
+	return main.player.global_position + Vector3(0, 0.75 if crouched else 1.3, 0)
+
+func _clear_shot(p: Dictionary) -> bool:
+	var from: Vector3 = Vector3(p["pos"].x, float(p["y"]) + 1.55, p["pos"].z) - main.world_offset
+	var q := PhysicsRayQueryParameters3D.create(from, _chest(), 1 | 2)
+	q.exclude = [main.player.get_rid()]
+	return main.get_world_3d().direct_space_state.intersect_ray(q).is_empty()
+
+func _npc_shot(p: Dictionary, d: float, vis: bool) -> void:
+	var from: Vector3 = Vector3(p["pos"].x, float(p["y"]) + 1.45, p["pos"].z) - main.world_offset
+	var chance: float = (0.5 if p.get("cop", false) else 0.32) * clampf(1.0 - d / 45.0, 0.15, 1.0)
+	if main.player.velocity.length() > 3.0: chance *= 0.55
+	if _dodge_t > 0.0 or pstate == "down": chance *= 0.4
+	var wp = main.get("weapons")
+	if wp:
+		wp._muzzle_at(from); wp._sound(wp._shot_sound, from, -2.0)
+	var target_pt: Vector3 = _chest() + Vector3(rng.randf_range(-1.2, 1.2), rng.randf_range(-0.6, 0.8), rng.randf_range(-1.2, 1.2))
+	if vis and rng.randf() < chance:
+		main.hurt(rng.randf_range(7.0, 11.0) * (1.4 if p["gun"] == "rifle" else 1.0), "shot")
+		target_pt = _chest()
+	if wp: wp._tracer(from, target_pt)
+
+func dismiss_cops() -> void:
+	for p in main.peds.peds.duplicate():
+		if p.get("cop", false): main.peds._despawn(p)
+
 func _ped_strike(p: Dictionary, mv: String, d: float) -> void:
 	var m: Dictionary = C["moves"][mv]
 	if d > float(m["reach"]) + 0.3: return                  # whiffed
@@ -508,6 +585,8 @@ func ped_pose(p: Dictionary) -> Array:
 	if float(p.get("react_t", 0.0)) > 0.0: return [5.0, 1.0 - float(p["react_t"]) / 0.35]
 	if p["state"] != "fight" or not p.has("ai"): return [0.0, 0.0]
 	var ai: Dictionary = p["ai"]
+	if p.get("gun", "") != "":
+		return [15.0 if p["gun"] == "pistol" else 14.0, 0.5] if ai["mode"] in ["aim", "fire"] else [0.0, 0.0]
 	match ai["mode"]:
 		"wind":
 			var m: Dictionary = C["moves"][ai["move"]]
