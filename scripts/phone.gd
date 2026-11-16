@@ -25,7 +25,7 @@ var _filter := 0
 const FILTERS := ["Normal", "Black & white", "Warm", "Vivid"]
 var _fov := 70.0
 var map_cat := 0
-var map_zoom := 1.0
+var map_zoom := 2.5
 var _list: Array = []         # current selectable rows [label, data]
 var M: Dictionary             # phone_map.json bounds
 
@@ -36,6 +36,15 @@ var _map: TextureRect
 var _map_clip: Control
 var _marks: Control
 var _photo_label: Label
+var _screen: Control
+var _f_reg: Font
+var _f_bold: Font
+var _lines: Array = []
+const APP_COL := {"Maps": Color(0.2, 0.62, 0.35), "GlassPay": Color(0.16, 0.5, 0.9), "Jobs": Color(0.95, 0.6, 0.15),
+	"Messages": Color(0.3, 0.78, 0.4), "Contacts": Color(0.55, 0.55, 0.6), "My Stuff": Color(0.55, 0.35, 0.85),
+	"News": Color(0.85, 0.25, 0.25), "Profile": Color(0.2, 0.7, 0.75), "Camera": Color(0.25, 0.25, 0.28), "Settings": Color(0.45, 0.47, 0.5)}
+const APP_GLYPH := {"Maps": "M", "GlassPay": "$", "Jobs": "J", "Messages": "@", "Contacts": "C", "My Stuff": "S",
+	"News": "N", "Profile": "P", "Camera": "O", "Settings": "*"}
 
 const CATS := ["My places", "Food", "Groceries", "Bars", "ATMs", "Jobs hiring", "Car dealers", "Auto shops", "Gyms & bowling",
 	"Ballparks & cinemas", "Fishing", "Homes for rent", "Police & hospitals"]
@@ -43,21 +52,25 @@ const CATS := ["My places", "Food", "Groceries", "Bars", "ATMs", "Jobs hiring", 
 func _ready() -> void:
 	layer = 5
 	M = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/phone_map.json"))
+	# portrait phone in the bottom-right corner, under the money/wanted panel
 	_panel = Panel.new()
-	_panel.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	_panel.offset_left = -440; _panel.offset_right = -40; _panel.offset_top = -290; _panel.offset_bottom = 345
+	_panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_panel.offset_left = -384; _panel.offset_right = -36; _panel.offset_top = -530; _panel.offset_bottom = -14
 	add_child(_panel)
-	_title = Label.new(); _title.position = Vector2(20, 14); _title.add_theme_font_size_override("font_size", 24); _panel.add_child(_title)
-	_map_clip = Control.new(); _map_clip.position = Vector2(14, 56); _map_clip.size = Vector2(372, 300); _map_clip.clip_contents = true
+	_title = Label.new(); _title.visible = false; _panel.add_child(_title)
+	_map_clip = Control.new(); _map_clip.position = Vector2(14, 92); _map_clip.size = Vector2(320, 190); _map_clip.clip_contents = true
 	_panel.add_child(_map_clip)
 	_map = TextureRect.new(); _map.texture = load("res://textures/phone_map.png"); _map.stretch_mode = TextureRect.STRETCH_SCALE
 	_map_clip.add_child(_map)
 	_marks = Control.new(); _marks.size = _map_clip.size; _marks.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_map_clip.add_child(_marks)          # drawn above the map image
 	_marks.draw.connect(_draw_map_marks)
-	_body = Label.new(); _body.position = Vector2(20, 56); _body.size = Vector2(360, 590); _body.add_theme_font_size_override("font_size", 17)
-	_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_panel.add_child(_body)
+	_body = Label.new(); _body.visible = false; _panel.add_child(_body)
+	_screen = Control.new(); _screen.size = Vector2(348, 516); _screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_panel.add_child(_screen)
+	_panel.move_child(_screen, 0)
+	_screen.draw.connect(_draw_screen)
+	_f_reg = load("res://fonts/Inter-Medium.otf"); _f_bold = load("res://fonts/Inter-Bold.otf")
 	_photo_label = Label.new(); _photo_label.position = Vector2(30, 30); _photo_label.add_theme_font_size_override("font_size", 20)
 	_photo_label.add_theme_color_override("font_outline_color", Color.BLACK); _photo_label.add_theme_constant_override("outline_size", 6)
 	_photo_label.visible = false; add_child(_photo_label)
@@ -103,8 +116,8 @@ func _unhandled_input(e: InputEvent) -> void:
 	if not open: return
 	get_viewport().set_input_as_handled()
 	match k:
-		KEY_UP: sel = maxi(0, sel - (3 if app == "" else 1))
-		KEY_DOWN: sel = mini(_count() - 1, sel + (3 if app == "" else 1))
+		KEY_UP: sel = maxi(0, sel - (4 if app == "" else 1))
+		KEY_DOWN: sel = mini(_count() - 1, sel + (4 if app == "" else 1))
 		KEY_LEFT:
 			if app == "": sel = maxi(0, sel - 1)
 			elif app == "Maps": map_cat = (map_cat - 1 + CATS.size()) % CATS.size(); sel = 0
@@ -154,8 +167,48 @@ func _update_route() -> void:
 	var a: int = main.police._nearest_node(main.focus_world())
 	var b: int = main.police._nearest_node(waypoint)
 	if a < 0 or b < 0 or a == b: return
-	var pth: Array = main.services.route_path(a, b, 8000)
+	var pth: Array = _astar(a, b, main.current_car == null)
+	if pth.is_empty(): pth = main.services.route_path(a, b, 8000)
+	var f: Vector3 = main.focus_world()
+	route.append(f)
 	for n in pth: route.append(main.traffic.npos[n])
+	route.append(waypoint)
+
+var _adj := {}; var _adj_n := -1
+## A* over the road graph. On foot one-way streets don't matter (both directions allowed); driving obeys them.
+func _astar(a: int, b: int, on_foot: bool) -> Array:
+	var tr = main.traffic
+	if _adj_n != tr.edges.size():
+		_adj = {}; _adj_n = tr.edges.size()
+		for k in tr.edges.size():
+			var e: Dictionary = tr.edges[k]
+			if e["cls"] > 7: continue
+			if not _adj.has(e["a"]): _adj[e["a"]] = []
+			_adj[e["a"]].append([e["b"], float(e["len"]), true])
+			if not _adj.has(e["b"]): _adj[e["b"]] = []
+			_adj[e["b"]].append([e["a"], float(e["len"]), not e["oneway"]])
+	var goal: Vector3 = tr.npos[b]
+	var g := {a: 0.0}; var came := {}; var open_ := [[0.0, a]]; var seen := {}
+	var it := 0
+	while not open_.is_empty() and it < 20000:
+		it += 1
+		var bi := 0
+		for i in open_.size():
+			if open_[i][0] < open_[bi][0]: bi = i
+		var cur: int = open_[bi][1]; open_.remove_at(bi)
+		if cur == b: break
+		if seen.has(cur): continue
+		seen[cur] = true
+		for nb in _adj.get(cur, []):
+			if not nb[2] and not on_foot: continue
+			var ng: float = g[cur] + nb[1]
+			if ng < g.get(nb[0], 1e18):
+				g[nb[0]] = ng; came[nb[0]] = cur
+				open_.append([ng + (tr.npos[nb[0]] as Vector3).distance_to(goal), nb[0]])
+	if not came.has(b): return []
+	var out := [b]
+	while out[0] != a: out.push_front(came[out[0]])
+	return out
 
 func _process(dt: float) -> void:
 	if waypoint != Vector3.INF:
@@ -171,6 +224,7 @@ func _process(dt: float) -> void:
 	if photo_mode:
 		main.camera.fov = _fov
 	if open and app == "Maps": _marks.queue_redraw()
+	if open: _screen.queue_redraw()
 
 # ------------------------------------------------------------------ contacts
 const CONTACTS := [["Mike's Towing - bring my car here ($150)", "tow"], ["Boss (work schedule)", "boss"], ["Landlord / home", "home"],
@@ -312,12 +366,12 @@ func _draw_map_marks() -> void:
 func _refresh() -> void:
 	_panel.visible = open
 	if not open: return
-	var sb := StyleBoxFlat.new(); sb.bg_color = WALLS[wallpaper]; sb.corner_radius_top_left = 28; sb.corner_radius_top_right = 28
-	sb.corner_radius_bottom_left = 28; sb.corner_radius_bottom_right = 28; sb.border_width_left = 6; sb.border_width_right = 6
-	sb.border_width_top = 6; sb.border_width_bottom = 6; sb.border_color = Color(0.02, 0.02, 0.02)
+	var sb := StyleBoxFlat.new(); sb.bg_color = WALLS[wallpaper]; sb.corner_radius_top_left = 34; sb.corner_radius_top_right = 34
+	sb.corner_radius_bottom_left = 34; sb.corner_radius_bottom_right = 34; sb.border_width_left = 7; sb.border_width_right = 7
+	sb.border_width_top = 7; sb.border_width_bottom = 7; sb.border_color = Color(0.03, 0.03, 0.035)
+	sb.shadow_color = Color(0, 0, 0, 0.45); sb.shadow_size = 14
 	_panel.add_theme_stylebox_override("panel", sb)
 	_map_clip.visible = app == "Maps"
-	_body.position.y = 366 if app == "Maps" else 56
 	var lines: Array = []
 	_list = []
 	match app:
@@ -388,6 +442,83 @@ func _refresh() -> void:
 			for i in WALLS.size():
 				_list.append(["Wallpaper %d" % (i + 1), i]); lines.append("%sWallpaper %d%s" % ["> " if i == sel else "   ", i + 1, "  (current)" if i == wallpaper else ""])
 	_body.text = "\n".join(lines)
+	_lines = lines
+	_screen.queue_redraw()
+
+# ------------------------------------------------------------------ drawing
+func _rrect(c: Control, r: Rect2, col: Color, rad := 10) -> void:
+	var sb := StyleBoxFlat.new(); sb.bg_color = col
+	sb.corner_radius_top_left = rad; sb.corner_radius_top_right = rad; sb.corner_radius_bottom_left = rad; sb.corner_radius_bottom_right = rad
+	c.draw_style_box(sb, r)
+
+func _draw_screen() -> void:
+	var W: float = _screen.size.x; var c := _screen
+	# status bar: clock, signal bars, battery
+	var clock: String = main.tod.clock_string() if main.tod and main.tod.has_method("clock_string") else ""
+	c.draw_string(_f_bold, Vector2(30, 34), clock, HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color.WHITE)
+	_rrect(c, Rect2(W * 0.5 - 40, 16, 80, 20), Color(0, 0, 0), 10)          # camera notch
+	for i in 4: c.draw_rect(Rect2(W - 92 + i * 6, 32 - (i + 1) * 3.5, 4, (i + 1) * 3.5), Color.WHITE)
+	_rrect(c, Rect2(W - 60, 22, 26, 12), Color(1, 1, 1, 0.9), 3); _rrect(c, Rect2(W - 58, 24, 18, 8), Color(0.3, 0.85, 0.4), 2)
+	if app == "":
+		_draw_home(c, W)
+	else:
+		_draw_app(c, W)
+	# home bar
+	_rrect(c, Rect2(W * 0.5 - 60, _screen.size.y - 16, 120, 5), Color(1, 1, 1, 0.6), 3)
+
+func _draw_home(c: Control, W: float) -> void:
+	var big: String = main.tod.clock_string() if main.tod and main.tod.has_method("clock_string") else ""
+	c.draw_string(_f_bold, Vector2(0, 104), big, HORIZONTAL_ALIGNMENT_CENTER, W, 44, Color.WHITE)
+	c.draw_string(_f_reg, Vector2(0, 132), "GlassPay  $%d" % main.money.wallet, HORIZONTAL_ALIGNMENT_CENTER, W, 15, Color(1, 1, 1, 0.75))
+	var cols := 4; var cw := (W - 28) / cols; var ih := 88.0
+	for i in APPS.size():
+		var a: String = APPS[i]
+		var cx: float = 14 + (i % cols) * cw + cw * 0.5; var cy: float = 170 + int(i / cols) * ih
+		var r := Rect2(cx - 26, cy, 52, 52)
+		if i == sel: _rrect(c, r.grow(5), Color(1, 1, 1, 0.9), 18)
+		_rrect(c, r, APP_COL.get(a, Color.GRAY), 15)
+		c.draw_string(_f_bold, Vector2(r.position.x, cy + 35), APP_GLYPH.get(a, "?"), HORIZONTAL_ALIGNMENT_CENTER, 52, 24, Color.WHITE)
+		c.draw_string(_f_reg, Vector2(cx - cw * 0.5, cy + 70), a, HORIZONTAL_ALIGNMENT_CENTER, cw, 12, Color.WHITE)
+		var badge := 0
+		if a == "Messages": badge = mini(messages.size(), 9)
+		if badge > 0:
+			c.draw_circle(Vector2(r.end.x - 2, r.position.y + 2), 10, Color(0.95, 0.2, 0.2))
+			c.draw_string(_f_bold, Vector2(r.end.x - 12, r.position.y + 7), str(badge), HORIZONTAL_ALIGNMENT_CENTER, 20, 12, Color.WHITE)
+	c.draw_string(_f_reg, Vector2(0, _screen.size.y - 30), "Arrows move · Enter open · Tab close", HORIZONTAL_ALIGNMENT_CENTER, W, 12, Color(1, 1, 1, 0.55))
+
+func _draw_app(c: Control, W: float) -> void:
+	var col: Color = APP_COL.get(app, Color.GRAY)
+	_rrect(c, Rect2(10, 46, W - 20, 40), col, 12)
+	c.draw_string(_f_reg, Vector2(22, 72), "<", HORIZONTAL_ALIGNMENT_LEFT, -1, 17, Color(1, 1, 1, 0.8))
+	c.draw_string(_f_bold, Vector2(40, 73), _title.text, HORIZONTAL_ALIGNMENT_LEFT, W - 60, 17, Color.WHITE)
+	var y := 300.0 if app == "Maps" else 104.0
+	var bottom: float = _screen.size.y - 50
+	# selectable rows ("> " selected, "   " unselected) become cards; the rest is text. Keep the selection in view.
+	var rows: Array = []
+	for ln in _lines:
+		for part in String(ln).split("\n"): rows.append(part)
+	var first := 0
+	var sel_i := -1
+	for i in rows.size():
+		if rows[i].begins_with("> "): sel_i = i
+	var per := int((bottom - y) / 30.0)
+	if sel_i >= per: first = sel_i - per + 1
+	for i in range(first, rows.size()):
+		var t: String = rows[i]
+		if y > bottom: break
+		if t.begins_with("> ") or t.begins_with("   "):
+			var on := t.begins_with("> ")
+			_rrect(c, Rect2(12, y, W - 24, 27), Color(1, 1, 1, 0.95) if on else Color(1, 1, 1, 0.08), 8)
+			c.draw_string(_f_reg, Vector2(22, y + 19), t.strip_edges().trim_prefix("> "), HORIZONTAL_ALIGNMENT_LEFT, W - 44, 13, Color(0.08, 0.08, 0.1) if on else Color.WHITE)
+			y += 30
+		elif t.strip_edges() == "":
+			y += 8
+		else:
+			var hint := t.contains(" = ") or t.contains(" · ")
+			var fs := 12 if hint else 14
+			var h: float = _f_reg.get_multiline_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, W - 36, fs).y
+			c.draw_multiline_string(_f_reg, Vector2(18, y + fs + 2), t, HORIZONTAL_ALIGNMENT_LEFT, W - 36, fs, -1, Color(1, 1, 1, 0.55) if hint else Color.WHITE)
+			y += h + 6
 
 func _headlines() -> Array:
 	var out: Array = []

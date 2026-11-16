@@ -5,7 +5,7 @@ extends RefCounted
 ## One mesh per person; parts are tagged in UV2 (x = part: 0 body, 1/2 legs, 3/4 arms, 5 umbrella; y = joint height)
 ## so shaders/pedestrian.gdshader can swing the limbs. Used by pedestrians.gd and the player.
 
-const SIDES := 8
+const SIDES := 10
 
 ## st: SurfaceTool (triangles). A frustum along Y from y0 (radii r0) to y1 (radii r1), n sides, flat shaded.
 static func frustum(st: SurfaceTool, n: int, c: Vector3, y0: float, y1: float, r0: Vector2, r1: Vector2, col: Color, part: int, pivot: float, caps := true, rot := 0.0) -> void:
@@ -47,10 +47,13 @@ static func build(look: Dictionary) -> ArrayMesh:
 	var sleeves: int = look.get("sleeves", 0); var legs: int = look.get("legs", 0); var hs: int = look.get("hair_style", 0)
 	var hip := 0.93 * h; var waist := 1.08 * h; var sh := 1.45 * h
 	# --- torso: hips (pants), waist->chest tapered, shoulders
-	frustum(st, 4, Vector3.ZERO, hip - 0.04, waist, Vector2(0.21, 0.14) * w, Vector2(0.19, 0.13) * w, bot if legs != 2 else top, 0, 0, true, PI * 0.25)
+	# rounded (8-sided) hips, waist, chest and shoulders instead of boxes
+	frustum(st, 8, Vector3.ZERO, hip - 0.04, waist, Vector2(0.17, 0.12) * w, Vector2(0.155, 0.11) * w, bot if legs != 2 else top, 0, 0, true)
 	var torso_col: Color = top2 if sleeves == 2 else top
-	frustum(st, 4, Vector3.ZERO, waist, sh - 0.06 * h, Vector2(0.19, 0.13) * w, Vector2(0.27, 0.15) * w, torso_col, 0, 0, false, PI * 0.25)
-	frustum(st, 4, Vector3.ZERO, sh - 0.06 * h, sh + 0.02, Vector2(0.27, 0.15) * w, Vector2(0.17, 0.11) * w, torso_col, 0, 0, true, PI * 0.25)
+	var chest := waist + (sh - waist) * 0.62
+	frustum(st, 8, Vector3.ZERO, waist, chest, Vector2(0.155, 0.11) * w, Vector2(0.2, 0.125) * w, torso_col, 0, 0, false)
+	frustum(st, 8, Vector3.ZERO, chest, sh - 0.05 * h, Vector2(0.2, 0.125) * w, Vector2(0.215, 0.12) * w, torso_col, 0, 0, false)
+	frustum(st, 8, Vector3.ZERO, sh - 0.05 * h, sh + 0.02, Vector2(0.215, 0.12) * w, Vector2(0.12, 0.09) * w, torso_col, 0, 0, true)
 	if sleeves == 2:   # open jacket: shirt showing down the front
 		box(st, Vector3(0.11 * w, (sh - waist) * 0.92, 0.02), Vector3(0, (waist + sh) * 0.5 - 0.02, -0.15 * w), top, 0, 0)
 	if legs == 2:      # dress / skirt
@@ -98,10 +101,11 @@ static func build(look: Dictionary) -> ArrayMesh:
 	# --- arms: upper (sleeve), forearm (sleeve or skin), hand
 	for sgn in [-1, 1]:
 		var arm := 3 if sgn < 0 else 4
-		var ax: float = 0.27 * sgn * w
+		var ax: float = 0.255 * sgn * w
 		var top_sleeve: Color = top2 if sleeves == 2 else top
 		var elbow := sh - 0.3 * h
 		frustum(st, 6, Vector3(ax, 0, 0), elbow, sh - 0.06 * h, Vector2(0.055, 0.06) * w, Vector2(0.07, 0.075) * w, top_sleeve, arm, sh - 0.06 * h, true)
+		frustum(st, 6, Vector3(ax * 0.93, 0, 0), sh - 0.08 * h, sh + 0.01, Vector2(0.075, 0.08) * w, Vector2(0.045, 0.05) * w, top_sleeve, arm, sh - 0.06 * h, true)
 		var fore: Color = skin if sleeves == 0 else top_sleeve
 		frustum(st, 6, Vector3(ax, 0, 0), sh - 0.58 * h, elbow, Vector2(0.04, 0.045), Vector2(0.052, 0.056) * w, fore, arm, sh - 0.06 * h, false)
 		box(st, Vector3(0.06, 0.1, 0.05), Vector3(ax, sh - 0.63 * h, 0), skin, arm, sh - 0.06 * h)

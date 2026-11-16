@@ -175,12 +175,12 @@ func _check_red_light() -> void:
 
 # ------------------------------------------------------------------ response
 func _manage_units(dt: float) -> void:
-	var want: int = stars + (1 if stars >= 3 else 0)
+	var want: int = stars + (1 if stars >= 2 else 0) + (1 if stars >= 4 else 0)
 	var have := units()
 	for u in have:
 		if _unseen_t < 1.0: _approach(u, player_world(), float(P["approach_stand_m"]))
 		elif u.has("free_to"): u["free_to"] = last_seen
-	if have.size() < want and rng.randf() < dt * 1.5: _spawn_unit()
+	if have.size() < want and rng.randf() < dt * 3.0: _spawn_unit()
 	_repath_t -= dt
 	if _repath_t <= 0.0:
 		_repath_t = 2.0
@@ -215,7 +215,7 @@ func _nearest_node(p: Vector3) -> int:
 func _spawn_unit() -> Dictionary:
 	var t = traffic()
 	var pw := player_world()
-	for i in 30:
+	for i in 120:
 		var eid: int = rng.randi() % t.edges.size()
 		var e: Dictionary = t.edges[eid]
 		if e["cls"] > 5 or e["len"] < 10.0: continue

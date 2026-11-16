@@ -1420,8 +1420,8 @@ def do_building(e, g, cp, is_part):
     mat = lm["mat"] if lm else (part_lm["mat"] if part_lm else style_of(t, cls, h, cp.x, cp.y, rnd, owe))
     roof_mat = {"green": "copper_green", "silver": "cable", "black": "roof", "red": "shingle_red"}.get(t.get("roof:colour", ""), "shingle")
     dcore = math.hypot(cp.x, cp.y)
-    store = (not lm) and cls not in ("house", "garage") and roof in (None, "flat") and h < 60 and \
-            (cls in ("commercial", "retail") or (cls == "yes" and dcore < 1800 and g.area > 120))
+    store = (not lm) and cls not in ("house", "garage") and roof in (None, "flat") and (h < 60 or dcore < 1600) and \
+            (cls in ("commercial", "retail") or (cls in ("yes", "office", "apartments", "hotel") and dcore < 1800 and g.area > 120))
     if lm or tiers or roof in (None, "flat"):
         roof = None if (lm and not osm_roof) else roof
     ct = t if "c:luc" in t or "c:ctype" in t else ATTACH.get(key)

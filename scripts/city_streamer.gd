@@ -26,12 +26,14 @@ const AERIAL_LAYERS := {"lot": true, "grass": true, "parking": true, "industrial
 var _aerial_shader: Shader = preload("res://shaders/aerial.gdshader")
 var _detail_tex: Texture2D = preload("res://textures/parking.png")
 ## ground layers drawn from the aerial photo, and how much photo to keep (the rest is a clean tiled texture)
-const PHOTO_MIX := {"lot": [0.35, "ground_concrete", 0.12], "parking": [0.45, "asphalt", 0.15], "industrial": [0.4, "ground_concrete", 0.12],
-	"grass": [0.55, "grass", 0.15], "forest_floor": [0.6, "forest_floor", 0.15]}
+## photo_mix -1 = classify mode (photo only picks lawn vs paved), 0 = clean texture only
+const PHOTO_MIX := {"lot": [-1.0, "ground_concrete", 0.12], "parking": [0.0, "asphalt", 0.15], "industrial": [0.0, "ground_concrete", 0.12],
+	"grass": [0.0, "grass", 0.15], "forest_floor": [0.0, "forest_floor", 0.15]}
 var label_font_size := 96
 var lamp_bulb_mat: StandardMaterial3D = null
 var bars: Node = null   # bars.gd: builds bar exteriors and handles enter/exit
 const Hlod := preload("res://scripts/hlod.gd")
+const StreetFurniture := preload("res://scripts/street_furniture.gd")
 var hlod: Node3D = null   # far-distance low-detail city (hlod.gd); off with --no-hlod
 
 func _ready() -> void:
@@ -54,6 +56,14 @@ func _tex_mat(tex: String, tint := Color.WHITE, rough := 0.9) -> StandardMateria
 	m.albedo_color = tint
 	m.roughness = rough
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	var rp := "res://textures/%s_rough.png" % tex
+	if ResourceLoader.exists(rp):
+		# windows are glossy and a little metallic, so they pick up the sky; walls stay matte
+		var rt: Texture2D = load(rp)
+		m.roughness_texture = rt; m.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_RED
+		m.roughness = 1.0
+		m.metallic_texture = rt; m.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+		m.metallic = 1.0; m.metallic_specular = 0.6
 	var ep := "res://textures/%s_emit.png" % tex
 	if ResourceLoader.exists(ep):
 		# lit windows at night: time_of_day.gd drives emission_energy_multiplier
@@ -280,7 +290,10 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 				var key2: String = pm[1]
 				if not _ground_mats.has(key2):
 					var gm := aerial_mat.duplicate() as ShaderMaterial
-					gm.set_shader_parameter("photo_mix", pm[0])
+					gm.set_shader_parameter("photo_mix", maxf(pm[0], 0.0))
+					if pm[0] < 0.0:
+						gm.set_shader_parameter("classify", 1.0)
+						gm.set_shader_parameter("alt", load("res://textures/grass.png"))
 					gm.set_shader_parameter("clean", load("res://textures/%s.png" % pm[1]))
 					gm.set_shader_parameter("clean_scale", pm[2])
 					_ground_mats[key2] = gm
@@ -320,6 +333,7 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 			var g: Vector3 = Vector3(p[1], p[3], p[2]) + b * Vector3(0, 0.07, -2.1)
 			pools.append(["pool", g.x, g.z, g.y, 0.0])
 		root.set_meta("lamp_heads", heads)
+		StreetFurniture.add_to(root, lamps)
 		var pm := _multimesh(_pool_mesh(), pools, false)
 		pm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		pm.visibility_range_end = 450.0

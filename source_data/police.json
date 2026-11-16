@@ -1,54 +1,54 @@
 {
-  "_doc": "Wanted level (scripts/police.gd). crimes = stars added. Distances in metres, times in seconds.",
-  "crimes": {
-    "hit_car": 1,
-    "hit_ped": 2,
-    "ram_police": 2,
-    "run_red": 1,
-    "flee_stop": 1,
-    "car_theft": 1,
-    "steal_police_car": 2
-  },
-  "witness_police_m": 80,
-  "witness_ped_m": 35,
-  "witness_ped_chance": 0.5,
-  "min_hit_speed": 3.0,
-  "sight_m": 90,
-  "search_s": 12,
-  "search_s_per_star": 5,
-  "bust_m": 12,
-  "bust_s": 3.0,
-  "unit_spawn_m": [
-    140,
-    240
-  ],
-  "bust_fine_per_star": 150,
-  "jail_release_hour": 8,
-  "approach_m": 50,
-  "approach_stand_m": 6,
-  "approach_release_m": 90,
-  "traffic_stop": {
-    "_doc": "patrol cars pull you over instead of a wanted star for driving offences",
-    "speeding_over_mps": 6.7,
-    "witness_m": 70,
-    "follow_stand_m": 9,
-    "stop_s": 3.0,
-    "talk_s": 4.0,
-    "flee_m": 130,
-    "flee_s": 25,
-    "warning_chance": 0.3,
-    "cooldown_s": 60,
-    "tickets": {
-      "speeding_base": 75,
-      "speeding_per_mph": 6,
-      "run_red": 150
-    }
-  },
-  "helicopter": {
-    "from_stars": 4,
-    "altitude_m": 55,
-    "speed_mps": 22,
-    "orbit_m": 45,
-    "sight_m": 130
+ "_doc": "Wanted level (scripts/police.gd). crimes = stars added. Distances in metres, times in seconds.",
+ "crimes": {
+  "hit_car": 1,
+  "hit_ped": 2,
+  "ram_police": 2,
+  "run_red": 1,
+  "flee_stop": 1,
+  "car_theft": 1,
+  "steal_police_car": 2
+ },
+ "witness_police_m": 80,
+ "witness_ped_m": 35,
+ "witness_ped_chance": 0.5,
+ "min_hit_speed": 3.0,
+ "sight_m": 90,
+ "search_s": 12,
+ "search_s_per_star": 5,
+ "bust_m": 12,
+ "bust_s": 3.0,
+ "unit_spawn_m": [
+  60,
+  200
+ ],
+ "bust_fine_per_star": 150,
+ "jail_release_hour": 8,
+ "approach_m": 50,
+ "approach_stand_m": 6,
+ "approach_release_m": 90,
+ "traffic_stop": {
+  "_doc": "patrol cars pull you over instead of a wanted star for driving offences",
+  "speeding_over_mps": 6.7,
+  "witness_m": 70,
+  "follow_stand_m": 9,
+  "stop_s": 3.0,
+  "talk_s": 4.0,
+  "flee_m": 130,
+  "flee_s": 25,
+  "warning_chance": 0.3,
+  "cooldown_s": 60,
+  "tickets": {
+   "speeding_base": 75,
+   "speeding_per_mph": 6,
+   "run_red": 150
   }
+ },
+ "helicopter": {
+  "from_stars": 4,
+  "altitude_m": 55,
+  "speed_mps": 22,
+  "orbit_m": 45,
+  "sight_m": 130
+ }
 }

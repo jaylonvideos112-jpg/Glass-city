@@ -1,185 +1,185 @@
 {
-  "_doc": "Ambient traffic (Bible section 5 and 8). Shares follow ordinary Toledo traffic: mostly sedans, SUVs, pickups and minivans, older cars common, sports/luxury rare. Makers and models are fictional. Sizes in metres (length, width, height).",
-  "budget": {
-    "max_cars": 60,
-    "spawn_min_m": 90,
-    "spawn_max_m": 230,
-    "despawn_m": 280,
-    "full_sim_m": 300,
-    "cars_per_road_km": 16,
-    "_doc_cars_per_road_km": "peak cars per km of drivable road within spawn_max_m of the player; caps max_cars so a lone country road doesn't get every car"
-  },
-  "density_by_hour": [
-    0.12,
-    0.08,
-    0.06,
+ "_doc": "Ambient traffic (Bible section 5 and 8). Shares follow ordinary Toledo traffic: mostly sedans, SUVs, pickups and minivans, older cars common, sports/luxury rare. Makers and models are fictional. Sizes in metres (length, width, height).",
+ "budget": {
+  "max_cars": 90,
+  "spawn_min_m": 70,
+  "spawn_max_m": 230,
+  "despawn_m": 280,
+  "full_sim_m": 300,
+  "cars_per_road_km": 26,
+  "_doc_cars_per_road_km": "peak cars per km of drivable road within spawn_max_m of the player; caps max_cars so a lone country road doesn't get every car"
+ },
+ "density_by_hour": [
+  0.12,
+  0.08,
+  0.06,
+  0.05,
+  0.07,
+  0.2,
+  0.55,
+  0.95,
+  1.0,
+  0.7,
+  0.6,
+  0.65,
+  0.75,
+  0.7,
+  0.7,
+  0.8,
+  0.95,
+  1.0,
+  0.85,
+  0.65,
+  0.5,
+  0.4,
+  0.3,
+  0.2
+ ],
+ "weekend_factor": 0.75,
+ "weather_density": {
+  "clear": 1.0,
+  "partly": 1.0,
+  "overcast": 0.95,
+  "rain": 0.85,
+  "storm": 0.7,
+  "fog": 0.85,
+  "snow": 0.6
+ },
+ "weather_speed": {
+  "clear": 1.0,
+  "partly": 1.0,
+  "overcast": 1.0,
+  "rain": 0.88,
+  "storm": 0.78,
+  "fog": 0.8,
+  "snow": 0.65
+ },
+ "signals": {
+  "green_s": 22.0,
+  "yellow_s": 3.5,
+  "all_red_s": 1.5,
+  "stop_wait_s": 1.2
+ },
+ "driver": {
+  "lane_width": 3.3,
+  "min_gap_m": 2.5,
+  "headway_s": 1.4,
+  "accel": 2.2,
+  "decel": 3.5,
+  "speed_jitter": 0.12,
+  "stop_line_m": 7.0
+ },
+ "vehicles": [
+  {
+   "id": "bus",
+   "name": "Glass City Transit",
+   "share": 0.0,
+   "size": [
+    12.2,
+    2.6,
+    3.2
+   ],
+   "cabin": [
     0.05,
-    0.07,
-    0.2,
-    0.55,
-    0.95,
-    1.0,
-    0.7,
-    0.6,
-    0.65,
-    0.75,
-    0.7,
-    0.7,
-    0.8,
-    0.95,
-    1.0,
-    0.85,
-    0.65,
-    0.5,
-    0.4,
-    0.3,
+    0.9
+   ],
+   "body": "bus",
+   "_doc": "buses run on source_data/bus_routes.json (services.gd), not random"
+  },
+  {
+   "id": "police",
+   "name": "Glass City Police Cruiser",
+   "share": 0.01,
+   "size": [
+    5.0,
+    1.9,
+    1.5
+   ],
+   "cabin": [
+    0.45,
+    0.52
+   ],
+   "body": "sedan",
+   "livery": "police"
+  },
+  {
+   "id": "ambulance",
+   "name": "Glass City EMS Ambulance",
+   "share": 0.0,
+   "size": [
+    6.6,
+    2.3,
+    2.8
+   ],
+   "cabin": [
+    0.1,
     0.2
+   ],
+   "body": "box",
+   "livery": "ambulance"
+  },
+  {
+   "id": "firetruck",
+   "name": "Glass City Fire Engine",
+   "share": 0.0,
+   "size": [
+    10.5,
+    2.5,
+    3.2
+   ],
+   "cabin": [
+    0.1,
+    0.2
+   ],
+   "body": "van",
+   "livery": "fire"
+  }
+ ],
+ "paint": [
+  "#1b1c1e",
+  "#e8e8e6",
+  "#9a9da1",
+  "#5a5e63",
+  "#7e1a1a",
+  "#1d3557",
+  "#c9c5bc",
+  "#2f4f3a",
+  "#6b4a2b",
+  "#b8b1a2",
+  "#3a3f6b",
+  "#a03028",
+  "#d9d4c7",
+  "#40464c"
+ ],
+ "bus_paint": "#f2c230",
+ "services": {
+  "_doc": "scripts/services.gd: buses on routes, emergency dispatch, pull-over for sirens",
+  "max_buses": 4,
+  "bus_dwell_s": 7.0,
+  "bus_spawn_every_s": 6.0,
+  "dispatch_every_s": [
+   70,
+   160
   ],
-  "weekend_factor": 0.75,
-  "weather_density": {
-    "clear": 1.0,
-    "partly": 1.0,
-    "overcast": 0.95,
-    "rain": 0.85,
-    "storm": 0.7,
-    "fog": 0.85,
-    "snow": 0.6
+  "dispatch_mix": {
+   "police": 0.5,
+   "ambulance": 0.3,
+   "firetruck": 0.2
   },
-  "weather_speed": {
-    "clear": 1.0,
-    "partly": 1.0,
-    "overcast": 1.0,
-    "rain": 0.88,
-    "storm": 0.78,
-    "fog": 0.8,
-    "snow": 0.65
-  },
-  "signals": {
-    "green_s": 22.0,
-    "yellow_s": 3.5,
-    "all_red_s": 1.5,
-    "stop_wait_s": 1.2
-  },
-  "driver": {
-    "lane_width": 3.3,
-    "min_gap_m": 2.5,
-    "headway_s": 1.4,
-    "accel": 2.2,
-    "decel": 3.5,
-    "speed_jitter": 0.12,
-    "stop_line_m": 7.0
-  },
-  "vehicles": [
-    {
-      "id": "bus",
-      "name": "Glass City Transit",
-      "share": 0.0,
-      "size": [
-        12.2,
-        2.6,
-        3.2
-      ],
-      "cabin": [
-        0.05,
-        0.9
-      ],
-      "body": "bus",
-      "_doc": "buses run on source_data/bus_routes.json (services.gd), not random"
-    },
-    {
-      "id": "police",
-      "name": "Glass City Police Cruiser",
-      "share": 0.01,
-      "size": [
-        5.0,
-        1.9,
-        1.5
-      ],
-      "cabin": [
-        0.45,
-        0.52
-      ],
-      "body": "sedan",
-      "livery": "police"
-    },
-    {
-      "id": "ambulance",
-      "name": "Glass City EMS Ambulance",
-      "share": 0.0,
-      "size": [
-        6.6,
-        2.3,
-        2.8
-      ],
-      "cabin": [
-        0.1,
-        0.2
-      ],
-      "body": "box",
-      "livery": "ambulance"
-    },
-    {
-      "id": "firetruck",
-      "name": "Glass City Fire Engine",
-      "share": 0.0,
-      "size": [
-        10.5,
-        2.5,
-        3.2
-      ],
-      "cabin": [
-        0.1,
-        0.2
-      ],
-      "body": "van",
-      "livery": "fire"
-    }
+  "incident_m": [
+   150,
+   260
   ],
-  "paint": [
-    "#1b1c1e",
-    "#e8e8e6",
-    "#9a9da1",
-    "#5a5e63",
-    "#7e1a1a",
-    "#1d3557",
-    "#c9c5bc",
-    "#2f4f3a",
-    "#6b4a2b",
-    "#b8b1a2",
-    "#3a3f6b",
-    "#a03028",
-    "#d9d4c7",
-    "#40464c"
+  "responder_start_m": [
+   180,
+   260
   ],
-  "bus_paint": "#f2c230",
-  "services": {
-    "_doc": "scripts/services.gd: buses on routes, emergency dispatch, pull-over for sirens",
-    "max_buses": 4,
-    "bus_dwell_s": 7.0,
-    "bus_spawn_every_s": 6.0,
-    "dispatch_every_s": [
-      70,
-      160
-    ],
-    "dispatch_mix": {
-      "police": 0.5,
-      "ambulance": 0.3,
-      "firetruck": 0.2
-    },
-    "incident_m": [
-      150,
-      260
-    ],
-    "responder_start_m": [
-      180,
-      260
-    ],
-    "siren_speed_factor": 1.35,
-    "on_scene_s": 30.0,
-    "pull_over_m": 45.0,
-    "pull_over_shift_m": 1.6,
-    "pull_over_speed": 2.5,
-    "police_patrol_share": 0.012
-  },
-  "_doc_vehicles": "service vehicles only; civilian traffic comes from source_data/vehicles.json (traffic_share)"
+  "siren_speed_factor": 1.35,
+  "on_scene_s": 30.0,
+  "pull_over_m": 45.0,
+  "pull_over_shift_m": 1.6,
+  "pull_over_speed": 2.5,
+  "police_patrol_share": 0.012
+ },
+ "_doc_vehicles": "service vehicles only; civilian traffic comes from source_data/vehicles.json (traffic_share)"
 }

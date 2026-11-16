@@ -200,7 +200,7 @@ func _curb(p: Vector3) -> Dictionary:
 	var e2: Dictionary = tr.edges[best]
 	var to := Vector3(p.x - bq.x, 0, p.z - bq.z).normalized()
 	if to == Vector3.ZERO: to = Vector3(-e2["dir"].z, 0, e2["dir"].x)
-	return {"pos": bq + to * (float(e2.get("w", 8.0)) * 0.5 + 3.0), "face": -to}
+	return {"pos": bq + to * (float(e2.get("w", 8.0)) * 0.5 + 1.5), "face": -to}
 
 func _update_signs() -> void:
 	if main.traffic == null or main.traffic.edges.is_empty(): return

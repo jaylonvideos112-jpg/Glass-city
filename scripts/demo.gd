@@ -241,6 +241,7 @@ func _shots(dt: float) -> void:
 	var cam: Camera3D = main.camera
 	var pos = s[1]
 	var look = s[2]
+	if not s[0].begins_with("@phone") and main.phone and main.phone.open: main.phone.set_open(false)
 	if s[0] == "@closeup":
 		# portrait of the player (and whoever walks by)
 		main.hud.visible = false
@@ -279,7 +280,7 @@ func _shots(dt: float) -> void:
 	elif s[0] == "@phone" and main.phone:
 		main.hud.visible = true
 		var ph = main.phone
-		if not ph.open:
+		if not ph.open or ph.app != "Maps":
 			ph.set_open(true); ph.app = "Maps"; ph.map_cat = ph.CATS.find("Food"); ph.map_zoom = 4.0; ph._refresh()
 			ph.sel = 0; ph._activate(); ph.sel = 1; ph._refresh()
 		var pl: Vector3 = main.player.global_position + main.world_offset
@@ -289,6 +290,15 @@ func _shots(dt: float) -> void:
 			ph._update_route(); ph._refresh()
 			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP)
 			return
+	elif s[0] == "@phonehome" and main.phone:
+		main.hud.visible = true
+		if not main.phone.open or main.phone.app != "":
+			main.phone.set_open(true); main.phone.notify("Boss: Shift starts at 11."); main.phone.sel = 4; main.phone._refresh()
+		if shot_wait < 1.5:
+			shot_wait += dt
+			main._update_camera(0.2)
+			return
+		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 30.0
 	elif s[0] == "@bowling" and main.activities:
 		# HUD + the bowling game overlay, mid-game, over the street view
 		main.hud.visible = true
@@ -357,11 +367,14 @@ func _shots(dt: float) -> void:
 			main.police.report("hit_car", main.focus_world(), true)
 		var us: Array = main.police.units()
 		var pl: Vector3 = main.player.global_position + main.world_offset
-		if us.is_empty() or shot_wait < 6.0:
+		var near_d := 1e9; var u := Vector3.ZERO
+		for un in us:
+			var dd: float = (un["pos"] - pl).length()
+			if dd < near_d: near_d = dd; u = un["pos"]
+		if us.is_empty() or shot_wait < 6.0 or (near_d > 40.0 and shot_wait < 40.0):
 			shot_wait += dt
 			main.police._manage_units(dt)
 			return
-		var u: Vector3 = us[0]["pos"]
 		var dirv: Vector3 = (u - pl); dirv.y = 0; dirv = dirv.normalized()
 		pos = pl - dirv * 7.0 + Vector3(0, 2.6, 0); look = u + Vector3(0, 1.0, 0)
 	elif String(s[0]).begins_with("@") and main.services:

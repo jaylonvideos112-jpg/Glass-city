@@ -12,6 +12,11 @@ uniform float detail_strength = 0.35;
 uniform float photo_mix = 1.0;
 uniform sampler2D clean : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float clean_scale = 0.25;
+// classify = 1: no photo pixels at all. A heavily blurred photo only decides WHERE the ground is lawn (alt texture)
+// and where it is paved (clean texture), so lots get real-world lawn shapes without blotches, cars or shadows.
+uniform float classify = 0.0;
+uniform sampler2D alt : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform float alt_scale = 0.15;
 global uniform float wetness;
 global uniform float snow_cover;
 varying vec2 plan;
@@ -21,6 +26,8 @@ void vertex() {
 	up = NORMAL.y;
 }
 float n2(vec2 p) { return fract(sin(dot(floor(p), vec2(12.9898, 78.233))) * 43758.5453); }
+float vn(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(n2(i), n2(i + vec2(1, 0)), f.x), mix(n2(i + vec2(0, 1)), n2(i + vec2(1, 1)), f.x), f.y); }
 void fragment() {
 	vec2 auv = vec2(plan.x / chunk_size, (plan.y + chunk_size) / chunk_size);
 	vec3 a = texture(aerial, clamp(auv, vec2(0.001), vec2(0.999))).rgb;
@@ -30,7 +37,18 @@ void fragment() {
 	float l = dot(a, vec3(0.299, 0.587, 0.114));
 	a = mix(vec3(l), a, 1.18);
 	vec3 col = a * mix(1.0, 0.75 + d * 0.6, detail_strength);
-	if (photo_mix < 0.999) {
+	float big = vn(plan * 0.05) * 0.5 + vn(plan * 0.013 + 7.0) * 0.5;   // broad patchiness
+	if (classify > 0.5) {
+		vec3 b = textureLod(aerial, clamp(auv, vec2(0.001), vec2(0.999)), 4.0).rgb;
+		float bl = dot(b, vec3(0.299, 0.587, 0.114));
+		float g = b.g - max(b.r, b.b);
+		float lawn = smoothstep(0.004, 0.03, g) * smoothstep(0.05, 0.11, bl);
+		vec3 paved = texture(clean, plan * clean_scale).rgb;
+		vec3 grass = texture(alt, plan * alt_scale).rgb * mix(0.85, 1.08, big);
+		col = mix(paved, grass, lawn);
+	} else if (photo_mix < 0.01) {
+		col = texture(clean, plan * clean_scale).rgb * mix(0.86, 1.06, big);
+	} else if (photo_mix < 0.999) {
 		vec3 c = texture(clean, plan * clean_scale).rgb;
 		float cl = max(dot(c, vec3(0.299, 0.587, 0.114)), 0.02);
 		vec3 tint = mix(vec3(1.0), a / max(l, 0.02), 0.35);          // keep a little of the photo's hue

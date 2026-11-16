@@ -42,7 +42,7 @@ func _ready() -> void:
 	total_hours = (seasons.find(st["season"]) * days_per_season + int(st["day"]) - 1) * 24.0 + float(st["hour"])
 	sun = main.get_node("Sun")
 	moon = DirectionalLight3D.new(); moon.name = "Moon"
-	moon.light_color = Color(0.55, 0.65, 0.9); moon.light_energy = 0.0; moon.shadow_enabled = false
+	moon.light_color = Color(0.6, 0.7, 0.95); moon.light_energy = 0.0; moon.shadow_enabled = false
 	moon.sky_mode = DirectionalLight3D.SKY_MODE_LIGHT_ONLY   # no sky disc (a dark disc showed by day)
 	main.add_child(moon)
 	sky_mat = main.env.sky.sky_material
@@ -198,7 +198,7 @@ func apply_now() -> void:
 	# moon: high in the opposite sky, soft and blue
 	var md := dir_from(lerp(25.0, 55.0, night), fposmod(sp.y + 180.0, 360.0))
 	moon.basis = Basis.looking_at(-md, Vector3.UP)
-	moon.light_energy = 0.12 * night * (1.0 - 0.8 * float(w["cloud"]))
+	moon.light_energy = 0.3 * night * (1.0 - 0.8 * float(w["cloud"]))
 	# sky palette: night -> dusk -> day, then greyed by cloud
 	var P: Dictionary = C["sky"]
 	var keys := ["top", "horizon", "ground", "fog"]

@@ -34,7 +34,10 @@ static func _box(root: Node3D, size: Vector3, pos: Vector3, m: Material) -> void
 static func _text(root: Node3D, t: String, pos: Vector3, size: int, col: Color, font: Font, width: float) -> void:
 	var l := Label3D.new(); l.text = t; l.font = font; l.font_size = size; l.modulate = col
 	l.outline_size = 0; l.pixel_size = 0.0035
-	l.width = width / l.pixel_size * 0.95; l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# one line that always fits the panel: shrink the type until it does
+	while size > 14 and font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x * l.pixel_size > width * 0.9:
+		size -= 2
+	l.font_size = size
 	l.position = pos; l.rotation.y = PI   # readable from the front (-Z)
 	l.double_sided = false
 	root.add_child(l)

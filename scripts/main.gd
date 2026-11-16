@@ -269,6 +269,63 @@ func nearest_car(max_d := 5.0) -> VehicleBody3D:
 			bd = d; best = c
 	return best
 
+var _park_fix_pending := true
+var _fill: OmniLight3D
+## after dark a soft light follows the player (camera side) so you're never a black silhouette
+func _update_fill_light() -> void:
+	if tod == null or player == null: return
+	if _fill == null:
+		_fill = OmniLight3D.new(); _fill.name = "PlayerFill"; _fill.omni_range = 5.0; _fill.shadow_enabled = false
+		_fill.light_color = Color(0.85, 0.9, 1.0); _fill.light_specular = 0.1
+		world.add_child(_fill)
+	var target: Node3D = current_car if current_car else player
+	var e: float = 0.9 * clampf(tod.night, 0.0, 1.0)
+	_fill.visible = e > 0.02
+	_fill.light_energy = e
+	if camera and _fill.visible:
+		var to_cam: Vector3 = camera.global_position - target.global_position; to_cam.y = 0
+		_fill.global_position = target.global_position + to_cam.normalized() * 2.0 + Vector3(0, 2.2, 0)
+## line the starting cars up in the parking lane of the nearest real street (once the road graph is in):
+## centre-line + half the road width - 1.2 m, facing the way traffic flows on that side
+func _park_at_curb() -> void:
+	_park_fix_pending = false
+	var used: Array = []
+	for c in cars:
+		if c == null or c.driven: continue
+		var p: Vector3 = c.global_position + world_offset
+		var best := -1; var bd := 1e9; var bq := Vector3.ZERO
+		for k in traffic.edges.size():
+			var e: Dictionary = traffic.edges[k]
+			if e["cls"] > 6 or e["cls"] < 2: continue
+			var a: Vector3 = traffic.npos[e["a"]]
+			if Vector2(a.x - p.x, a.z - p.z).length() > float(e["len"]) + 60.0: continue
+			var q := Geometry3D.get_closest_point_to_segment(p, a, traffic.npos[e["b"]])
+			var dd := Vector2(q.x - p.x, q.z - p.z).length()
+			if dd < bd: bd = dd; best = k; bq = q
+		if best < 0 or bd > 40.0: continue
+		var e2: Dictionary = traffic.edges[best]
+		var dir: Vector3 = e2["dir"]; var right := dir.cross(Vector3.UP).normalized()
+		var to := Vector3(p.x - bq.x, 0, p.z - bq.z)
+		var sgn := 1.0 if to.dot(right) >= 0.0 else -1.0
+		if e2["oneway"]: sgn = 1.0
+		var q2: Vector3 = bq + right * sgn * maxf(float(e2["w"]) * 0.5 - 1.25, 1.8)
+		for u in used:     # keep them a car length apart
+			if Vector2(u.x - q2.x, u.z - q2.z).length() < 6.5: q2 += dir * 7.0
+		used.append(q2)
+		var fdir: Vector3 = dir * sgn
+		var g := _ground_from(q2, 60.0)
+		c.global_transform = Transform3D(Basis(Vector3.UP, atan2(-fdir.x, -fdir.z)), Vector3(q2.x, (g.y if g.y < 90.0 else 0.1), q2.z) - world_offset + Vector3(0, 0.6, 0))
+	# your own car gets a clear run ahead (the others park behind it)
+	var mine = cars[0] if not cars.is_empty() else null
+	if mine == null or mine.driven: return
+	var f0: Vector3 = -mine.global_transform.basis.z; f0.y = 0; f0 = f0.normalized()
+	for c in cars:
+		if c == mine or c.driven: continue
+		var rel: Vector3 = c.global_position - mine.global_position
+		var ahead := rel.dot(f0); var side := (rel - f0 * ahead).length()
+		if ahead > -2.0 and ahead < 16.0 and side < 3.0:
+			c.global_position -= f0 * (ahead + 9.0 + 8.0 * float(cars.find(c)))
+
 ## the demo cars at the curb become roster cars: the first one is yours (a beat-up used car), the rest are
 ## other people's parked cars (taking one is car theft if someone sees)
 func _roster_start_cars() -> void:
@@ -392,6 +449,8 @@ func _respawn() -> void:
 
 func _process(dt: float) -> void:
 	streamer.update_focus(focus_world())
+	if _park_fix_pending and traffic and not traffic.edges.is_empty(): _park_at_curb()
+	_update_fill_light()
 	Car.surface_grip = tod.road_grip()
 	_rebase_if_needed()
 	if not cam_override:

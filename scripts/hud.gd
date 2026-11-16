@@ -34,6 +34,11 @@ var _hint_t := 12.0
 var _money_shown := -1
 var _money_pop := 0.0
 var _overlays: Array = []
+## minimap picture: an unshaded top-down render of the real scene (roofs, lawns, water, trees), refreshed a few
+## times a second; the road lines and blips are drawn over it
+var _mm_vp: SubViewport
+var _mm_cam: Camera3D
+var _mm_t := 0.0
 var meter := -1.0               # 0..1 shows the minigame aim meter (bowling); < 0 hides it
 var meter_ctl: Control      # [panel, label]: the panel shows while its label is visible
 
@@ -278,6 +283,7 @@ func _process(dt: float) -> void:
 		tp.modulate.a = clampf(tt * 2.0, 0.0, 1.0)
 		if tt <= 0.0: tp.queue_free()
 	for o in _overlays: o[0].visible = o[1].visible
+	_update_minimap_cam(dt)
 	radar.queue_redraw()
 	bars.queue_redraw()
 	meter_ctl.visible = meter >= 0.0
@@ -314,6 +320,32 @@ func _draw_meter() -> void:
 	var x: float = 8 + (w - 16) * clampf(meter, 0.0, 1.0)
 	meter_ctl.draw_rect(Rect2(x - 3, 2, 6, h + 8), Color.WHITE)
 
+func _update_minimap_cam(dt: float) -> void:
+	if main == null or main.get("camera") == null or not radar.visible: return
+	if _mm_vp == null:
+		if main.has_meta("no_minimap_render"): return
+		_mm_vp = SubViewport.new(); _mm_vp.size = Vector2i(256, 256)
+		_mm_vp.world_3d = get_viewport().world_3d
+		_mm_vp.debug_draw = Viewport.DEBUG_DRAW_UNSHADED
+		_mm_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+		_mm_vp.positional_shadow_atlas_size = 0
+		_mm_cam = Camera3D.new(); _mm_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+		_mm_cam.far = 900.0; _mm_cam.near = 1.0
+		var env := Environment.new(); env.background_mode = Environment.BG_COLOR; env.background_color = Color(0.2, 0.3, 0.38)
+		_mm_cam.environment = env
+		_mm_vp.add_child(_mm_cam); add_child(_mm_vp)
+	_mm_t -= dt
+	if _mm_t > 0.0: return
+	_mm_t = 0.2
+	var scale := 110.0 / 220.0 * (radar.size.x / 220.0)
+	var span: float = maxf(radar.size.x, radar.size.y) / scale
+	_mm_cam.size = span
+	var fw: Vector3 = main.focus_world() - main.world_offset
+	var yaw: float = main.cam_yaw
+	var fwd := Vector3(-sin(yaw), 0, -cos(yaw))
+	_mm_cam.global_transform = Transform3D(Basis.looking_at(Vector3.DOWN, fwd), fw + Vector3(0, 500, 0))
+	_mm_vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+
 func _draw_bars() -> void:
 	if main == null or not (main.get("needs") and main.needs): return
 	var nd = main.needs
@@ -334,7 +366,7 @@ func _draw_radar() -> void:
 	var R: float = minf(sz.x, sz.y) * 0.5
 	var scale := 110.0 / 220.0 * (sz.x / 220.0)   # ~240 m across the short side
 	# rounded dark map background
-	var sb := StyleBoxFlat.new(); sb.bg_color = Color(0.11, 0.14, 0.13, 0.88)
+	var sb := StyleBoxFlat.new(); sb.bg_color = Color(0.16, 0.2, 0.22, 0.9)
 	sb.corner_radius_top_left = 14; sb.corner_radius_top_right = 14; sb.corner_radius_bottom_left = 14; sb.corner_radius_bottom_right = 14
 	sb.border_width_left = 3; sb.border_width_right = 3; sb.border_width_top = 3; sb.border_width_bottom = 3; sb.border_color = Color(0, 0, 0, 0.8)
 	radar.draw_style_box(sb, Rect2(Vector2.ZERO, sz))
@@ -344,17 +376,21 @@ func _draw_radar() -> void:
 	var yaw: float = main.cam_yaw
 	var f2 := Vector2(fw.x, fw.z)
 	var lim := func(v: Vector2) -> Vector2: return Vector2(clampf(v.x, -c.x + 6, c.x - 6), clampf(v.y, -c.y + 6, c.y - 6))
+	if _mm_vp != null:
+		var span2: float = maxf(sz.x, sz.y)
+		radar.draw_texture_rect(_mm_vp.get_texture(), Rect2(c - Vector2(span2, span2) * 0.5, Vector2(span2, span2)), false, Color(0.78, 0.8, 0.82))
+		radar.draw_rect(Rect2(Vector2.ZERO, sz), Color(0.05, 0.07, 0.1, 0.25))
 	# roads: wide ones thicker
 	for s in main.streamer.segments_near(fw, 330.0):
 		var a: Vector2 = (s[0] - f2).rotated(yaw) * scale
 		var b: Vector2 = (s[1] - f2).rotated(yaw) * scale
 		if absf(a.x) > c.x + 20 and absf(b.x) > c.x + 20: continue
 		if absf(a.y) > c.y + 20 and absf(b.y) > c.y + 20: continue
-		radar.draw_line(c + a, c + b, Color(0.55, 0.58, 0.6, 0.95), 4.0)
+		radar.draw_line(c + a, c + b, Color(0.08, 0.1, 0.11, 0.9), 7.0)
 	for s in main.streamer.segments_near(fw, 330.0):
 		var a2: Vector2 = (s[0] - f2).rotated(yaw) * scale
 		var b2: Vector2 = (s[1] - f2).rotated(yaw) * scale
-		radar.draw_line(c + a2, c + b2, Color(0.82, 0.84, 0.86, 1.0), 2.0)
+		radar.draw_line(c + a2, c + b2, Color(0.86, 0.88, 0.9, 1.0), 3.0)
 	# police and service blips
 	if main.traffic:
 		for tc in main.traffic.cars:

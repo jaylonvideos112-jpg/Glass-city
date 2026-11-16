@@ -230,3 +230,17 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 - Player is visible in the driver's seat (legless seated body) through tinted see-through windows on drivable cars.
 - Bowling has a graphical aim meter (red / yellow / green sweet spot) instead of a text bar.
 - Inter is the project-wide UI font.
+
+## Overhaul (playtest feedback)
+- Ground: no more aerial-photo smears. Lots use the blurred photo only to decide lawn vs paving; new grass and concrete-slab textures.
+- Your starting cars park in the curb lane of the real street, with a clear run ahead of your own car.
+- GPS: proper A* routing (one-way streets ignored on foot); the route starts at you and ends at the place.
+- Place signs sit just past the curb and their text shrinks to fit.
+- Phone: portrait phone in the bottom-right (money and stars stay visible), status bar, app-icon home grid with a message badge, coloured app headers and card lists.
+- Street furniture beside lamps: hydrants, trash cans, benches, news boxes, mailboxes.
+- Building windows are glossy and pick up the sky; no more yellow "spreadsheet" squares by day. Downtown towers get storefront ground floors (city rebuilt).
+- Denser traffic (90 cars max, 26 per road km).
+- People: rounded torso and shoulders, idle breathing / weight shift / arm sway, soft rim light.
+- Night: brighter sky and ambient, stronger moon and street lamps, a soft fill light on the player.
+- Police: spawn closer (60-200 m), more units from 2 stars, faster dispatch.
+- Minimap: a live top-down picture of the city (roofs, lawns, water, trees) under the road lines.

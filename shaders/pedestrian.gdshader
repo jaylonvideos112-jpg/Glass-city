@@ -23,6 +23,20 @@ void vertex() {
 		p.y += pivot;
 		VERTEX = p;
 	}
+	// standing still: breathing, a slow weight shift and a little arm sway (offset per person by phase)
+	float idle = 1.0 - clamp(swing * 4.0, 0.0, 1.0);
+	if (idle > 0.0) {
+		float t = TIME + phase * 3.1;
+		float upper = smoothstep(0.85, 1.35, VERTEX.y);
+		VERTEX.y += sin(t * 1.7) * 0.007 * idle * upper;
+		VERTEX.x += sin(t * 0.45) * 0.018 * idle * clamp(VERTEX.y / 1.7, 0.0, 1.0);
+		if (part == 3 || part == 4) {
+			vec3 q = VERTEX; q.y -= pivot;
+			float b = sin(t * 0.9 + float(part)) * 0.05 * idle;
+			q = vec3(q.x, q.y * cos(b) - q.z * sin(b), q.y * sin(b) + q.z * cos(b));
+			q.y += pivot; VERTEX = q;
+		}
+	}
 	if (part == 5) VERTEX = mix(vec3(0.0, 1.0, 0.0), VERTEX, umbrella);
 	// body bob and a slight forward lean at a run
 	VERTEX.y += abs(sin(phase)) * 0.03 * min(swing, 1.0);
@@ -30,5 +44,6 @@ void vertex() {
 }
 void fragment() {
 	ALBEDO = col;
-	ROUGHNESS = 0.8;
+	ROUGHNESS = 0.7;
+	RIM = 0.35; RIM_TINT = 0.3;     // a soft edge light so people read against dark backgrounds
 }
