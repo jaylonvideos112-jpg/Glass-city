@@ -40,7 +40,7 @@ func _ready() -> void:
 			var j = JSON.parse_string(FileAccess.get_file_as_string(a.substr(11)))
 			shots = []
 			for s in j:
-				shots.append([s[0], null if s[1] == null else Vector3(s[1][0], s[1][1], s[1][2]), null if s[2] == null else Vector3(s[2][0], s[2][1], s[2][2])])
+				shots.append([s[0], s[1] if (s[1] == null or s[1] is String) else Vector3(s[1][0], s[1][1], s[1][2]), null if s[2] == null else Vector3(s[2][0], s[2][1], s[2][2])])
 		if a.begins_with("--fly="):
 			var f := a.substr(6).split(",")
 			fly_center = Vector3(float(f[0]), 0, float(f[1])); fly_r0 = float(f[2]); fly_h0 = float(f[3])
@@ -255,6 +255,26 @@ func _shots(dt: float) -> void:
 		if shot_wait < 2.0:
 			shot_wait += dt
 			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 50.0
+			return
+	elif s[0] == "@props":
+		# close look at street furniture + a street light near the player (s[1] = kind, e.g. "hydrant")
+		main.hud.visible = false
+		var want: String = "furniture_" + (str(s[1]) if s[1] != null else "")
+		var pl: Vector3 = main.player.global_position
+		var best := INF; var at := Transform3D()
+		for n in get_tree().root.find_children("furniture_*", "MultiMeshInstance3D", true, false):
+			if not n.name.begins_with(want): continue
+			var mm: MultiMesh = n.multimesh
+			for i in mm.instance_count:
+				var t: Transform3D = n.global_transform * mm.get_instance_transform(i)
+				var d := t.origin.distance_to(pl)
+				if d < best: best = d; at = t
+		var side: Vector3 = at.basis * Vector3(0.6, 0, -1).normalized()
+		pos = at.origin + side * 3.2 + Vector3(0, 1.5, 0) + main.world_offset
+		look = at.origin + Vector3(0, 0.6, 0) + main.world_offset
+		if shot_wait < 2.0:
+			shot_wait += dt
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 55.0
 			return
 	elif s[0] == "@title" or s[0] == "@pause":
 		var mn = main.menu

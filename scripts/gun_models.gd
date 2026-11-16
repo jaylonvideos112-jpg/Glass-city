@@ -12,6 +12,9 @@ static func build(id: String, finish := "#1a1b1e", mods: Array = []) -> MeshInst
 	var mi := MeshInstance3D.new(); mi.name = "Weapon"
 	if _cache.has(key):
 		mi.mesh = _cache[key]; return mi
+	var modelled := _from_models(id, finish, mods)       # Blender-built (tools/blender/guns.py)
+	if modelled:
+		_cache[key] = modelled; mi.mesh = modelled; return mi
 	var parts := {}        # material key -> SurfaceTool
 	var P := func(mat: String) -> SurfaceTool:
 		if not parts.has(mat):
@@ -96,6 +99,26 @@ static func build(id: String, finish := "#1a1b1e", mods: Array = []) -> MeshInst
 	_cache[key] = am
 	mi.mesh = am
 	return mi
+
+const ModelLib := preload("res://scripts/model_lib.gd")
+
+## The weapon + its attachments from assets/models (gun_<id>.glb, att_<mod>_<id>.glb), materials re-bound by name
+## (fin/poly/wood/steel/lens) so the store's finishes still apply. null when the base model isn't there.
+static func _from_models(id: String, finish: String, mods: Array) -> ArrayMesh:
+	var base := ModelLib.mesh("gun_" + id)
+	if base == null: return null
+	var am := ArrayMesh.new()
+	var srcs: Array = [base]
+	for m in mods:
+		var a := ModelLib.mesh("att_%s_%s" % [m, id])
+		if a: srcs.append(a)
+	for src in srcs:
+		for i in src.get_surface_count():
+			var mat: Material = src.surface_get_material(i)
+			var k: String = mat.resource_name if mat else "poly"
+			am.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, src.surface_get_arrays(i))
+			am.surface_set_material(am.get_surface_count() - 1, _mat(k if k in ["fin", "poly", "wood", "steel", "lens"] else "poly", finish))
+	return am
 
 static func _mat(k_in: String, finish: String) -> StandardMaterial3D:
 	var k := k_in

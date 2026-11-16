@@ -341,9 +341,74 @@ func _wheel(st: SurfaceTool, c: Vector3, r: float, w: float, tire: Color, hub: C
 ## One mesh per (type, paint): body surface (vertex colours) + headlight and taillight surfaces (emissive at night).
 ## Shapes by body type: a lower body with a sloped nose and tail and chamfered shoulders, a glasshouse with raked
 ## windscreen and tumblehome, wheels with hubs, bumpers, grille, mirrors, plate, lights.
+## Blender-built bodies (tools/blender/cars.py): canonical size each was modelled at, scaled to the roster size.
+const BODY_CANON := {"sedan": Vector3(1.85, 1.45, 4.8), "coupe": Vector3(1.9, 1.3, 4.8), "sports": Vector3(1.9, 1.2, 4.4),
+	"hatch": Vector3(1.75, 1.46, 4.2), "wagon": Vector3(1.8, 1.5, 4.8), "suv": Vector3(1.92, 1.8, 4.8),
+	"pickup": Vector3(2.02, 1.92, 5.85), "van": Vector3(2.05, 2.4, 5.6), "box": Vector3(2.4, 3.3, 7.4), "bus": Vector3(2.6, 3.2, 12.2)}
+const ModelLib := preload("res://scripts/model_lib.gd")
+var use_models := true
+
+func has_model(v: Dictionary) -> bool:
+	return use_models and BODY_CANON.has(v.get("body", "")) and ResourceLoader.exists("res://assets/models/car_%s.glb" % v["body"])
+
+## The modelled body re-coloured into the engine's conventions: one vertex-coloured car-paint surface (alpha codes
+## paint/glass/chrome/trim), headlights as surface 1, taillights as surface 2, and (drivable cars) see-through glass last.
+func _model_mesh(v: Dictionary, paint: Color, with_wheels: bool) -> ArrayMesh:
+	var src := ModelLib.mesh("car_" + str(v["body"]))
+	if src == null: return null
+	var canon: Vector3 = BODY_CANON[v["body"]]
+	var sc := Vector3(float(v["size"][1]) / canon.x, float(v["size"][2]) / canon.y, float(v["size"][0]) / canon.z)
+	var inv := Vector3(1.0 / sc.x, 1.0 / sc.y, 1.0 / sc.z)
+	var body := SurfaceTool.new(); body.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var head := SurfaceTool.new(); head.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var tail := SurfaceTool.new(); tail.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var glass: SurfaceTool = null
+	if not with_wheels:
+		glass = SurfaceTool.new(); glass.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var lv: String = v.get("livery", "")
+	for i in src.get_surface_count():
+		var mname: String = src.surface_get_material(i).resource_name if src.surface_get_material(i) else "paint"
+		var arr := src.surface_get_arrays(i)
+		var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]; var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+		var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+		var st: SurfaceTool = body
+		var col := paint
+		match mname:
+			"glass":
+				col = Color(GLASS, 0.5)
+				if glass != null: st = glass
+			"chrome": col = Color(0.62, 0.64, 0.66, 0.3)
+			"trim": col = Color(0.05, 0.05, 0.055, 0.0)
+			"head": st = head; col = Color.WHITE
+			"tail": st = tail; col = Color.WHITE
+			_: col = Color(paint, 1.0)
+		var order: Array = range(vs.size()) if idx.is_empty() else Array(idx)
+		for k in order:
+			var p: Vector3 = vs[k] * sc
+			var c := col
+			if mname == "paint" and lv == "police" and absf(p.y - float(v["size"][2]) * 0.45) < float(v["size"][2]) * 0.15 and absf(p.z) < float(v["size"][0]) * 0.22:
+				c = Color(0.93, 0.93, 0.92, 1.0)      # white door panels
+			st.set_color(c); st.set_normal((ns[k] * inv).normalized()); st.add_vertex(p)
+	var am := ArrayMesh.new()
+	body.commit(am); am.surface_set_material(0, _body_mat)
+	head.commit(am); am.surface_set_material(1, _head_mat)
+	tail.commit(am); am.surface_set_material(2, _tail_mat)
+	if glass != null:
+		if _glass_mat == null:
+			_glass_mat = StandardMaterial3D.new(); _glass_mat.albedo_color = Color(0.015, 0.02, 0.025, 0.9)
+			_glass_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; _glass_mat.roughness = 0.05; _glass_mat.metallic_specular = 0.45
+			_glass_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		glass.commit(am); am.surface_set_material(3, _glass_mat)
+	return am
+
 func vehicle_mesh(v: Dictionary, paint: Color, with_wheels := true) -> ArrayMesh:
 	var key := "%s|%s|%s" % [v["id"], paint.to_html(), with_wheels]
 	if _mesh_cache.has(key): return _mesh_cache[key]
+	if has_model(v):
+		var mm := _model_mesh(v, paint, with_wheels)
+		if mm:
+			_mesh_cache[key] = mm
+			return mm
 	var L: float = v["size"][0]; var W: float = v["size"][1]; var H: float = v["size"][2]
 	var body: String = v["body"]
 	var glass := GLASS; var dark := Color(0.06, 0.06, 0.07); var tire := Color(0.05, 0.05, 0.05)
@@ -474,12 +539,13 @@ func _spawn_on(eid: int, s: float, type_id := "") -> Dictionary:
 	var mi := MeshInstance3D.new(); mi.mesh = vehicle_mesh(v, paint)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	body.add_child(mi)
-	if v.get("body", "") in ["sedan", "coupe", "sports", "hatch", "suv", "wagon"]:     # alloy wheels under smooth bodies
+	if v.get("body", "") in ["sedan", "coupe", "sports", "hatch", "suv", "wagon"] or has_model(v):     # wheels under modelled/smooth bodies
 		var vh: float = v["size"][2]; var wr2: float = 0.34 if vh < 1.6 else 0.4
+		if v.get("body", "") in ["van", "box", "bus"]: wr2 = 0.46 if v["body"] != "van" else 0.4
 		for az in [-1.0, 1.0]:
 			for sx in [-1.0, 1.0]:
 				var wm := MeshInstance3D.new(); wm.mesh = WheelMesh.make(wr2, 0.24)
-				wm.position = Vector3(sx * (float(v["size"][1]) * 0.5 - 0.12), wr2, az * float(v["size"][0]) * 0.33)
+				wm.position = Vector3(sx * (float(v["size"][1]) * 0.5 - 0.12), wr2, az * float(v["size"][0]) * (0.32 if has_model(v) else 0.33))
 				body.add_child(wm)
 	main.world.add_child(body)
 	var per_dir: int = e["lanes"] if e["oneway"] else max(1, e["lanes"] / 2)

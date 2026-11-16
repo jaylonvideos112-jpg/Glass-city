@@ -326,3 +326,17 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 - Store menu in its own style: smoked-glass panels with an ice-blue accent, breadcrumb pills, segmented stat bars
   with your current gun as a comparison tick, weapon card, keycap hints; the gun turns on a lit display disc.
 - Weapon wheel redrawn: a segmented glass ring with weapon silhouettes, ice-blue selection, the world dims.
+
+## Blender model pass 1: street props, street lights, cars, weapons
+- New Blender pipeline (bpy 5.0 as a Python module, `tools/blender/`): scripts build or convert models and export
+  `.glb` into `assets/models/`; `scripts/model_lib.gd` loads a .glb into one ArrayMesh for MultiMesh/instance use.
+- Street furniture: real CC0 photoscans (Poly Haven fire hydrant, metal trash can) decimated to ~2k tris in Blender
+  (`decimate_scan.py`), plus Blender-modelled USPS-style mailbox, newspaper box and park bench (`street_props.py`).
+- Street lights: modelled cobra-head light (tapered pole, swept arm, head, glass bowl bound to the day/night lamp material).
+- Cars: `cars.py` generates every body type (sedan, coupe, sports, hatch, wagon, SUV, pickup, van, box truck, bus):
+  lofted sections -> subdivision with creased shoulder/roof lines -> side-only wheel-arch booleans -> glass/trim/paint
+  by region -> raycast-placed head/tail lights with housings, grille, bumpers, plates, mirrors, handles, door seams.
+  `traffic.vehicle_mesh` scales the body to each roster size and re-codes it into the car-paint vertex conventions;
+  police get white door panels. Wheels stay the game's own (now on every modelled body).
+- Weapons: `guns.py` models pistol, shotgun, carbine, bat, knife, grenade and every attachment per weapon;
+  `GunModels.build` uses them (finish colours still apply), old code is the fallback.

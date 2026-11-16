@@ -48,6 +48,7 @@ var label_font_size := 96
 var lamp_bulb_mat: StandardMaterial3D = null
 var bars: Node = null   # bars.gd: builds bar exteriors and handles enter/exit
 const Hlod := preload("res://scripts/hlod.gd")
+const ModelLib := preload("res://scripts/model_lib.gd")
 const StreetFurniture := preload("res://scripts/street_furniture.gd")
 var hlod: Node3D = null   # far-distance low-detail city (hlod.gd); off with --no-hlod
 
@@ -504,6 +505,16 @@ func _pool_mesh() -> PlaneMesh:
 
 func _lamp_mesh() -> ArrayMesh:
 	if _lamp_cache: return _lamp_cache
+	if lamp_bulb_mat == null:
+		lamp_bulb_mat = StandardMaterial3D.new()
+		lamp_bulb_mat.albedo_color = Color(0.9, 0.85, 0.7)
+		lamp_bulb_mat.emission_enabled = true
+		lamp_bulb_mat.emission = Color(1.0, 0.78, 0.45)
+		lamp_bulb_mat.emission_energy_multiplier = 0.0
+	var glb := ModelLib.mesh("street_light", {"bulb": lamp_bulb_mat})     # tools/blender/street_props.py
+	if glb:
+		_lamp_cache = glb
+		return glb
 	var am := ArrayMesh.new()
 	var pole := CylinderMesh.new(); pole.top_radius = 0.08; pole.bottom_radius = 0.12; pole.height = 7.0; pole.radial_segments = 6; pole.rings = 1
 	var arm := BoxMesh.new(); arm.size = Vector3(0.12, 0.12, 2.2)

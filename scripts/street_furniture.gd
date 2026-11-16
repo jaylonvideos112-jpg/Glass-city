@@ -4,6 +4,7 @@ extends RefCounted
 ## one MultiMesh per kind per chunk. Meshes are vertex-coloured low-poly, built once.
 
 const KINDS := ["hydrant", "trash", "bench", "newsbox", "mailbox"]
+const ModelLib := preload("res://scripts/model_lib.gd")
 static var _meshes := {}
 static var _mat: StandardMaterial3D
 
@@ -33,8 +34,14 @@ static func add_to(root: Node3D, lamps: Array) -> void:
 		mmi.name = "furniture_" + k
 		root.add_child(mmi)
 
+const MODELS := {"hydrant": "fire_hydrant", "trash": "metal_trash_can", "bench": "park_bench", "newsbox": "newsbox", "mailbox": "mailbox"}
+
 static func mesh(kind: String) -> ArrayMesh:
 	if _meshes.has(kind): return _meshes[kind]
+	var glb := ModelLib.mesh(MODELS.get(kind, ""))     # Blender-built / scanned model (tools/blender)
+	if glb:
+		_meshes[kind] = glb
+		return glb
 	if _mat == null:
 		_mat = StandardMaterial3D.new(); _mat.vertex_color_use_as_albedo = true; _mat.roughness = 0.6
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
