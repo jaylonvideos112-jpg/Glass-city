@@ -40,6 +40,123 @@ static func box(st: SurfaceTool, size: Vector3, pos: Vector3, col: Color, part: 
 ##   h (height scale), w (build), hair_style (0 short, 1 long, 2 bald, 3 bun, 4 cap), sleeves (0 tee, 1 long, 2 jacket),
 ##   legs (0 pants, 1 shorts, 2 dress), beard (bool), umbrella colour (or null)
 static func build(look: Dictionary) -> ArrayMesh:
+	var m := _build_modelled(look)
+	return m if m else build_simple(look)
+
+## ---------------------------------------------------------------- modelled people (tools/blender/people.py)
+## MakeHuman-based bodies with region materials; dressed here per look. Clothing is the body region pushed out
+## along its normals in the clothing colour (so it follows the body and its animation tags exactly).
+const CLOTH_REGIONS := ["chest", "upperarm", "forearm", "hips", "thigh", "shin"]
+const VARIANTS_M := ["m1", "m2", "m3", "m4"]
+const VARIANTS_F := ["f1", "f2", "f3", "f4"]
+static var _src := {}
+static var use_models := true
+
+static func _variant(look: Dictionary) -> String:
+	if look.has("body"): return look["body"]
+	var female: bool = (look.get("legs", 0) == 2 or look.get("hair_style", 0) in [1, 3]) and not look.get("beard", false)
+	var sk: Color = look.get("skin", Color(0.7, 0.5, 0.4))
+	var lum := sk.r * 0.3 + sk.g * 0.59 + sk.b * 0.11
+	var i := 0
+	if lum < 0.33: i = 1                      # darker skin: African-ancestry body
+	elif lum < 0.5: i = [0, 1, 2][absi(hash(sk.to_html())) % 3]
+	else: i = [0, 0, 2][absi(hash(sk.to_html())) % 3]
+	if float(look.get("w", 1.0)) > 1.09: i = 3   # heavier build
+	return (VARIANTS_F if female else VARIANTS_M)[i]
+
+static func _parts(v: String) -> Dictionary:
+	if _src.has(v): return _src[v]
+	var path := "res://assets/models/person_%s.glb" % v
+	var out := {}
+	if use_models and ResourceLoader.exists(path):
+		var root: Node = (load(path) as PackedScene).instantiate()
+		for n in root.find_children("*", "MeshInstance3D", true, false):
+			var mi := n as MeshInstance3D
+			var surfs := []
+			for i in mi.mesh.get_surface_count():
+				var mt: Material = mi.mesh.surface_get_material(i)
+				surfs.append({"region": mt.resource_name if mt else "", "arr": mi.mesh.surface_get_arrays(i)})
+			out[String(mi.name)] = surfs
+		root.free()
+	_src[v] = out
+	return out
+
+static func _build_modelled(look: Dictionary) -> ArrayMesh:
+	var P := _parts(_variant(look))
+	if P.is_empty() or not P.has("body"): return null
+	var h: float = look.get("h", 1.0); var w: float = look.get("w", 1.0)
+	var skin: Color = look["skin"]; var hair: Color = look["hair"]; var top: Color = look["top"]
+	var top2: Color = look.get("top2", top); var bot: Color = look["bottom"]; var shoe: Color = look["shoe"]
+	var sleeves: int = look.get("sleeves", 0); var legs: int = look.get("legs", 0); var hs: int = look.get("hair_style", 0)
+	var seated: bool = look.get("seated", false)
+	var torso_col: Color = top2 if sleeves == 2 else top
+	var cloth_t: float = [0.006, 0.008, 0.016][sleeves]
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	# region -> [colour, offset] (null = not drawn)
+	var R := {
+		"head": [skin, 0.0], "neck": [skin, 0.0], "hand": [skin, 0.0],
+		"lips": [skin.darkened(0.25).lerp(Color(0.6, 0.28, 0.28), 0.3), 0.0],
+		"jaw": [hair.darkened(0.1), 0.0045] if look.get("beard", false) else [skin, 0.0],
+		"chest": [torso_col, cloth_t], "upperarm": [torso_col, cloth_t],
+		"forearm": [skin, 0.0] if sleeves == 0 else [torso_col, cloth_t],
+		"hips": [bot if legs != 2 else top, 0.011],
+		"thigh": [bot, 0.012] if legs != 2 else [skin, 0.0],
+		"shin": [bot, 0.011] if legs == 0 else [skin, 0.0],
+		"foot": [shoe, 0.009],
+		"eye_white": [Color(0.92, 0.91, 0.88), 0.0], "iris": [look.get("eyes", Color(0.25, 0.17, 0.1)), 0.0], "pupil": [Color(0.02, 0.02, 0.02), 0.0],
+		"brow": [hair.darkened(0.25), 0.0], "hair": [hair, 0.0], "cap": [top2, 0.0], "skirt": [top, 0.0],
+		"sole": [Color(0.92, 0.92, 0.9) if shoe.v < 0.5 else Color(0.2, 0.2, 0.2), 0.0]}
+	match hs:
+		2: R["scalp"] = [skin, 0.0]
+		4: R["scalp"] = [top2, 0.013]
+		_: R["scalp"] = [hair, 0.007 if hs != 1 else 0.009]
+	var meshes := ["body", "eye_l", "eye_r", "brow_l", "brow_r"]
+	if hs == 1: meshes.append("hair_long")
+	if hs == 3: meshes.append("hair_bun")
+	if hs == 4: meshes.append("cap_brim")
+	if legs == 2: meshes.append("skirt")
+	if not seated: meshes += ["shoe_1", "shoe_2"]
+	R["shoe"] = [shoe, 0.0]
+	var extra: float = [0.0, 0.002, 0.011][sleeves]
+	for name in ["cloth"] + meshes:
+		if not P.has(name): continue
+		for srf in P[name]:
+			var reg: String = srf["region"]
+			if not R.has(reg): continue
+			if seated and reg in ["thigh", "shin", "foot"]: continue
+			if reg == "foot" and not seated: continue                     # inside the shoe
+			var col: Color = R[reg][0]; var off: float = R[reg][1]
+			var clothed: bool = off > 0.0 and reg in CLOTH_REGIONS
+			if name == "body" and clothed: continue                       # drawn from the garment shell instead
+			if name == "cloth":
+				if not clothed: continue
+				off = (extra if reg in ["chest", "upperarm", "forearm"] else 0.003) + (0.006 if reg == "hips" and legs == 2 else 0.0)
+			var arr: Array = srf["arr"]
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]; var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+			var uv = arr[Mesh.ARRAY_TEX_UV]; var uv2 = arr[Mesh.ARRAY_TEX_UV2]
+			var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+			var open_jacket: bool = sleeves == 2 and reg == "chest"
+			for k in idx:
+				var p: Vector3 = vs[k] + ns[k] * off
+				var c := col
+				if open_jacket and absf(vs[k].x) < 0.055 and ns[k].z < -0.4 and vs[k].y < 1.45: c = top      # shirt in the open front
+				st.set_color(c)
+				st.set_normal(Vector3(ns[k].x / w, ns[k].y / h, ns[k].z / w).normalized())
+				var a: Vector2 = uv[k] if uv != null else Vector2.ZERO
+				var b: Vector2 = uv2[k] if uv2 != null else Vector2.ZERO
+				st.set_uv(Vector2(a.x, a.y * h)); st.set_uv2(Vector2(b.x, b.y * h))
+				st.add_vertex(Vector3(p.x * w, p.y * h, p.z * w))
+	# umbrella (hidden by the shader unless raining)
+	var uc = look.get("umbrella", null)
+	if uc != null:
+		var sh := 1.4 * h
+		st.set_uv(Vector2.ZERO)
+		box(st, Vector3(0.025, 0.75, 0.025), Vector3(0.28 * w, sh + 0.2, -0.32), Color(0.2, 0.2, 0.2), 5, 0)
+		frustum(st, 8, Vector3(0.2 * w, 0, -0.2), sh + 0.55, sh + 0.72, Vector2(0.62, 0.62), Vector2(0.05, 0.05), uc, 5, 0, true)
+	return st.commit()
+
+## the original code-built low-poly person (fallback when the models are missing)
+static func build_simple(look: Dictionary) -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var h: float = look.get("h", 1.0); var w: float = look.get("w", 1.0)
 	var skin: Color = look["skin"]; var hair: Color = look["hair"]; var top: Color = look["top"]

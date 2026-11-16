@@ -46,7 +46,16 @@ func _pick(key: String) -> Color:
 const Humans := preload("res://scripts/humans.gd")
 
 ## a random person (humans.gd body, colours from pedestrians.json)
+var _people_pool: Array[ArrayMesh] = []
+const POOL_SIZE := 28        # distinct dressed people; spawns reuse them (dressing a modelled body costs ~ms)
+
 func _make_person() -> ArrayMesh:
+	if _people_pool.size() >= POOL_SIZE: return _people_pool[rng.randi() % POOL_SIZE]
+	var m := _dress_person()
+	_people_pool.append(m)
+	return m
+
+func _dress_person() -> ArrayMesh:
 	var look := {"h": rng.randf_range(0.92, 1.08), "w": rng.randf_range(0.9, 1.15),
 		"skin": _pick("skin"), "hair": _pick("hair"), "top": _pick("tops"), "top2": _pick("tops").darkened(0.15),
 		"bottom": _pick("bottoms"), "shoe": _pick("shoes"), "umbrella": _pick("umbrellas"),

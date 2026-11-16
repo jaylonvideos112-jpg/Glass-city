@@ -13,7 +13,9 @@ instance uniform float act_t = 0.0;
 varying vec3 col;
 void vertex() {
 	col = mix(COLOR.rgb / 12.92, pow((COLOR.rgb + 0.055) / 1.055, vec3(2.4)), step(0.04045, COLOR.rgb));   // sRGB -> linear
-	int part = int(UV2.x + 0.5);
+	// UV2.x = part + (1 - weight) * 0.9 (weight blends the limb swing near hips/shoulders; whole numbers = 1)
+	int part = int(floor(UV2.x + 0.01));
+	float wgt = 1.0 - clamp((UV2.x - float(part)) / 0.9, 0.0, 1.0);
 	float pivot = UV2.y;
 	float a = 0.0;
 	if (part == 1) a = sin(phase) * 0.55 * swing;
@@ -49,12 +51,36 @@ void vertex() {
 	if (ia == 14 && (part == 3 || part == 4)) a = 1.5;            // long gun at the shoulder
 	if (ia == 15 && part == 4) a = 1.57;                          // pistol: arm out
 	if (ia == 15 && part == 3) a = 1.3;
+	// knees and elbows (UV = bend weight, joint height; 0 on the simple meshes)
+	if (UV.x > 0.0 && part >= 1 && part <= 4) {
+		float bnd = 0.0;
+		float st = min(swing, 1.4);
+		if (part == 1) bnd = -(max(0.0, cos(phase)) * 0.95 + 0.06) * st;
+		if (part == 2) bnd = -(max(0.0, -cos(phase)) * 0.95 + 0.06) * st;
+		if (part == 3 || part == 4) {
+			bnd = 0.16 + 0.42 * st;
+			bool striking = ((ia == 1 || ia == 9) && part == 4) || ((ia == 2 || ia == 9) && part == 3) || (ia == 6 && part == 4) || ia == 14 || ia == 15;
+			if (striking) bnd *= 1.0 - kf;
+			if (ia == 14 || ia == 15) bnd = (part == 3 && ia == 15) ? 0.3 : 0.05;
+			if (ia == 4 || ((ia == 1 || ia == 2) && !striking) || ia == 12 || ia == 13) bnd = 1.75;     // fists up by the face
+			if (ia == 11) bnd = 0.5;
+			if (part == 4 && umbrella > 0.5) bnd = 0.9;
+		}
+		if (ia == 10 && part <= 2) bnd = -1.6;
+		float ba = bnd * UV.x;
+		vec3 q = VERTEX; q.y -= UV.y;
+		q = vec3(q.x, q.y * cos(ba) - q.z * sin(ba), q.y * sin(ba) + q.z * cos(ba));
+		q.y += UV.y; VERTEX = q;
+		NORMAL = vec3(NORMAL.x, NORMAL.y * cos(ba) - NORMAL.z * sin(ba), NORMAL.y * sin(ba) + NORMAL.z * cos(ba));
+	}
 	if (part >= 1 && part <= 4) {
+		a *= wgt;
 		vec3 p = VERTEX; p.y -= pivot;
 		float c = cos(a), s = sin(a);
 		p = vec3(p.x, p.y * c - p.z * s, p.y * s + p.z * c);
 		p.y += pivot;
 		VERTEX = p;
+		NORMAL = vec3(NORMAL.x, NORMAL.y * c - NORMAL.z * s, NORMAL.y * s + NORMAL.z * c);
 	}
 	// standing still: breathing, a slow weight shift and a little arm sway (offset per person by phase)
 	float idle = 1.0 - clamp(swing * 4.0, 0.0, 1.0);

@@ -340,3 +340,16 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
   police get white door panels. Wheels stay the game's own (now on every modelled body).
 - Weapons: `guns.py` models pistol, shotgun, carbine, bat, knife, grenade and every attachment per weapon;
   `GunModels.build` uses them (finish colours still apply), old code is the fallback.
+
+## Blender model pass 2: realistic people
+- `tools/blender/people.py` builds 8 body variants (male/female x three ancestries + a heavier build) from the
+  MakeHuman CC0 base mesh and targets (`tools/blender/mh/`, see SOURCE.md): arms reposed from the A-pose with the
+  real rig's skin weights, elbows relaxed, stature normalised, decimated with the face kept dense (~4.5k tris body).
+- Every vertex is tagged for `pedestrian.gdshader`: UV2 = part + blend weight (smooth hips/shoulders), UV = knee /
+  elbow bend weight and joint height. The shader now bends knees through the stride and elbows at rest, in guards
+  and when running, and rotates normals with the limbs.
+- Faces carry regions (head, scalp, jaw, lips, neck, chest, hips, arms, hands, legs, feet). `humans.gd` dresses each
+  person from their look: skin regions, a separate softened garment shell for clothes (tee / long sleeves / open
+  jacket over a shirt, jeans / shorts / dress with the base mesh's skirt), beard on the jaw, hair or cap on the
+  scalp (+ long-hair drape, bun, cap brim), real eyes (white/iris/pupil), brows and sneaker shells with soles.
+  One draw call per person as before; the old code-built person is the fallback.
