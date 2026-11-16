@@ -242,6 +242,8 @@ func _shots(dt: float) -> void:
 	var pos = s[1]
 	var look = s[2]
 	if not s[0].begins_with("@phone") and main.phone and main.phone.open: main.phone.set_open(false)
+	if s[0] != "@fishing" and main.activities and not main.activities.fishing.is_empty(): main.activities.stop_fishing()
+	if not (s[0] in ["@title", "@pause"]) and main.menu and main.menu.screen != "": main.menu.show_screen("")
 	if s[0] == "@closeup":
 		# portrait of the player (and whoever walks by)
 		main.hud.visible = false
@@ -295,6 +297,16 @@ func _shots(dt: float) -> void:
 		if not main.phone.open or main.phone.app != "":
 			main.phone.set_open(true); main.phone.notify("Boss: Shift starts at 11."); main.phone.sel = 4; main.phone._refresh()
 		if shot_wait < 1.5:
+			shot_wait += dt
+			main._update_camera(0.2)
+			return
+		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 30.0
+	elif s[0] == "@fishing" and main.activities:
+		main.hud.visible = true
+		var ac = main.activities
+		if ac.fishing.is_empty(): ac.start_fishing(0)
+		if shot_wait > 2.0 and ac.fishing["state"] != "bite": ac.fishing["t"] = 0.0     # make it bite for the picture
+		if shot_wait < 3.0:
 			shot_wait += dt
 			main._update_camera(0.2)
 			return
@@ -371,6 +383,8 @@ func _shots(dt: float) -> void:
 		for un in us:
 			var dd: float = (un["pos"] - pl).length()
 			if dd < near_d: near_d = dd; u = un["pos"]
+		if near_d > 40.0 and shot_wait > 8.0 and not has_meta("cop_near"):
+			set_meta("cop_near", true); main.police._spawn_unit(25.0, 45.0)
 		if us.is_empty() or shot_wait < 6.0 or (near_d > 40.0 and shot_wait < 40.0):
 			shot_wait += dt
 			main.police._manage_units(dt)

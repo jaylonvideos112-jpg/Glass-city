@@ -212,15 +212,17 @@ func _nearest_node(p: Vector3) -> int:
 		if d < bd and not traffic().nout.get(n, []).is_empty(): bd = d; best = n
 	return best
 
-func _spawn_unit() -> Dictionary:
+func _spawn_unit(rmin := -1.0, rmax := -1.0) -> Dictionary:
 	var t = traffic()
 	var pw := player_world()
-	for i in 120:
+	var lo: float = rmin if rmin > 0.0 else float(P["unit_spawn_m"][0])
+	var hi: float = rmax if rmax > 0.0 else float(P["unit_spawn_m"][1])
+	for i in 400 if rmin > 0.0 else 120:
 		var eid: int = rng.randi() % t.edges.size()
 		var e: Dictionary = t.edges[eid]
 		if e["cls"] > 5 or e["len"] < 10.0: continue
 		var d := Vector2(t.npos[e["a"]].x - pw.x, t.npos[e["a"]].z - pw.z).length()
-		if d < float(P["unit_spawn_m"][0]) or d > float(P["unit_spawn_m"][1]): continue
+		if d < lo or d > hi: continue
 		if t._occupied(eid, 0.0, 14.0): continue
 		var c: Dictionary = t._spawn_on(eid, 0.0, "police")
 		c["chase"] = true; c["siren"] = true; c["keep"] = true

@@ -65,6 +65,32 @@ func _process(dt: float) -> void:
 		l.visible = c.get("siren", false)
 		var red := fmod(_flash_t * 3.0, 1.0) < 0.5
 		l.light_color = Color(1.0, 0.1, 0.05) if red or c["type"] == "firetruck" else Color(0.15, 0.3, 1.0)
+		# glowing light-bar halves that alternate (bright enough to read in daylight)
+		if not c.has("bar") and c.get("siren", false): c["bar"] = _make_bar(c)
+		var bar = c.get("bar")
+		if bar and is_instance_valid(bar):
+			bar.visible = c.get("siren", false)
+			var fast := fmod(_flash_t * 6.0, 2.0) < 1.0
+			bar.get_child(0).visible = fast or c["type"] == "firetruck"
+			bar.get_child(1).visible = not fast
+
+var _bar_mats := {}
+func _make_bar(c: Dictionary) -> Node3D:
+	var t: Dictionary = tr._type(c["type"]) if tr.has_method("_type") else {}
+	var H: float = float(t["size"][2]) if t.has("size") else 1.5
+	var root := Node3D.new(); root.name = "LightBar"
+	for i in 2:
+		var col := Color(1.0, 0.08, 0.05) if i == 0 else Color(0.1, 0.3, 1.0)
+		if not _bar_mats.has(i):
+			var m := StandardMaterial3D.new(); m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			m.albedo_color = col * 1.0; m.emission_enabled = true; m.emission = col; m.emission_energy_multiplier = 4.0
+			_bar_mats[i] = m
+		var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = Vector3(0.5, 0.14, 0.26); mi.mesh = bm
+		mi.material_override = _bar_mats[i]; mi.position = Vector3(-0.27 if i == 0 else 0.27, H + 0.08, 0)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(mi)
+	c["node"].add_child(root)
+	return root
 
 # ------------------------------------------------------------------ buses
 ## put a bus on a random route, on a stretch of it that is loaded and in spawn range. Returns the car or {}.

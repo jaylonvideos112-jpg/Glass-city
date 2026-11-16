@@ -68,6 +68,7 @@ func show_screen(s: String) -> void:
 	get_tree().paused = s in ["pause"] or (s in ["settings", "controls"] and _prev == "pause")
 	if main.hud: main.hud.visible = s == "" or s == "pause" or ((s == "settings" or s == "controls") and _prev == "pause")
 	if s == "title" or s == "": main.cam_override = s == "title"
+	if main.tod and (s == "title" or s == ""): main.tod.fog_base = 0.00007 if s == "title" else 0.00022   # clear air for the skyline shot
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED if in_game else Input.MOUSE_MODE_VISIBLE
 	if in_game: Input.mouse_mode = Input.MOUSE_MODE_VISIBLE   # captured again on the first click (as before)
 	_logo.visible = s == "title"

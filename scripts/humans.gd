@@ -65,11 +65,17 @@ static func build(look: Dictionary) -> ArrayMesh:
 	frustum(st, SIDES, Vector3(0, 0, 0), hy + 0.1, hy + 0.22, Vector2(0.105, 0.115), Vector2(0.075, 0.085), skin, 0, 0, true)
 	# face: eyes, brows, nose (front is -Z)
 	var fz := -0.112
+	var iris: Color = look.get("eyes", Color(0.25, 0.17, 0.1))
 	for s in [-1, 1]:
-		box(st, Vector3(0.03, 0.022, 0.01), Vector3(0.042 * s, hy + 0.125, fz), Color(0.08, 0.07, 0.07), 0, 0)
+		box(st, Vector3(0.036, 0.02, 0.008), Vector3(0.042 * s, hy + 0.125, fz + 0.001), Color(0.93, 0.92, 0.88), 0, 0)   # eye white
+		box(st, Vector3(0.017, 0.019, 0.01), Vector3(0.042 * s + 0.002 * s, hy + 0.125, fz - 0.002), iris, 0, 0)
+		box(st, Vector3(0.008, 0.009, 0.011), Vector3(0.042 * s + 0.002 * s, hy + 0.125, fz - 0.003), Color(0.02, 0.02, 0.02), 0, 0)
+		box(st, Vector3(0.04, 0.006, 0.012), Vector3(0.042 * s, hy + 0.137, fz + 0.002), skin.darkened(0.18), 0, 0)      # upper lid
 		box(st, Vector3(0.045, 0.012, 0.012), Vector3(0.042 * s, hy + 0.155, fz + 0.003), hair.darkened(0.2), 0, 0)
+		box(st, Vector3(0.02, 0.05, 0.035), Vector3(0.108 * s, hy + 0.11, 0.0), skin.darkened(0.05), 0, 0)               # ear
 	box(st, Vector3(0.025, 0.045, 0.03), Vector3(0, hy + 0.095, fz - 0.005), skin.darkened(0.08), 0, 0)
-	box(st, Vector3(0.05, 0.012, 0.01), Vector3(0, hy + 0.058, fz + 0.012), skin.darkened(0.3), 0, 0)
+	box(st, Vector3(0.05, 0.011, 0.01), Vector3(0, hy + 0.06, fz + 0.012), skin.darkened(0.32).lerp(Color(0.55, 0.2, 0.2), 0.2), 0, 0)
+	box(st, Vector3(0.038, 0.008, 0.01), Vector3(0, hy + 0.05, fz + 0.014), skin.darkened(0.15).lerp(Color(0.6, 0.25, 0.25), 0.15), 0, 0)
 	if look.get("beard", false):
 		frustum(st, SIDES, Vector3(0, 0, -0.012), hy + 0.005, hy + 0.08, Vector2(0.08, 0.09), Vector2(0.1, 0.11), hair, 0, 0, true)
 	match hs:
@@ -108,7 +114,9 @@ static func build(look: Dictionary) -> ArrayMesh:
 		frustum(st, 6, Vector3(ax * 0.93, 0, 0), sh - 0.08 * h, sh + 0.01, Vector2(0.075, 0.08) * w, Vector2(0.045, 0.05) * w, top_sleeve, arm, sh - 0.06 * h, true)
 		var fore: Color = skin if sleeves == 0 else top_sleeve
 		frustum(st, 6, Vector3(ax, 0, 0), sh - 0.58 * h, elbow, Vector2(0.04, 0.045), Vector2(0.052, 0.056) * w, fore, arm, sh - 0.06 * h, false)
-		box(st, Vector3(0.06, 0.1, 0.05), Vector3(ax, sh - 0.63 * h, 0), skin, arm, sh - 0.06 * h)
+		box(st, Vector3(0.055, 0.09, 0.045), Vector3(ax, sh - 0.625 * h, 0), skin, arm, sh - 0.06 * h)
+		box(st, Vector3(0.05, 0.05, 0.04), Vector3(ax, sh - 0.68 * h, -0.004), skin.darkened(0.04), arm, sh - 0.06 * h)
+		box(st, Vector3(0.02, 0.05, 0.022), Vector3(ax - 0.028 * sgn, sh - 0.62 * h, -0.02), skin, arm, sh - 0.06 * h)
 	# --- umbrella (hidden by the shader unless raining)
 	var uc = look.get("umbrella", null)
 	if uc != null:

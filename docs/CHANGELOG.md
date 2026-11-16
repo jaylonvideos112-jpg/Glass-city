@@ -244,3 +244,10 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 - Night: brighter sky and ambient, stronger moon and street lamps, a soft fill light on the player.
 - Police: spawn closer (60-200 m), more units from 2 stars, faster dispatch.
 - Minimap: a live top-down picture of the city (roofs, lawns, water, trees) under the road lines.
+
+## Polish pass 4
+- Emergency vehicles: glowing red/blue light bars that alternate (readable by day).
+- Faces: eye whites, irises and pupils, eyelids, ears, lips; hands with thumbs.
+- Title screen: clear air for the skyline (less haze); repeated notices refresh instead of stacking.
+- Minimap picture refreshes twice a second (cheaper).
+- Fishing: rod, line and bobber, plus a bite widget (only at fishing spots).

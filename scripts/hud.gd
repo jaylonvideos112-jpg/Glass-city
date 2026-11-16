@@ -39,6 +39,8 @@ var _overlays: Array = []
 var _mm_vp: SubViewport
 var _mm_cam: Camera3D
 var _mm_t := 0.0
+var fish := {}                 # {"state": "wait"|"bite", "frac": 0..1 of the bite window left} or {} = hidden
+var fish_ctl: Control
 var meter := -1.0               # 0..1 shows the minigame aim meter (bowling); < 0 hides it
 var meter_ctl: Control      # [panel, label]: the panel shows while its label is visible
 
@@ -136,6 +138,11 @@ func _ready() -> void:
 	meter_ctl.offset_left = -220; meter_ctl.offset_right = 220; meter_ctl.offset_top = -150; meter_ctl.offset_bottom = -110
 	meter_ctl.draw.connect(_draw_meter)
 	add_child(meter_ctl)
+	fish_ctl = Control.new()
+	fish_ctl.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	fish_ctl.offset_left = -130; fish_ctl.offset_right = 130; fish_ctl.offset_top = -150; fish_ctl.offset_bottom = -12
+	fish_ctl.draw.connect(_draw_fish)
+	add_child(fish_ctl)
 
 func _label(size: int, font: Font = null, col := C_TEXT) -> Label:
 	var l := Label.new()
@@ -196,6 +203,9 @@ func flash(t: String) -> void:
 	_toast(t)
 
 func _toast(t: String) -> void:
+	for q in toasts.get_children():          # the same notice again just refreshes the one on screen
+		if q.get_child_count() > 0 and q.get_child(0) is Label and q.get_child(0).text == t:
+			q.set_meta("t", 5.0); return
 	var p := _panel(Color(0.04, 0.05, 0.08, 0.82))
 	remove_child(p)
 	var l := Label.new(); l.text = t
@@ -287,6 +297,8 @@ func _process(dt: float) -> void:
 	radar.queue_redraw()
 	bars.queue_redraw()
 	meter_ctl.visible = meter >= 0.0
+	fish_ctl.visible = not fish.is_empty()
+	if fish_ctl.visible: fish_ctl.queue_redraw()
 	if meter >= 0.0: meter_ctl.queue_redraw()
 
 ## prompt text with key caps: "Press E to ..." -> "[E]  ..."
@@ -307,6 +319,32 @@ static func _commas(n: int) -> String:
 		out = "," + s.substr(s.length() - 3) + out
 		s = s.substr(0, s.length() - 3)
 	return ("-" if n < 0 else "") + s + out
+
+## fishing: a patch of water with the bobber; on a bite it dips, ripples ring out and a timer ring runs down
+func _draw_fish() -> void:
+	var w: float = fish_ctl.size.x; var h: float = fish_ctl.size.y
+	var t := Time.get_ticks_msec() / 1000.0
+	var sb := StyleBoxFlat.new(); sb.bg_color = Color(0.05, 0.16, 0.24, 0.88)
+	for k in ["corner_radius_top_left", "corner_radius_top_right", "corner_radius_bottom_left", "corner_radius_bottom_right"]: sb.set(k, 14)
+	sb.border_width_bottom = 2; sb.border_width_top = 2; sb.border_width_left = 2; sb.border_width_right = 2; sb.border_color = Color(0, 0, 0, 0.6)
+	fish_ctl.draw_style_box(sb, Rect2(0, 0, w, h))
+	var c := Vector2(w * 0.5, h * 0.52)
+	for i in 3:     # gentle ripples
+		var r := fmod(t * 14.0 + i * 16.0, 48.0) + 8.0
+		fish_ctl.draw_arc(c + Vector2(0, 8), r, 0, TAU, 32, Color(0.6, 0.85, 1.0, 0.35 * (1.0 - r / 56.0)), 1.5)
+	var bite: bool = fish.get("state", "") == "bite"
+	var dip := 0.0
+	if bite:
+		dip = 10.0 + sin(t * 30.0) * 4.0
+		fish_ctl.draw_arc(c + Vector2(0, 8), 54, -PI * 0.5, -PI * 0.5 + TAU * float(fish.get("frac", 1.0)), 40, Color(1.0, 0.85, 0.2), 5.0)
+	else:
+		dip = sin(t * 2.2) * 2.0
+	fish_ctl.draw_line(Vector2(w * 0.5 + 70, 6), c + Vector2(0, dip - 12), Color(0.9, 0.9, 0.9, 0.6), 1.0)
+	fish_ctl.draw_circle(c + Vector2(0, dip - 4), 9.0, Color(0.92, 0.12, 0.1))
+	fish_ctl.draw_rect(Rect2(c.x - 9, c.y + dip - 4, 18, 9), Color(0.96, 0.96, 0.94))
+	fish_ctl.draw_rect(Rect2(c.x - 1.5, c.y + dip - 20, 3, 8), Color(0.15, 0.15, 0.15))
+	var label := "BITE!  SPACE" if bite else "Waiting for a bite..."
+	fish_ctl.draw_string(font_bold, Vector2(0, h - 12), label, HORIZONTAL_ALIGNMENT_CENTER, w, 20 if bite else 15, Color(1, 0.88, 0.25) if bite else Color(0.85, 0.92, 1.0))
 
 ## aim meter: a track, a green sweet spot in the middle, a white marker
 func _draw_meter() -> void:
@@ -336,7 +374,7 @@ func _update_minimap_cam(dt: float) -> void:
 		_mm_vp.add_child(_mm_cam); add_child(_mm_vp)
 	_mm_t -= dt
 	if _mm_t > 0.0: return
-	_mm_t = 0.2
+	_mm_t = 0.5
 	var scale := 110.0 / 220.0 * (radar.size.x / 220.0)
 	var span: float = maxf(radar.size.x, radar.size.y) / scale
 	_mm_cam.size = span

@@ -106,7 +106,8 @@ func watch_movie() -> bool:
 func start_fishing(spot: int) -> void:
 	var F: Dictionary = L["fishing"]
 	fishing = {"state": "wait", "t": rng.randf_range(float(F["wait_s"][0]), float(F["wait_s"][1])), "spot": spot}
-	_overlay.visible = true; _overlay.text = "Fishing... wait for a bite (T to stop)"
+	_overlay.visible = true; _overlay.text = "FISHING  ·  Space when it bites  ·  T to stop"
+	_show_rod(true)
 
 func _catch() -> Dictionary:
 	var sp: Array = L["fishing"]["species"]
@@ -133,6 +134,33 @@ func reel() -> Dictionary:
 
 func stop_fishing() -> void:
 	fishing = {}; _overlay.visible = false
+	_show_rod(false)
+	if main.hud: main.hud.fish = {}
+
+var _rod: Node3D
+## a rod in the player's hand with a line out to a bobber on the water
+func _show_rod(on: bool) -> void:
+	if not on:
+		if _rod: _rod.queue_free(); _rod = null
+		return
+	if _rod or main.player == null or main.player.get("model") == null: return
+	_rod = Node3D.new(); _rod.name = "FishingRod"
+	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.12, 0.1, 0.08)
+	var rod := MeshInstance3D.new(); var cm := CylinderMesh.new(); cm.top_radius = 0.006; cm.bottom_radius = 0.018; cm.height = 2.4; rod.mesh = cm
+	rod.material_override = dark
+	rod.transform = Transform3D(Basis(Vector3(1, 0, 0), 0.95), Vector3(-0.28, 1.0, 0.2) + Basis(Vector3(1, 0, 0), 0.95) * Vector3(0, 1.2, 0))
+	_rod.add_child(rod)
+	var tip: Vector3 = Vector3(-0.28, 1.0, 0.2) + Basis(Vector3(1, 0, 0), 0.95) * Vector3(0, 2.4, 0)
+	var bob_pos := Vector3(-0.28, -0.6, 7.0)
+	var line := MeshInstance3D.new(); var im := ImmediateMesh.new(); line.mesh = im
+	var lm := StandardMaterial3D.new(); lm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; lm.albedo_color = Color(0.9, 0.9, 0.9)
+	im.surface_begin(Mesh.PRIMITIVE_LINES, lm); im.surface_add_vertex(tip); im.surface_add_vertex(bob_pos); im.surface_end()
+	_rod.add_child(line)
+	var bob := MeshInstance3D.new(); var sm := SphereMesh.new(); sm.radius = 0.07; sm.height = 0.14; bob.mesh = sm
+	var bm := StandardMaterial3D.new(); bm.albedo_color = Color(0.9, 0.1, 0.08); bm.emission_enabled = true; bm.emission = Color(0.6, 0.05, 0.03); bob.material_override = bm
+	bob.position = bob_pos; bob.name = "Bobber"
+	_rod.add_child(bob)
+	main.player.model.add_child(_rod)
 
 # ------------------------------------------------------------------ bowling (10 frames, timing)
 func start_bowling() -> bool:
@@ -190,10 +218,17 @@ func _process(dt: float) -> void:
 		fishing["t"] = float(fishing["t"]) - dt
 		if fishing["state"] == "wait" and fishing["t"] <= 0.0:
 			fishing["state"] = "bite"; fishing["t"] = float(L["fishing"]["bite_window_s"])
-			_overlay.text = "BITE!  Press Space!"
+			pass
 		elif fishing["state"] == "bite" and fishing["t"] <= 0.0:
 			fishing["state"] = "wait"; fishing["t"] = rng.randf_range(4.0, 10.0)
-			_overlay.text = "It got away... wait for another bite"
+			main.hud.flash("It got away...")
+		if not fishing.is_empty():
+			var bw: float = float(L["fishing"]["bite_window_s"])
+			main.hud.fish = {"state": fishing["state"], "frac": clampf(float(fishing["t"]) / bw, 0.0, 1.0)}
+			if _rod and _rod.has_node("Bobber"):
+				var bb: Node3D = _rod.get_node("Bobber")
+				var tt := Time.get_ticks_msec() / 1000.0
+				bb.position.y = -0.6 + (sin(tt * 30.0) * 0.05 - 0.12 if fishing["state"] == "bite" else sin(tt * 2.2) * 0.03)
 		if main.current_car != null: stop_fishing()
 	if bowling.is_empty() and main.hud and main.hud.meter >= 0.0: main.hud.meter = -1.0
 	if not bowling.is_empty():
