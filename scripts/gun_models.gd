@@ -55,7 +55,7 @@ static func build(id: String, finish := "#1a1b1e", mods: Array = []) -> MeshInst
 			_box(P.call("poly"), Vector3(0.03, 0.095, 0.04), Vector3(0, -0.06, 0.07), Vector3(0.38, 0, 0))   # pistol grip
 			_guard(P.call("poly"), Vector3(0, -0.03, 0.015), 0.03)
 			_cyl(P.call("poly"), 0.014, 0.17, Vector3(0, 0.015, 0.2), Vector3(PI * 0.5, 0, 0))         # buffer tube
-			_wedge(P.call("poly"), Vector3(0, 0.0, 0.2), 0.16, 0.05, 0.11, 0.04)                        # stock
+			_wedge(P.call("poly_hand"), Vector3(0, 0.0, 0.2), 0.16, 0.05, 0.11, 0.04)                   # stock (hand-built mesh: own surface)
 		"bat":
 			var prof := [[0.0, 0.019], [0.012, 0.019], [0.02, 0.012], [0.25, 0.014], [0.45, 0.02], [0.6, 0.028], [0.82, 0.034], [0.85, 0.03], [0.86, 0.0]]
 			_lathe(P.call("wood"), prof, Vector3(0, 0, 0.12), 14)
@@ -63,7 +63,7 @@ static func build(id: String, finish := "#1a1b1e", mods: Array = []) -> MeshInst
 		"knife":
 			_box(P.call("poly"), Vector3(0.018, 0.026, 0.11), Vector3(0, 0, 0.03))                      # handle
 			_box(P.call("steel"), Vector3(0.02, 0.03, 0.008), Vector3(0, 0, -0.026))                    # bolster
-			_blade(P.call("steel"), Vector3(0, 0.002, -0.03), 0.13, 0.026)
+			_blade(P.call("steel_hand"), Vector3(0, 0.002, -0.03), 0.13, 0.026)
 		"grenade":
 			_lathe(P.call("fin"), [[0.0, 0.0], [0.006, 0.02], [0.02, 0.03], [0.045, 0.033], [0.07, 0.029], [0.085, 0.017], [0.09, 0.0]], Vector3(0, -0.045, 0), 12, true)
 			_box(P.call("steel"), Vector3(0.012, 0.075, 0.006), Vector3(0, 0.0, -0.035), Vector3(0.12, 0, 0))   # spoon
@@ -97,7 +97,9 @@ static func build(id: String, finish := "#1a1b1e", mods: Array = []) -> MeshInst
 	mi.mesh = am
 	return mi
 
-static func _mat(k: String, finish: String) -> StandardMaterial3D:
+static func _mat(k_in: String, finish: String) -> StandardMaterial3D:
+	var k := k_in
+	k = k.trim_suffix("_hand")          # hand-built surfaces share the look of their base material
 	var key := k + "|" + (finish if k == "fin" else "")
 	if _mats.has(key): return _mats[key]
 	var m := StandardMaterial3D.new()
@@ -136,8 +138,16 @@ static func _wedge(st: SurfaceTool, at: Vector3, length: float, h0: float, h1: f
 	var v := [Vector3(-hw, bot0, z0), Vector3(hw, bot0, z0), Vector3(hw, top0, z0), Vector3(-hw, top0, z0),
 		Vector3(-hw * 0.92, bot1, z1), Vector3(hw * 0.92, bot1, z1), Vector3(hw * 0.92, top1, z1), Vector3(-hw * 0.92, top1, z1)]
 	var faces := [[0, 1, 2, 3], [5, 4, 7, 6], [1, 5, 6, 2], [4, 0, 3, 7], [3, 2, 6, 7], [4, 5, 1, 0]]
+	var ctr := Vector3.ZERO
+	for p in v: ctr += p
+	ctr /= 8.0
 	for f in faces:
-		for j in [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]:      # both windings
+		var a: Vector3 = v[f[0]]; var b: Vector3 = v[f[1]]; var c: Vector3 = v[f[2]]
+		var fc: Vector3 = (a + b + c + v[f[3]]) * 0.25
+		var n := (b - a).cross(c - a)
+		# Godot's front faces wind clockwise seen from outside: flip the quad if its normal points inward
+		var order := [0, 2, 1, 0, 3, 2] if n.dot(fc - ctr) > 0.0 else [0, 1, 2, 0, 2, 3]
+		for j in order:
 			st.set_uv(Vector2.ZERO); st.add_vertex(v[f[j]])
 
 ## a surface of revolution around Z: profile [[z, r], ...] (closed ends if `around_y`, around Y instead)
