@@ -140,6 +140,7 @@ func _ready() -> void:
 	combat = load("res://scripts/combat.gd").new(); combat.name = "Combat"; combat.main = self; add_child(combat)
 	weapons = load("res://scripts/weapons.gd").new(); weapons.name = "Weapons"; weapons.main = self; add_child(weapons)
 	world_state.register("weapons", weapons)
+	gunstore = load("res://scripts/gunstore.gd").new(); gunstore.name = "GunStore"; gunstore.main = self; gunstore.wp = weapons; add_child(gunstore)
 	world_state.register("combat", combat)
 	Car.driver_hurt = hurt
 	inventory = load("res://scripts/inventory.gd").new(); inventory.name = "Inventory"; inventory.main = self; add_child(inventory)
@@ -282,6 +283,7 @@ var dying := false
 var _aim_k := 0.0
 var combat: Node
 var weapons: Node
+var gunstore: Node
 var hospitals: Array = []
 var times_wasted := 0
 func hurt(amount: float, cause: String) -> void:
@@ -518,7 +520,7 @@ func _physics_process(dt: float) -> void:
 	player.cam_yaw = cam_yaw
 	# fell in the river / out of the world -> respawn at last safe spot
 	var f := focus_local()
-	if bars.inside:
+	if bars.inside or (gunstore and gunstore.inside):
 		pass
 	elif f.y < -2.2 and not cam_override:
 		_respawn()
@@ -612,7 +614,8 @@ func _update_camera(dt: float) -> void:
 			desired = hit["position"] - dir * 0.3
 		camera.global_position = desired
 		camera.look_at(target, Vector3.UP)
-		camera.fov = lerp(camera.fov, lerpf(base_fov, base_fov * 0.72, _aim_k), 0.15)
+		var zoom: float = 0.72 * (float(weapons._mods().get("zoom", 1.0)) if weapons else 1.0)
+		camera.fov = lerp(camera.fov, lerpf(base_fov, base_fov * zoom, _aim_k), 0.15)
 
 # ------------------------------------------------------------------ environment
 func _setup_environment() -> void:

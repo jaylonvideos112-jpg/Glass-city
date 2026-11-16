@@ -242,6 +242,7 @@ func _shots(dt: float) -> void:
 	var pos = s[1]
 	var look = s[2]
 	if not s[0].begins_with("@phone") and main.phone and main.phone.open: main.phone.set_open(false)
+	if s[0] != "@wheel" and main.get("weapons") and main.weapons.wheel_open: main.weapons.close_wheel()
 	if s[0] != "@fishing" and main.activities and not main.activities.fishing.is_empty(): main.activities.stop_fishing()
 	if not (s[0] in ["@title", "@pause"]) and main.menu and main.menu.screen != "": main.menu.show_screen("")
 	if s[0] == "@closeup":
@@ -366,6 +367,45 @@ func _shots(dt: float) -> void:
 		if shot_wait < 2.2:
 			shot_wait += dt
 			wq._cool = 0.0; wq.trigger()
+			main._update_camera(0.2)
+			return
+		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 30.0
+	elif s[0] == "@store" and main.get("gunstore"):
+		var gs = main.gunstore
+		if not gs.inside:
+			main.money.wallet = maxi(main.money.wallet, 9000)
+			gs.enter(0)
+			main.player.global_position = gs.interior.global_transform * gs._counter_p
+		if shot_wait < 1.0:
+			shot_wait += dt
+			return
+		if shot_wait < 1.2:
+			shot_wait += dt
+			if not gs.menu_open:
+				gs.open_menu(); gs.choose(2); gs.sel = 0; gs._show_preview()       # Rifles
+			return
+		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 5.0
+	elif s[0] == "@storefloor" and main.get("gunstore"):
+		main.hud.visible = true
+		var gs2 = main.gunstore
+		if gs2.menu_open: gs2.close_menu()
+		if not gs2.inside: gs2.enter(0)
+		var dp: Vector3 = gs2.interior.global_transform * (gs2._door_p + Vector3(0, 1.7, -0.3))
+		pos = dp + main.world_offset; look = gs2.interior.global_transform * Vector3(0, 1.2, -4.0) + main.world_offset
+		if shot_wait < 1.0:
+			shot_wait += dt
+			cam.global_position = dp; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 70.0
+			return
+	elif s[0] == "@wheel" and main.weapons:
+		main.hud.visible = true
+		var ww = main.weapons
+		if main.get("gunstore") and main.gunstore.inside: main.gunstore.leave()
+		for g in ["pistol", "shotgun", "rifle", "bat"]: if not ww.owned.has(g): ww.give(g)
+		ww.owned["grenade"] = true; ww.ammo["grenade"] = 3
+		if not ww.wheel_open: ww.open_wheel()
+		ww.wheel_pick = "shotgun"
+		if shot_wait < 1.0:
+			shot_wait += dt
 			main._update_camera(0.2)
 			return
 		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 30.0

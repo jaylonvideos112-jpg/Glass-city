@@ -1,5 +1,5 @@
 extends CanvasLayer
-## The smartphone (Bible section 12): Tab opens it. Arrow keys move, Enter opens, Backspace goes back, Tab closes.
+## The smartphone (Bible section 12): Up arrow takes it out (GTA V). Arrow keys move, Enter opens, Backspace goes back / closes.
 ## Apps: Maps (island map + GPS to any place), GlassPay (balance and history), Jobs (job board), Messages (every
 ## notification), Contacts (call a tow to bring your car), My Stuff (cars, businesses, home), News (Glass City
 ## Gazette), Profile (stats and needs), Camera (photo mode with zoom and filters), Settings (wallpaper).
@@ -108,11 +108,12 @@ func _unhandled_input(e: InputEvent) -> void:
 			KEY_Z: _fov = maxf(15.0, _fov - 5.0)
 			KEY_X: _fov = minf(90.0, _fov + 5.0)
 			KEY_1, KEY_2, KEY_3, KEY_4: set_filter(k - KEY_1)
-			KEY_TAB, KEY_ESCAPE: exit_photo_mode()
+			KEY_BACKSPACE, KEY_ESCAPE: exit_photo_mode()
 		get_viewport().set_input_as_handled()
 		return
-	if k == KEY_TAB:
-		set_open(not open); get_viewport().set_input_as_handled(); return
+	# GTA V layout: Up arrow takes the phone out, Backspace / right click puts it away (Tab is the weapon wheel)
+	if k == KEY_UP and not open:
+		set_open(true); get_viewport().set_input_as_handled(); return
 	if not open: return
 	get_viewport().set_input_as_handled()
 	match k:
@@ -379,7 +380,7 @@ func _refresh() -> void:
 			_title.text = "%s   %s" % [main.tod.clock_string() if main.tod.has_method("clock_string") else "", "GlassPay $%d" % main.money.wallet]
 			for i in APPS.size():
 				lines.append(("> " if i == sel else "   ") + APPS[i])
-			lines.append("\nEnter open · Backspace/Tab close")
+			lines.append("\nEnter open · Backspace close")
 		"Maps":
 			_title.text = "Maps  ·  < %s >" % CATS[map_cat]
 			_layout_map()
@@ -484,7 +485,7 @@ func _draw_home(c: Control, W: float) -> void:
 		if badge > 0:
 			c.draw_circle(Vector2(r.end.x - 2, r.position.y + 2), 10, Color(0.95, 0.2, 0.2))
 			c.draw_string(_f_bold, Vector2(r.end.x - 12, r.position.y + 7), str(badge), HORIZONTAL_ALIGNMENT_CENTER, 20, 12, Color.WHITE)
-	c.draw_string(_f_reg, Vector2(0, _screen.size.y - 30), "Arrows move · Enter open · Tab close", HORIZONTAL_ALIGNMENT_CENTER, W, 12, Color(1, 1, 1, 0.55))
+	c.draw_string(_f_reg, Vector2(0, _screen.size.y - 30), "Arrows move · Enter open · Backspace close", HORIZONTAL_ALIGNMENT_CENTER, W, 12, Color(1, 1, 1, 0.55))
 
 func _draw_app(c: Control, W: float) -> void:
 	var col: Color = APP_COL.get(app, Color.GRAY)

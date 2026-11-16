@@ -15,6 +15,8 @@ var owned := {"fists": true}
 var ammo := {}                 # ammo type -> rounds in reserve
 var mag := {}                  # weapon id -> rounds loaded
 var current := "fists"
+var attachments := {}          # weapon id -> [attachment ids]
+var tints := {}                # weapon id -> finish id
 var melee_pick := ""           # which melee weapon is in slot 2
 var aiming := false
 var crouch := false
@@ -35,6 +37,21 @@ var _players: Array = []
 var _boom_sound: AudioStreamWAV
 var grenades_live: Array = []
 var hit_marker := 0.0
+# GTA V-style handling
+var wheel_open := false
+var _wheel_vec := Vector2.ZERO
+var wheel_pick := ""
+var _wheel_ui: Control
+var cover := {}                # {n: Vector3 outward normal, low: bool} while in cover
+var _cover_leave_t := 0.0
+var lock = null                # pedestrian we're hard-locked on to while aiming
+var lock_off := Vector2.ZERO   # fine-aim offset from the locked chest (metres, x side / y up)
+var _flick := 0.0
+var _shake := 0.0
+var pickups: Array = []        # [{node, id, ammo}]
+var _decals: Array = []
+var _hole_tex: ImageTexture
+const WHEEL := ["fists", "melee", "pistol", "shotgun", "rifle", "grenade"]
 const Signs := preload("res://scripts/signs.gd")
 
 func _ready() -> void:
@@ -79,14 +96,17 @@ func equip(id: String) -> void:
 func _load(id: String) -> void:
 	var d := def(id)
 	var a: String = d["ammo"]
-	var need: int = int(d["mag"]) - int(mag.get(id, 0))
+	var need: int = mag_size(id) - int(mag.get(id, 0))
 	var got: int = mini(need, int(ammo.get(a, 0)))
 	mag[id] = int(mag.get(id, 0)) + got; ammo[a] = int(ammo.get(a, 0)) - got
+
+func mag_size(id: String) -> int:
+	return int(round(float(def(id).get("mag", 0)) * float(mods_for(id).get("mag", 1.0))))
 
 func reload() -> void:
 	if kind() != "gun" or _reload_t > 0.0: return
 	var d := def(current)
-	if int(mag[current]) >= int(d["mag"]) or int(ammo.get(d["ammo"], 0)) <= 0: return
+	if int(mag[current]) >= mag_size(current) or int(ammo.get(d["ammo"], 0)) <= 0: return
 	_reload_t = float(d["reload_s"])
 
 func ammo_line() -> String:
@@ -98,6 +118,25 @@ func ammo_line() -> String:
 	return ""
 
 # ------------------------------------------------------------------ input
+## the wheel and lock-on fine aim read the mouse before the camera does
+func _input(e: InputEvent) -> void:
+	if e is InputEventKey and e.physical_keycode == KEY_TAB and not e.echo and main.current_car == null and not shop_open:
+		if e.pressed and _can_use(): open_wheel()
+		elif not e.pressed and wheel_open: close_wheel()
+		get_viewport().set_input_as_handled(); return
+	if wheel_open and e is InputEventMouseMotion:
+		_wheel_vec += e.relative
+		if _wheel_vec.length() > 120.0: _wheel_vec = _wheel_vec.normalized() * 120.0
+		if _wheel_vec.length() > 30.0: wheel_pick = _wheel_slot_at(_wheel_vec)
+		get_viewport().set_input_as_handled(); return
+	if aiming and lock != null and e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		lock_off += Vector2(e.relative.x, -e.relative.y) * 0.004
+		_flick += e.relative.x
+		if absf(_flick) > 60.0:                       # flick: next target that way
+			_switch_lock(signf(_flick)); _flick = 0.0
+		lock_off = lock_off.clamp(Vector2(-0.5, -0.9), Vector2(0.5, 0.75))
+		get_viewport().set_input_as_handled()
+
 func _unhandled_input(e: InputEvent) -> void:
 	if shop_open and e is InputEventKey and e.pressed and not e.echo:
 		_shop_key(e.physical_keycode); get_viewport().set_input_as_handled(); return
@@ -108,9 +147,16 @@ func _unhandled_input(e: InputEvent) -> void:
 			select_slot(k - KEY_0); get_viewport().set_input_as_handled()
 		elif k == KEY_R and kind() == "gun": reload()
 		elif k == KEY_C: set_crouch(not crouch)
-		elif k == KEY_E and _store_near() >= 0: open_shop(_store_near()); get_viewport().set_input_as_handled()
+		elif k == KEY_Q:
+			if not cover.is_empty(): leave_cover(); get_viewport().set_input_as_handled()
+			elif try_cover(): get_viewport().set_input_as_handled()
+		elif k == KEY_E and _store_near() >= 0 and main.get("gunstore"): main.gunstore.enter(_store_near()); get_viewport().set_input_as_handled()
 	if e is InputEventMouseButton and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED and armed_gun():
-		if e.button_index == MOUSE_BUTTON_RIGHT: aiming = e.pressed; get_viewport().set_input_as_handled()
+		if e.button_index == MOUSE_BUTTON_RIGHT:
+			aiming = e.pressed
+			if aiming: _acquire_lock()
+			else: lock = null; lock_off = Vector2.ZERO
+			get_viewport().set_input_as_handled()
 		elif e.button_index == MOUSE_BUTTON_LEFT:
 			_fire_held = e.pressed
 			if e.pressed: trigger()
@@ -118,6 +164,7 @@ func _unhandled_input(e: InputEvent) -> void:
 
 func _can_use() -> bool:
 	return main.current_car == null and not main.dying and main.input_enabled and not (main.bars and main.bars.inside) \
+		and not (main.get("gunstore") and main.gunstore.inside) \
 		and not (main.get("phone") and main.phone.open) and (main.combat == null or main.combat.pstate == "")
 
 func set_crouch(on: bool) -> void:
@@ -142,23 +189,34 @@ func trigger() -> bool:
 	_cool = 1.0 / float(d["rate"])
 	shots_fired += 1
 	var spread: float = float(d["spread"] if aiming else d["hip_spread"]) * (1.6 if main.player.velocity.length() > 3.0 else 1.0) * (0.7 if crouch else 1.0)
+	if not cover.is_empty() and not aiming: spread *= 2.5                      # blind fire over the top
+	spread *= float(_mods().get("spread", 1.0))
 	var origin: Vector3 = main.camera.global_position
 	var fwd: Vector3 = -main.camera.global_transform.basis.z
-	var assist = _assist_target(origin, fwd, float(d["range"])) if aiming else null
-	if assist != null: fwd = (assist - origin).normalized()
+	if lock != null and main.peds.peds.has(lock):
+		fwd = (_lock_point() - origin).normalized()
+	else:
+		var assist = _assist_target(origin, fwd, float(d["range"])) if aiming else null
+		if assist != null: fwd = (assist - origin).normalized()
+	# recoil: the muzzle climbs, the camera kicks
+	var kick: float = {"pistol": 0.025, "shotgun": 0.07, "rifle": 0.014}.get(current, 0.02) * float(_mods().get("recoil", 1.0))
+	main.cam_pitch = clampf(main.cam_pitch + kick, -1.2, 0.5)
+	main.cam_yaw += rng.randf_range(-kick, kick) * 0.4
+	lock_off.y += kick * 0.6
+	_shake = minf(1.0, _shake + kick * 6.0)
 	for pellet in int(d.get("pellets", 1)):
 		var dir := _spread_dir(fwd, spread)
-		_shoot_ray(origin, dir, float(d["range"]), float(d["dmg"]))
+		_shoot_ray(origin, dir, float(d["range"]), float(d["dmg"]) * float(_mods().get("dmg", 1.0)))
 	_muzzle()
-	_sound(_shot_sound, _gun_tip(), 0.0)
+	_sound(_shot_sound, _gun_tip(), -10.0 if _mods().get("quiet", false) else 0.0)
 	# gunfire: everyone nearby panics; police care
 	var me: Vector3 = main.player.global_position + main.world_offset
 	if main.peds:
 		for p in main.peds.peds:
-			if p["state"] in ["walk", "wait", "cross", "fight"] and not p.get("cop", false) and (p["pos"] - me).length() < float(d.get("loud", 60)):
+			if p["state"] in ["walk", "wait", "cross", "fight"] and not p.get("cop", false) and (p["pos"] - me).length() < float(d.get("loud", 60)) * (0.3 if _mods().get("quiet", false) else 1.0):
 				if p["state"] == "fight" and p.get("gun", "") != "": continue
 				main.peds._flee(p, me)
-	if main.police: main.police.report("shots_fired", me)
+	if main.police and not _mods().get("quiet", false): main.police.report("shots_fired", me)
 	if int(mag[current]) <= 0: reload()
 	return true
 
@@ -212,6 +270,7 @@ func _shoot_ray(origin: Vector3, dir: Vector3, range_m: float, dmg: float) -> vo
 		var col = hit["collider"]
 		if col is VehicleBody3D and col.has_method("damage"): col.damage(dmg * 3.0)
 		_impact(hit["position"], Color(0.6, 0.58, 0.52))
+		_bullet_hole(hit["position"], hit["normal"])
 
 ## closest approach between a ray and a segment: [distance along ray, gap, fraction along segment]
 func _ray_seg(o: Vector3, d: Vector3, a: Vector3, b: Vector3) -> Array:
@@ -271,14 +330,37 @@ func _explode(at_local: Vector3) -> void:
 	var pd: float = (main.player.global_position + Vector3(0, 1, 0)).distance_to(at_local)
 	if pd < R: main.hurt(dmg * (1.0 - pd / R), "explosion")
 	_boom(at_local)
+	_shake = minf(1.5, _shake + 12.0 / maxf(pd, 4.0))
 	if main.police: main.police.report("explosion", at_w, true)
 	if main.peds:
 		for p in main.peds.peds:
 			if p["state"] in ["walk", "wait", "cross"] and (p["pos"] - at_w).length() < 80.0: main.peds._flee(p, at_w)
 
 # ------------------------------------------------------------------ per frame
+func _process(dt: float) -> void:
+	# lock-on: the camera tracks the locked target; fine aim adds an offset (go for the head)
+	if aiming and lock != null:
+		if not main.peds.peds.has(lock) or lock["state"] in ["fly", "down", "injured"]:
+			lock = null; lock_off = Vector2.ZERO
+			_acquire_lock()
+		if lock != null:
+			var pp: Vector3 = main.player.global_position + Vector3(0, 1.6, 0)
+			var away: Vector3 = pp - _lock_point()
+			var yaw := atan2(away.x, away.z); var pitch := asin(clampf(-away.y / maxf(away.length(), 0.01), -1.0, 1.0))
+			main.cam_yaw = lerp_angle(main.cam_yaw, yaw, 1.0 - exp(-14.0 * dt))
+			main.cam_pitch = lerpf(main.cam_pitch, clampf(pitch, -1.0, 0.4), 1.0 - exp(-14.0 * dt))
+	_flick = move_toward(_flick, 0.0, dt * 200.0)
+	# screen shake from firing / blasts
+	_shake = maxf(0.0, _shake - dt * 4.0)
+	if main.camera:
+		main.camera.h_offset = rng.randf_range(-1.0, 1.0) * _shake * 0.05
+		main.camera.v_offset = rng.randf_range(-1.0, 1.0) * _shake * 0.05
+	if _wheel_ui: _wheel_ui.queue_redraw()
+
 func _physics_process(dt: float) -> void:
 	_cool = maxf(0.0, _cool - dt)
+	_step_cover(dt)
+	_step_pickups()
 	hit_marker = maxf(0.0, hit_marker - dt)
 	if _reload_t > 0.0:
 		_reload_t -= dt
@@ -299,6 +381,14 @@ func _physics_process(dt: float) -> void:
 		var want: Vector3 = Vector3(0.27, 0.86, -0.12)
 		if up: want = Vector3(0.14, 1.36, -0.45) if current != "pistol" else Vector3(0.24, 1.38, -0.66)
 		_gun_node.position = _gun_node.position.lerp(want, 1.0 - exp(-20.0 * dt))
+		# weapon flashlight when aiming in the dark
+		var fl: SpotLight3D = _gun_node.get_node_or_null("Flashlight")
+		var want_light: bool = aiming and _mods().get("light", false) and main.tod != null and main.tod.night > 0.3
+		if want_light and fl == null:
+			fl = SpotLight3D.new(); fl.name = "Flashlight"; fl.spot_range = 30.0; fl.spot_angle = 18.0; fl.light_energy = 4.0
+			fl.light_color = Color(1.0, 0.97, 0.9); fl.shadow_enabled = true; fl.position = Vector3(0, 0.02, -0.4)
+			_gun_node.add_child(fl)
+		elif not want_light and fl != null: fl.queue_free()
 	for g in grenades_live.duplicate():
 		g["t"] = float(g["t"]) - dt
 		if g["t"] <= 0.0:
@@ -322,23 +412,36 @@ func _pose() -> void:
 func _update_gun_mesh() -> void:
 	if _gun_node: _gun_node.queue_free(); _gun_node = null
 	if current == "fists" or main.player == null: return
-	_gun_node = Node3D.new(); _gun_node.name = "Weapon"
-	var dark := StandardMaterial3D.new(); dark.albedo_color = Color(0.08, 0.08, 0.09); dark.metallic = 0.6; dark.roughness = 0.4
-	var wood := StandardMaterial3D.new(); wood.albedo_color = Color(0.45, 0.28, 0.14)
-	var steel := StandardMaterial3D.new(); steel.albedo_color = Color(0.7, 0.7, 0.72); steel.metallic = 0.9; steel.roughness = 0.25
-	var parts: Array = []
-	match current:
-		"pistol": parts = [[Vector3(0.04, 0.05, 0.2), Vector3(0, 0.02, -0.08), dark], [Vector3(0.035, 0.11, 0.05), Vector3(0, -0.04, 0.0), dark]]
-		"shotgun": parts = [[Vector3(0.05, 0.06, 0.75), Vector3(0, 0.02, -0.3), dark], [Vector3(0.05, 0.1, 0.28), Vector3(0, -0.02, 0.2), wood], [Vector3(0.045, 0.045, 0.2), Vector3(0, -0.03, -0.35), wood]]
-		"rifle": parts = [[Vector3(0.05, 0.08, 0.7), Vector3(0, 0.02, -0.25), dark], [Vector3(0.04, 0.14, 0.05), Vector3(0, -0.07, -0.1), dark], [Vector3(0.05, 0.09, 0.22), Vector3(0, 0.0, 0.2), dark]]
-		"bat": parts = [[Vector3(0.06, 0.06, 0.85), Vector3(0, 0.0, -0.4), wood]]
-		"knife": parts = [[Vector3(0.02, 0.03, 0.12), Vector3(0, 0.0, 0.0), dark], [Vector3(0.01, 0.025, 0.12), Vector3(0, 0.0, -0.12), steel]]
-		"grenade": parts = [[Vector3(0.07, 0.09, 0.07), Vector3(0, 0, 0), dark]]
-	for pt in parts:
-		var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = pt[0]; mi.mesh = bm; mi.position = pt[1]; mi.material_override = pt[2]
-		_gun_node.add_child(mi)
+	_gun_node = build_gun_mesh(current)
 	_gun_node.position = Vector3(0.27, 0.86, -0.12)      # right hand, held low
 	main.player.model.add_child(_gun_node)
+
+## simple weapon model (placeholder art): body / barrel / stock boxes, coloured by the gun's finish
+func build_gun_mesh(id: String) -> Node3D:
+	var n := Node3D.new(); n.name = "Weapon"
+	var fin: Color = Color(W.get("finishes", {}).get(tints.get(id, ""), {}).get("color", "#141416"))
+	var dark := StandardMaterial3D.new(); dark.albedo_color = fin; dark.metallic = 0.6; dark.roughness = 0.4
+	var wood := StandardMaterial3D.new(); wood.albedo_color = Color(0.45, 0.28, 0.14)
+	var steel := StandardMaterial3D.new(); steel.albedo_color = Color(0.7, 0.7, 0.72); steel.metallic = 0.9; steel.roughness = 0.25
+	var black := StandardMaterial3D.new(); black.albedo_color = Color(0.04, 0.04, 0.045); black.metallic = 0.5; black.roughness = 0.5
+	var parts: Array = []
+	match id:
+		"pistol": parts = [[Vector3(0.04, 0.05, 0.2), Vector3(0, 0.02, -0.08), dark], [Vector3(0.035, 0.11, 0.05), Vector3(0, -0.04, 0.0), black]]
+		"shotgun": parts = [[Vector3(0.05, 0.06, 0.75), Vector3(0, 0.02, -0.3), dark], [Vector3(0.05, 0.1, 0.28), Vector3(0, -0.02, 0.2), wood], [Vector3(0.045, 0.045, 0.2), Vector3(0, -0.03, -0.35), wood]]
+		"rifle": parts = [[Vector3(0.05, 0.08, 0.7), Vector3(0, 0.02, -0.25), dark], [Vector3(0.04, 0.14, 0.05), Vector3(0, -0.07, -0.1), black], [Vector3(0.05, 0.09, 0.22), Vector3(0, 0.0, 0.2), dark]]
+		"bat": parts = [[Vector3(0.06, 0.06, 0.85), Vector3(0, 0.0, -0.4), wood]]
+		"knife": parts = [[Vector3(0.02, 0.03, 0.12), Vector3(0, 0.0, 0.0), black], [Vector3(0.01, 0.025, 0.12), Vector3(0, 0.0, -0.12), steel]]
+		"grenade": parts = [[Vector3(0.07, 0.09, 0.07), Vector3(0, 0, 0), dark]]
+	var mods: Array = attachments.get(id, [])
+	if "scope" in mods: parts.append([Vector3(0.04, 0.045, 0.16), Vector3(0, 0.08, -0.12), black])
+	if "suppressor" in mods: parts.append([Vector3(0.035, 0.035, 0.18), Vector3(0, 0.02, -0.28 if id == "pistol" else -0.74), black])
+	if "ext_mag" in mods: parts.append([Vector3(0.035, 0.12, 0.05), Vector3(0, -0.14, -0.1), black])
+	if "grip" in mods: parts.append([Vector3(0.03, 0.08, 0.03), Vector3(0, -0.06, -0.35), black])
+	if "flashlight" in mods: parts.append([Vector3(0.03, 0.03, 0.08), Vector3(0.04, 0.0, -0.3), steel])
+	for pt in parts:
+		var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = pt[0]; mi.mesh = bm; mi.position = pt[1]; mi.material_override = pt[2]
+		n.add_child(mi)
+	return n
 
 func _gun_tip() -> Vector3:
 	var pl = main.player
@@ -346,11 +449,30 @@ func _gun_tip() -> Vector3:
 	return pl.global_position + Vector3(0, 1.38, 0) + fwd * 0.85 + fwd.cross(Vector3.UP) * 0.16
 
 func _muzzle() -> void:
-	_muzzle_at(_gun_tip())
+	if not _mods().get("quiet", false): _muzzle_at(_gun_tip())
+
+var _flash_t: ImageTexture
+func _flash_tex() -> ImageTexture:
+	if _flash_t: return _flash_t
+	var img := Image.create(64, 64, false, Image.FORMAT_RGBA8)
+	for y in 64:
+		for x in 64:
+			var v := Vector2(x - 31.5, y - 31.5); var r := v.length() / 31.5
+			var star := pow(absf(cos(atan2(v.y, v.x) * 2.5)), 6.0)
+			var a := clampf((1.0 - r) * (0.35 + 0.65 * star) * 1.6, 0.0, 1.0)
+			img.set_pixel(x, y, Color(1, 0.9 - r * 0.4, 0.6 - r * 0.5, a))
+	_flash_t = ImageTexture.create_from_image(img)
+	return _flash_t
 
 func _muzzle_at(at: Vector3) -> void:
 	var l := OmniLight3D.new(); l.light_color = Color(1.0, 0.8, 0.45); l.light_energy = 3.0; l.omni_range = 6.0
 	main.world.add_child(l); l.global_position = at
+	var fl := MeshInstance3D.new(); var qm := QuadMesh.new(); qm.size = Vector2(0.35, 0.35); fl.mesh = qm
+	var fm := StandardMaterial3D.new(); fm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED; fm.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	fm.albedo_color = Color(1.0, 0.85, 0.5); fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	fm.albedo_texture = _flash_tex(); fl.material_override = fm
+	main.world.add_child(fl); fl.global_position = at
+	get_tree().create_timer(0.04).timeout.connect(fl.queue_free)
 	get_tree().create_timer(0.05).timeout.connect(l.queue_free)
 
 func _tracer(a: Vector3, b: Vector3) -> void:
@@ -404,6 +526,216 @@ func _make_shot(length_s: float, brightness: float) -> AudioStreamWAV:
 	var w := AudioStreamWAV.new(); w.format = AudioStreamWAV.FORMAT_16_BITS; w.mix_rate = rate; w.data = data
 	return w
 
+# ------------------------------------------------------------------ weapon wheel (hold Tab: time slows, mouse picks)
+func open_wheel() -> void:
+	wheel_open = true; _wheel_vec = Vector2.ZERO; wheel_pick = ""
+	Engine.time_scale = 0.3
+	if _wheel_ui == null:
+		var cl := CanvasLayer.new(); cl.layer = 6; add_child(cl)
+		_wheel_ui = Control.new(); _wheel_ui.set_anchors_preset(Control.PRESET_FULL_RECT); _wheel_ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_wheel_ui.draw.connect(_draw_wheel); cl.add_child(_wheel_ui)
+	_wheel_ui.visible = true
+
+func close_wheel() -> void:
+	wheel_open = false
+	Engine.time_scale = 1.0
+	if _wheel_ui: _wheel_ui.visible = false
+	match wheel_pick:
+		"": pass
+		"fists": equip("fists")
+		"melee": if melee_pick != "": equip(melee_pick)
+		_: if owned.has(wheel_pick): equip(wheel_pick)
+
+func _wheel_slot_at(v: Vector2) -> String:
+	var a := fposmod(atan2(v.x, -v.y), TAU)               # 0 = up, clockwise
+	return WHEEL[int(round(a / (TAU / WHEEL.size()))) % WHEEL.size()]
+
+func _slot_owned(sl: String) -> bool:
+	if sl == "fists": return true
+	if sl == "melee": return melee_pick != ""
+	return owned.has(sl)
+
+func _draw_wheel() -> void:
+	var c: Vector2 = _wheel_ui.size * 0.5
+	var font: Font = load("res://fonts/Inter-Bold.otf")
+	_wheel_ui.draw_circle(c, 230.0, Color(0.02, 0.03, 0.05, 0.55))
+	for i in WHEEL.size():
+		var sl: String = WHEEL[i]
+		var a := TAU * i / WHEEL.size()
+		var dir := Vector2(sin(a), -cos(a))
+		var pos := c + dir * 150.0
+		var on: bool = sl == wheel_pick or (wheel_pick == "" and ((sl == "melee" and def(current).get("type", "") == "melee") or sl == current))
+		var have := _slot_owned(sl)
+		_wheel_ui.draw_circle(pos, 62.0, Color(0.95, 0.95, 0.95, 0.92) if on else Color(0.1, 0.12, 0.16, 0.85 if have else 0.4))
+		var nm: String = "FISTS" if sl == "fists" else (def(melee_pick)["name"].to_upper() if sl == "melee" and melee_pick != "" else (def(sl)["name"].to_upper() if def(sl).size() > 0 else sl.to_upper()))
+		if sl == "melee" and melee_pick == "": nm = "MELEE"
+		var tc := Color(0.05, 0.05, 0.08) if on else (Color.WHITE if have else Color(1, 1, 1, 0.35))
+		_wheel_ui.draw_string(font, pos + Vector2(-60, -2), nm, HORIZONTAL_ALIGNMENT_CENTER, 120, 14, tc)
+		var sub := ""
+		if have and def(sl).get("type", "") == "gun": sub = "%d / %d" % [int(mag.get(sl, 0)), int(ammo.get(def(sl)["ammo"], 0))]
+		elif have and sl == "grenade": sub = "x%d" % int(ammo.get("grenade", 0))
+		_wheel_ui.draw_string(font, pos + Vector2(-60, 18), sub, HORIZONTAL_ALIGNMENT_CENTER, 120, 13, tc)
+	_wheel_ui.draw_string(font, c + Vector2(-120, 6), "move the mouse · release Tab", HORIZONTAL_ALIGNMENT_CENTER, 240, 13, Color(1, 1, 1, 0.7))
+
+# ------------------------------------------------------------------ cover (Q): snap to the nearest wall or car in front
+func try_cover() -> bool:
+	if main.current_car: return false
+	var pl = main.player
+	var space: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
+	var base: Vector3 = pl.global_position + Vector3(0, 0.6, 0)
+	var dirs: Array = [-main.camera.global_transform.basis.z, Vector3(-sin(pl.model.rotation.y), 0, -cos(pl.model.rotation.y))]
+	for dv in dirs:
+		var dd: Vector3 = dv; dd.y = 0; dd = dd.normalized()
+		var q := PhysicsRayQueryParameters3D.create(base, base + dd * 2.2, 1 | 2)
+		q.exclude = [pl.get_rid()]
+		var hit: Dictionary = space.intersect_ray(q)
+		if hit.is_empty(): continue
+		var n: Vector3 = hit["normal"]; n.y = 0
+		if n.length() < 0.5: continue
+		n = n.normalized()
+		# low cover if nothing at head height
+		var q2 := PhysicsRayQueryParameters3D.create(pl.global_position + Vector3(0, 1.45, 0), pl.global_position + Vector3(0, 1.45, 0) - n * 2.4, 1 | 2)
+		q2.exclude = [pl.get_rid()]
+		var low: bool = space.intersect_ray(q2).is_empty()
+		cover = {"n": n, "low": low}
+		var at: Vector3 = hit["position"] + n * 0.42
+		pl.global_position = Vector3(at.x, pl.global_position.y, at.z)
+		pl.cover_n = n
+		set_crouch(low)
+		pl.model.rotation.y = atan2(n.x, n.z)                 # back to the wall, facing out
+		_cover_leave_t = 0.0
+		return true
+	return false
+
+func leave_cover() -> void:
+	cover = {}
+	main.player.cover_n = Vector3.ZERO
+	set_crouch(false)
+
+func _step_cover(dt: float) -> void:
+	if cover.is_empty(): return
+	var pl = main.player
+	if main.current_car or pstate_busy():
+		leave_cover(); return
+	# pushing away from the wall for a moment leaves cover
+	var fwd := Vector3(-sin(main.cam_yaw), 0, -cos(main.cam_yaw)); var right := Vector3(cos(main.cam_yaw), 0, -sin(main.cam_yaw))
+	var mv: Vector3 = right * pl.input_dir.x + fwd * pl.input_dir.y
+	if mv.dot(cover["n"]) > 0.6: _cover_leave_t += dt
+	else: _cover_leave_t = 0.0
+	if _cover_leave_t > 0.35: leave_cover(); return
+	# still against something? (slid off the end of the wall -> out of cover)
+	var space: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(pl.global_position + Vector3(0, 0.6, 0), pl.global_position + Vector3(0, 0.6, 0) - cover["n"] * 0.9, 1 | 2)
+	q.exclude = [pl.get_rid()]
+	if space.intersect_ray(q).is_empty(): leave_cover(); return
+	# pop up to aim over low cover; tuck back down otherwise
+	if cover["low"]: set_crouch(not aiming)
+	if not aiming: pl.model.rotation.y = lerp_angle(pl.model.rotation.y, atan2(cover["n"].x, cover["n"].z), 1.0 - exp(-10.0 * dt))
+
+func pstate_busy() -> bool:
+	return main.combat != null and main.combat.pstate != ""
+
+# ------------------------------------------------------------------ lock-on
+func _acquire_lock() -> void:
+	lock = null; lock_off = Vector2.ZERO
+	if main.peds == null or kind() == "throw": return
+	var origin: Vector3 = main.camera.global_position
+	var fwd: Vector3 = -main.camera.global_transform.basis.z
+	var best = null; var bs := 1e9
+	var rmax: float = float(def(current).get("range", 60.0))
+	for p in main.peds.peds:
+		if p["state"] in ["fly", "down", "injured"]: continue
+		var chest: Vector3 = Vector3(p["pos"].x, float(p["y"]) + 1.25, p["pos"].z) - main.world_offset
+		var to := chest - origin
+		var d := to.length()
+		if d > rmax or d < 1.0: continue
+		var a := fwd.angle_to(to)
+		if a > deg_to_rad(22.0): continue
+		# hostiles first (people fighting you, armed people, police on foot)
+		var score: float = a * 10.0 + d * 0.05 - (2.0 if p["state"] == "fight" or p.get("gun", "") != "" else 0.0)
+		if score < bs: bs = score; best = p
+	lock = best
+
+func _switch_lock(sgn: float) -> void:
+	if lock == null: return
+	var origin: Vector3 = main.camera.global_position
+	var right: Vector3 = main.camera.global_transform.basis.x
+	var cur: Vector3 = _lock_point()
+	var best = null; var bs := 1e9
+	for p in main.peds.peds:
+		if p == lock or p["state"] in ["fly", "down", "injured"]: continue
+		var chest: Vector3 = Vector3(p["pos"].x, float(p["y"]) + 1.25, p["pos"].z) - main.world_offset
+		var side: float = (chest - cur).dot(right)
+		if side * sgn <= 0.3 or (chest - origin).length() > 60.0: continue
+		if absf(side) < bs: bs = absf(side); best = p
+	if best != null: lock = best; lock_off = Vector2.ZERO
+
+func _lock_point() -> Vector3:
+	var chest: Vector3 = Vector3(lock["pos"].x, float(lock["y"]) + 1.25, lock["pos"].z) - main.world_offset
+	return chest + main.camera.global_transform.basis.x * lock_off.x + Vector3(0, lock_off.y, 0)
+
+# ------------------------------------------------------------------ dropped weapons
+## armed people who go down drop their gun; walk over it to pick it up (with some ammo)
+func drop_from(p: Dictionary) -> void:
+	var id: String = p.get("gun", "")
+	if id == "": return
+	p["gun"] = ""
+	var n := Node3D.new(); n.name = "Pickup_" + id
+	n.add_child(build_gun_mesh(id))
+	var glow := OmniLight3D.new(); glow.light_color = Color(0.4, 0.8, 1.0); glow.light_energy = 0.8; glow.omni_range = 2.0; n.add_child(glow)
+	main.world.add_child(n)
+	n.global_position = Vector3(p["pos"].x, float(p["y"]) + 0.35, p["pos"].z) - main.world_offset + Vector3(0.6, 0, 0)
+	pickups.append({"node": n, "id": id, "ammo": rng.randi_range(8, 24) if id != "shotgun" else rng.randi_range(4, 8), "t": 60.0})
+
+func _step_pickups() -> void:
+	for pk in pickups.duplicate():
+		var n: Node3D = pk["node"]
+		if not is_instance_valid(n): pickups.erase(pk); continue
+		n.rotate_y(0.04)
+		pk["t"] = float(pk["t"]) - 1.0 / 60.0
+		if main.current_car == null and n.global_position.distance_to(main.player.global_position + Vector3(0, 0.35, 0)) < 1.3:
+			var first: bool = not owned.has(pk["id"])
+			if first: owned[pk["id"]] = true; mag[pk["id"]] = 0
+			var a: String = def(pk["id"])["ammo"]
+			ammo[a] = int(ammo.get(a, 0)) + int(pk["ammo"])
+			if first: _load(pk["id"])
+			if main.inventory: main.inventory.items["weapons"][def(pk["id"])["name"]] = 1
+			if main.hud: main.hud.flash("Picked up %s%s" % [def(pk["id"])["name"], "" if first else " ammo"])
+			n.queue_free(); pickups.erase(pk)
+		elif pk["t"] <= 0.0:
+			n.queue_free(); pickups.erase(pk)
+
+# ------------------------------------------------------------------ bullet holes
+func _bullet_hole(at: Vector3, n: Vector3) -> void:
+	if _hole_tex == null:
+		var img := Image.create(32, 32, false, Image.FORMAT_RGBA8)
+		for y in 32:
+			for x in 32:
+				var r := Vector2(x - 15.5, y - 15.5).length() / 15.5
+				img.set_pixel(x, y, Color(0.05, 0.05, 0.05, clampf(1.0 - r * r, 0.0, 1.0) * (0.95 if r < 0.35 else 0.55)))
+		_hole_tex = ImageTexture.create_from_image(img)
+	var dc := Decal.new(); dc.texture_albedo = _hole_tex; dc.size = Vector3(0.14, 0.3, 0.14); dc.cull_mask = 1
+	main.world.add_child(dc)
+	dc.global_position = at
+	var up := n.normalized()
+	var side := up.cross(Vector3.FORWARD if absf(up.dot(Vector3.FORWARD)) < 0.9 else Vector3.RIGHT).normalized()
+	dc.global_basis = Basis(side, up, side.cross(up))
+	_decals.append(dc)
+	while _decals.size() > 80:
+		var old: Decal = _decals.pop_front()
+		if is_instance_valid(old): old.queue_free()
+
+## weapon attachment effects for the current gun (gun store mods); empty until bought
+func _mods() -> Dictionary:
+	return mods_for(current)
+
+func mods_for(id: String) -> Dictionary:
+	var out := {}
+	for m in attachments.get(id, []):
+		var a: Dictionary = W.get("attachments", {}).get(m, {})
+		for k in a.get("fx", {}): out[k] = a["fx"][k] if not (out.has(k) and typeof(out[k]) == TYPE_FLOAT) else float(out[k]) * float(a["fx"][k])
+	return out
+
 # ------------------------------------------------------------------ gun stores
 func _update_store_signs() -> void:
 	if main.jobs == null or main.traffic == null or main.traffic.edges.is_empty(): return
@@ -431,7 +763,8 @@ func _store_near() -> int:
 	return -1
 
 func prompt(local_pos: Vector3) -> String:
-	if _store_near() >= 0 and not shop_open: return "Press E to shop at the gun store"
+	if main.get("gunstore") and main.gunstore.inside: return main.gunstore.prompt()
+	if _store_near() >= 0 and not shop_open: return "Press E to go into the gun store"
 	return ""
 
 func open_shop(id: int) -> void:

@@ -360,6 +360,7 @@ var _raining := false
 ## hit by a car: thrown along `vel`, lands, lies there, then gets up and runs - or stays down if it was a hard hit
 func knock_down(p: Dictionary, vel: Vector3) -> void:
 	if p["state"] in ["fly", "down", "injured"]: return
+	if p.get("gun", "") != "" and main.get("weapons") and main.weapons: main.weapons.drop_from(p)      # they drop it
 	p["state"] = "fly"; p["fly_v"] = vel + Vector3(0, 3.0 + vel.length() * 0.15, 0)
 	p["hit_speed"] = vel.length(); p["fall_yaw"] = atan2(-vel.x, -vel.z)
 	p["spin"] = 0.0

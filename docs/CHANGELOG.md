@@ -301,3 +301,17 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
   At 3+ stars (2 if you're armed) officers leave their cars armed (rifles at 5 stars) and fight on foot: they keep
   distance, strafe, aim (telegraphed), fire bursts, need a clear line to your chest (cars and walls are cover,
   crouching helps), move up when they lose sight of you. Some dirty fighters carry a pistol.
+
+## GTA V-style gunplay and gun stores
+- Controls now follow GTA V: Tab (hold) weapon wheel - time slows, move the mouse to pick, release; Up arrow
+  takes the phone out (Backspace puts it away).
+- Q snaps into cover against the wall or car in front (back to it, crouched behind low cover, slide along it,
+  push away to leave). Aiming from low cover pops you up; firing without aiming is blind fire (wild).
+- Right mouse hard-locks onto the person in front (hostiles first); the camera tracks them, nudge the mouse to
+  fine-aim (go for the head), flick it to switch targets. Red lock marker.
+- Recoil climbs the muzzle and kicks the camera; screen shake from firing and blasts; muzzle flash sprite;
+  bullet holes on walls (decals); armed people drop their gun when they go down - walk over it to pick it up.
+- Walk-in gun stores: shop floor with a glass counter, wall racks and a clerk. At the counter: GTA-style menu
+  (categories, weapon on a turntable, stat bars, prices), ammo, attachments (scope = tighter + zoom, extended
+  magazine, suppressor = quiet: no flash, people/police barely hear, grip = less recoil/spread, flashlight at
+  night) and finishes (black, olive, tan, steel, gold, pink) shown on the gun.

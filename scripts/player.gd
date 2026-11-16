@@ -16,6 +16,7 @@ var anim_t := 0.0
 var move_mult := 1.0            # combat.gd slows you while you swing or guard
 var crouch_mult := 1.0          # weapons.gd: crouched in cover
 var aim_mult := 1.0             # weapons.gd: aiming
+var cover_n := Vector3.ZERO     # weapons.gd: in cover, the wall's outward normal (you slide along it, not into it)
 var _fall_v := 0.0              # fastest downward speed since leaving the ground
 signal hurt(amount: float, cause: String)
 
@@ -69,6 +70,9 @@ func _physics_process(dt: float) -> void:
 	var move := (right * input_dir.x + fwd * input_dir.y)
 	if move.length() > 1.0:
 		move = move.normalized()
+	if cover_n != Vector3.ZERO:
+		move -= cover_n * move.dot(cover_n)            # along the wall only
+		move *= 0.6
 	var can_run: bool = needs == null or needs.can_sprint()
 	var spd: float = (SPRINT * (needs.sprint_mult() if needs else 1.0)) if (sprint and can_run) else WALK
 	var target := move * spd * move_mult * crouch_mult * aim_mult

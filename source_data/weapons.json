@@ -164,5 +164,146 @@
    "x": 5152.2,
    "z": 1983.3
   }
- ]
+ ],
+ "categories": [
+  [
+   "Handguns",
+   [
+    "pistol"
+   ]
+  ],
+  [
+   "Shotguns",
+   [
+    "shotgun"
+   ]
+  ],
+  [
+   "Rifles",
+   [
+    "rifle"
+   ]
+  ],
+  [
+   "Melee",
+   [
+    "bat",
+    "knife"
+   ]
+  ],
+  [
+   "Throwables",
+   [
+    "grenade"
+   ]
+  ],
+  [
+   "Ammo",
+   [
+    "@pistol",
+    "@shells",
+    "@rifle"
+   ]
+  ]
+ ],
+ "attachments": {
+  "scope": {
+   "name": "Scope",
+   "price": 450,
+   "fits": [
+    "pistol",
+    "rifle"
+   ],
+   "fx": {
+    "spread": 0.6,
+    "zoom": 0.7
+   },
+   "desc": "Tighter aim, extra zoom when aiming"
+  },
+  "ext_mag": {
+   "name": "Extended magazine",
+   "price": 300,
+   "fits": [
+    "pistol",
+    "rifle",
+    "shotgun"
+   ],
+   "fx": {
+    "mag": 1.6
+   },
+   "desc": "More rounds per magazine"
+  },
+  "suppressor": {
+   "name": "Suppressor",
+   "price": 550,
+   "fits": [
+    "pistol",
+    "rifle",
+    "shotgun"
+   ],
+   "fx": {
+    "quiet": true,
+    "dmg": 0.9
+   },
+   "desc": "Quiet shots: no muzzle flash, people and police hear far less"
+  },
+  "grip": {
+   "name": "Grip",
+   "price": 250,
+   "fits": [
+    "rifle",
+    "shotgun"
+   ],
+   "fx": {
+    "recoil": 0.6,
+    "spread": 0.85
+   },
+   "desc": "Less recoil and spread"
+  },
+  "flashlight": {
+   "name": "Flashlight",
+   "price": 150,
+   "fits": [
+    "pistol",
+    "rifle",
+    "shotgun"
+   ],
+   "fx": {
+    "light": true
+   },
+   "desc": "Lights the way when aiming at night"
+  }
+ },
+ "finishes": {
+  "black": {
+   "name": "Black",
+   "price": 0,
+   "color": "#141416"
+  },
+  "olive": {
+   "name": "Olive drab",
+   "price": 120,
+   "color": "#4b5232"
+  },
+  "tan": {
+   "name": "Desert tan",
+   "price": 120,
+   "color": "#a08a63"
+  },
+  "steel": {
+   "name": "Brushed steel",
+   "price": 250,
+   "color": "#9a9ea3"
+  },
+  "gold": {
+   "name": "Gold",
+   "price": 2500,
+   "color": "#c9a33a"
+  },
+  "pink": {
+   "name": "Pink",
+   "price": 200,
+   "color": "#d07aa4"
+  }
+ }
 }

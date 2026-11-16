@@ -1636,16 +1636,31 @@ func t_weapons() -> Array:
 	var wp = main.weapons; var pl = main.player
 	main.needs.health = 100.0
 	main.police.stars = 0
-	# buy a pistol at a gun store
+	# walk into a gun store, browse to Handguns, buy the pistol, fit a suppressor and a finish, walk out
 	var c0: int = main.money.cash + main.money.wallet
-	main.money.wallet += 5000
-	wp.open_shop(0)
-	var pi := -1
-	for i in wp._shop_rows.size():
-		if wp._shop_rows[i][0] == "weapon" and wp._shop_rows[i][1] == "pistol": pi = i
-	if pi < 0 or not wp.buy(pi): return [false, "couldn't buy a pistol"]
-	wp.close_shop()
-	if not wp.owned.has("pistol") or int(wp.mag["pistol"]) <= 0: return [false, "bought pistol isn't loaded (owned %s mag %s ammo %s)" % [wp.owned, wp.mag, wp.ammo]]
+	main.money.wallet += 6000
+	var gs = main.gunstore
+	var outside: Vector3 = pl.global_position
+	gs.enter(0)
+	if not gs.inside: return [false, "couldn't enter the store"]
+	pl.global_position = gs.interior.global_transform * gs._counter_p
+	if not gs.near_counter(): return [false, "counter not reachable"]
+	gs.open_menu()
+	gs.choose(0)                                   # Handguns
+	if not gs.choose(0): return [false, "couldn't buy a pistol"]
+	if not wp.owned.has("pistol") or int(wp.mag["pistol"]) <= 0: return [false, "bought pistol isn't loaded"]
+	var rows: Array = gs._rows()
+	var mi := -1
+	for i in rows.size():
+		if rows[i]["kind"] == "go" and rows[i]["to"] == "mods": mi = i
+	gs.choose(mi)
+	var si := -1
+	for i in gs._rows().size():
+		if gs._rows()[i].get("id", "") == "suppressor": si = i
+	if si < 0 or not gs.choose(si): return [false, "couldn't fit a suppressor"]
+	if not wp.mods_for("pistol").get("quiet", false): return [false, "suppressor has no effect"]
+	gs.close_menu(); gs.leave()
+	if gs.inside or pl.global_position.distance_to(outside) > 3.0: return [false, "didn't come back out where we went in"]
 	wp.select_slot(3)
 	if wp.current != "pistol": return [false, "slot 3 didn't equip the pistol"]
 	# someone 8 m in front of the camera: aim at their chest and fire
@@ -1675,6 +1690,16 @@ func t_weapons() -> Array:
 	if not landed: return [false, "shot at %.1f m missed" % (p["pos"] - (pl.global_position + main.world_offset)).length()]
 	if int(wp.mag["pistol"]) != m0 - 1: return [false, "ammo didn't go down"]
 	var stars_after: int = main.police.stars
+	# GTA-style hard lock: aiming picks the person in front, the camera tracks them
+	wp.aiming = true; wp._acquire_lock()
+	var locked: bool = wp.lock != null
+	wp.aiming = false; wp.lock = null
+	# weapon wheel: hold Tab, pick the rifle, release
+	wp.give("rifle")
+	wp.open_wheel(); var slowed: bool = Engine.time_scale < 0.5
+	wp.wheel_pick = "rifle"; wp.close_wheel()
+	if not slowed or wp.current != "rifle" or Engine.time_scale != 1.0: return [false, "weapon wheel didn't slow time / equip the rifle"]
+	wp.equip("pistol")
 	# empty the magazine: reload kicks in
 	wp.mag["pistol"] = 1; wp._cool = 0.0; wp.trigger()
 	for i in 240: await _frames(1)
@@ -1694,5 +1719,6 @@ func t_weapons() -> Array:
 	main.money.wallet = c0 - main.money.cash if c0 - main.money.cash >= 0 else main.money.wallet
 	if not reloaded: return [false, "never reloaded"]
 	if not g_ok: return [false, "grenade didn't floor someone at the blast"]
-	if stars_after < 2: return [false, "shooting someone only gave %d stars" % stars_after]
-	return [true, "bought + equipped pistol, hit at 8 m, ammo counted, auto-reload, grenade floored a bystander, police %d stars" % stars_after]
+	if stars_after < 1: return [false, "shooting someone gave no stars"]
+	if not locked: return [false, "no lock-on target"]
+	return [true, "walk-in store: bought pistol + suppressor; lock-on; weapon wheel; bought + equipped pistol, hit at 8 m, ammo counted, auto-reload, grenade floored a bystander, police %d stars" % stars_after]

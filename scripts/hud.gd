@@ -124,7 +124,7 @@ func _ready() -> void:
 		"F  get in / out of a car        E  use, talk, apply, clock in, doors        T  activity here (eat, gym, bowl...)\n" + \
 		"1-6  fists / bat or knife / pistol / shotgun / rifle / grenades    Right mouse (hold)  aim    Left mouse  fire / throw    R  reload    C  crouch\n" + \
 		"Left click  punch (tap: combo)   Right click  kick   Z / middle click  tackle   Q  guard (tap just before a hit = parry)   Ctrl  dodge   Space  struggle / get up\n" + \
-		"Tab  phone        J  job board        I  inventory        K  dealership catalogue\n" + \
+		"Up arrow  phone        Tab (hold)  weapon wheel        J  job board        I  inventory        K  dealership catalogue\n" + \
 		"R  flip car / rent / deposit        B  buy / collect        G  garage        N  auto-deposit\n" + \
 		"P / C / U  repair / respray / upgrade at an auto shop        V  camera view        H  this help\n" + \
 		"Esc  pause\n\nMap data © OpenStreetMap contributors (ODbL)"
@@ -311,6 +311,7 @@ func _process(dt: float) -> void:
 		if tt <= 0.0: tp.queue_free()
 	for o in _overlays: o[0].visible = o[1].visible
 	_update_minimap_cam(dt)
+	if main and main.get("player") and main.player: radar.visible = main.player.global_position.y > -500.0 or main.current_car != null   # no map indoors
 	radar.queue_redraw()
 	bars.queue_redraw()
 	hit_flash = maxf(0.0, hit_flash - dt * 1.5)
@@ -383,6 +384,11 @@ func _draw_target() -> void:
 		if wpx.hit_marker > 0.0:        # hit confirm
 			for v in [Vector2(1, 1), Vector2(-1, 1), Vector2(1, -1), Vector2(-1, -1)]:
 				_tgt.draw_line(c0 + v * 6.0, c0 + v * 13.0, Color(1, 0.3, 0.25, wpx.hit_marker * 4.0), 2.5)
+	if wpx and wpx.lock != null and wpx.aiming:        # hard lock: a red diamond on them
+		var lp: Vector3 = wpx._lock_point()
+		if not main.camera.is_position_behind(lp):
+			var q: Vector2 = main.camera.unproject_position(lp)
+			_tgt.draw_polyline(PackedVector2Array([q + Vector2(0, -9), q + Vector2(9, 0), q + Vector2(0, 9), q + Vector2(-9, 0), q + Vector2(0, -9)]), Color(1, 0.25, 0.2), 2.5)
 	var cbt = main.combat
 	if cbt.pstate in ["pinned", "down"]:
 		var vs: Vector2 = _tgt.size
