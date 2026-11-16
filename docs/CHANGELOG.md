@@ -271,3 +271,17 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 - Some fight back (step in, guard up, throw punches that hurt you), the rest run; bystanders scatter.
 - A witnessed assault is a crime (1 star). Punches cost stamina; tired fighters swing slower.
 - Poses come from the people shader (punch, kick, guard, flinch). Street furniture no longer renders inside-out.
+
+## Advanced fighting AI
+- Fighter styles (life.json-overridable): boxer, brawler, kicker, grappler, dirty - each with its own move mix,
+  speed, guard, slip rate and nerve.
+- Telegraphed moves: jab, hook (staggers), front kick (pushes back), leg sweep (puts you down), shove, tackle
+  (lunges from ~3.5 m, takes you down and PINS you - mash Space to break free while they rain ground punches),
+  stomp / ground punches when you're down.
+- Opponents circle and keep range, block or slip when they see you wind up, counter after a block, and only two
+  press you at a time while friends who joined circle. Beaten with low nerve they run or put their hands up.
+- They adapt to how you fight: turtle behind your guard and they grab and shove; spam punches and they block and
+  counter; dodge a lot and they sweep.
+- You: tap Q right before a hit to PARRY (they stagger, your next hit x1.5), Z / middle click to tackle someone,
+  ground punches on a downed opponent, Space to get up faster. Tackled opponents get up swinging.
+- HUD: struggle meter when pinned, knockdown prompt.

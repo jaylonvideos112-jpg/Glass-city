@@ -5,7 +5,9 @@ render_mode cull_back, diffuse_burley;
 instance uniform float phase = 0.0;
 instance uniform float swing = 0.0;      // 0 standing .. 1 full stride
 instance uniform float umbrella = 0.0;   // 1 = holding an umbrella (rain)
-// fighting: act 1 right punch, 2 left punch, 3 kick, 4 guard up, 5 hit reaction; act_t 0..1 through the move
+// fighting: act 1 right punch, 2 left punch, 3 kick, 4 guard up, 5 hit reaction, 6 hook, 7 tackle lunge,
+// 8 leg sweep, 9 shove, 10 kneeling ground punches, 11 hands up (gives up), 12 windup (telegraph), 13 sidestep;
+// act_t 0..1 through the move
 instance uniform float act = 0.0;
 instance uniform float act_t = 0.0;
 varying vec3 col;
@@ -29,6 +31,21 @@ void vertex() {
 	if (ia == 3 && (part == 3 || part == 4)) a = 0.5;
 	if (ia == 4 && (part == 3 || part == 4)) a = 0.55;
 	if (ia == 5 && (part == 3 || part == 4)) a = -0.4 * k;
+	if (ia == 6 && part == 4) a = 1.2 * kf;
+	if (ia == 6 && part == 3) a = 0.45;
+	if (ia == 7 && (part == 3 || part == 4)) a = 1.35;
+	if (ia == 7 && part == 1) a = -0.5 * kf;
+	if (ia == 7 && part == 2) a = 0.6 * kf;
+	if (ia == 8 && part == 2) a = 1.0 * kf;
+	if (ia == 8 && part == 1) a = -0.35 * kf;
+	if (ia == 9 && (part == 3 || part == 4)) a = 1.45 * kf;
+	if (ia == 10 && (part == 1 || part == 2)) a = -1.4;           // knees bent under
+	if (ia == 10 && part == 4) a = 1.1 + 0.7 * kf;
+	if (ia == 10 && part == 3) a = 0.5;
+	if (ia == 11 && (part == 3 || part == 4)) a = 2.9;           // both hands up
+	if (ia == 12 && part == 4) a = -0.6 * k;                      // drawing back the fist
+	if (ia == 12 && part == 3) a = 0.5;
+	if (ia == 13 && (part == 3 || part == 4)) a = 0.45;
 	if (part >= 1 && part <= 4) {
 		vec3 p = VERTEX; p.y -= pivot;
 		float c = cos(a), s = sin(a);
@@ -54,6 +71,12 @@ void vertex() {
 	// body twist into a punch, lean back when hit
 	if (ia == 1 || ia == 2) VERTEX.z -= kf * 0.12 * clamp((VERTEX.y - 0.9) / 0.6, 0.0, 1.0);
 	if (ia == 5) VERTEX.z += k * 0.18 * clamp(VERTEX.y / 1.7, 0.0, 1.0);
+	if (ia == 6) VERTEX.x += kf * 0.1 * clamp((VERTEX.y - 0.9) / 0.6, 0.0, 1.0);
+	if (ia == 7) VERTEX.z -= kf * 0.55 * clamp((VERTEX.y - 0.5) / 1.2, 0.0, 1.0);    // dive forward low
+	if (ia == 7) VERTEX.y -= kf * 0.25 * clamp((VERTEX.y - 0.5) / 1.2, 0.0, 1.0);
+	if (ia == 9) VERTEX.z -= kf * 0.15 * clamp((VERTEX.y - 0.9) / 0.6, 0.0, 1.0);
+	if (ia == 12) VERTEX.z += 0.06 * k * clamp((VERTEX.y - 0.9) / 0.6, 0.0, 1.0);
+	if (ia == 13) VERTEX.x += 0.08 * k * clamp(VERTEX.y / 1.7, 0.0, 1.0);
 	// body bob and a slight forward lean at a run
 	VERTEX.y += abs(sin(phase)) * 0.03 * min(swing, 1.0);
 	if (swing > 1.0) VERTEX.z -= (swing - 1.0) * 0.25 * VERTEX.y * 0.3;

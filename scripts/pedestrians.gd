@@ -249,7 +249,7 @@ func _manage(focus: Vector3) -> void:
 	while peds.size() > want + 8:
 		var vict: Dictionary = peds[0]
 		for q in peds:
-			if not (q["state"] in ["fly", "down", "injured", "flee"]): vict = q; break
+			if not (q["state"] in ["fly", "down", "injured", "flee", "fight", "surrender"]): vict = q; break
 		_despawn(vict)     # thin out (e.g. a storm starts, or the player went inside)
 	var tries := 0
 	var first: bool = main.traffic.time_s < 6.0
@@ -379,7 +379,7 @@ func _step_special(p: Dictionary, dt: float) -> bool:
 	var mi: MeshInstance3D = p["node"]
 	if p.has("react_t"): p["react_t"] = maxf(0.0, float(p["react_t"]) - dt)
 	var cb = main.get("combat")
-	if cb and (p["state"] == "fight" or float(p.get("react_t", 0.0)) > 0.0 or p.get("posed", false)):
+	if cb and (p["state"] in ["fight", "surrender"] or float(p.get("react_t", 0.0)) > 0.0 or p.get("posed", false)):
 		var pose: Array = cb.ped_pose(p)
 		if is_instance_valid(mi):
 			mi.set_instance_shader_parameter("act", pose[0]); mi.set_instance_shader_parameter("act_t", pose[1])
@@ -388,6 +388,8 @@ func _step_special(p: Dictionary, dt: float) -> bool:
 		"fight":
 			if cb: cb.step_fighter(p, dt)
 			_ground(p, false)
+		"surrender":
+			if cb: cb.step_surrender(p, dt)
 		"fly":
 			var v: Vector3 = p["fly_v"]
 			v.y -= 18.0 * dt; v.x *= 1.0 - dt * 0.6; v.z *= 1.0 - dt * 0.6
@@ -405,8 +407,11 @@ func _step_special(p: Dictionary, dt: float) -> bool:
 			p["down_t"] -= dt
 			p["spin"] = PI * 0.5
 			if p["down_t"] <= 0.0:
-				_flee(p, p["pos"] - Vector3(sin(p["fall_yaw"]), 0, cos(p["fall_yaw"])))
 				p["spin"] = 0.0
+				if p.get("get_up_fight", false) and cb and float(p.get("hp", 1.0)) > 0.0:
+					p["get_up_fight"] = false; cb.start_fight(p)       # back up and swinging
+				else:
+					_flee(p, p["pos"] - Vector3(sin(p["fall_yaw"]), 0, cos(p["fall_yaw"])))
 		"injured":
 			p["spin"] = PI * 0.5
 			p["down_t"] -= dt
@@ -429,13 +434,15 @@ func _step_special(p: Dictionary, dt: float) -> bool:
 			return false
 	if is_instance_valid(mi):
 		var lying: float = p.get("spin", 0.0)
-		var b := Basis(Vector3.UP, p.get("fall_yaw", p["yaw"]) if not (p["state"] in ["flee", "fight"]) else p["yaw"])
+		var b := Basis(Vector3.UP, p.get("fall_yaw", p["yaw"]) if not (p["state"] in ["flee", "fight", "surrender"]) else p["yaw"])
 		if lying > 0.0: b = b * Basis(Vector3(1, 0, 0), -lying)
-		var yoff := 0.18 if lying > 1.2 else 0.0
+		var yoff: float = (0.18 if lying > 1.2 else 0.0) + float(p.get("y_off", 0.0))
 		mi.global_transform = Transform3D(b, Vector3(p["pos"].x, p["y"] + yoff, p["pos"].z) - main.world_offset)
 		mi.set_instance_shader_parameter("phase", p["phase"])
 		var mv: float = 1.3 if p["state"] == "flee" else 0.0
-		if p["state"] == "fight": mv = 0.0
+		if p["state"] == "fight":
+			var md: String = p.get("ai", {}).get("mode", "")
+			mv = 0.6 if md in ["approach", "circle", "evade"] else 0.0
 		mi.set_instance_shader_parameter("swing", mv)
 	return true
 
@@ -487,6 +494,10 @@ func _ground(p: Dictionary, now: bool) -> void:
 	p["ray_t"] = 0.5
 	var sp: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
 	var q := PhysicsRayQueryParameters3D.create(p["pos"] - main.world_offset + Vector3(0, 20, 0), p["pos"] - main.world_offset + Vector3(0, -20, 0), 1)
+	var ex: Array[RID] = [main.player.get_rid()]          # stand on the street, not on top of the player
+	for c in main.cars:
+		if is_instance_valid(c): ex.append(c.get_rid())
+	q.exclude = ex
 	var hit := sp.intersect_ray(q)
 	if not hit.is_empty(): p["y"] = hit["position"].y + main.world_offset.y
 

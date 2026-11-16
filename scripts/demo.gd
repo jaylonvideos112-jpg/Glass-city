@@ -329,6 +329,29 @@ func _shots(dt: float) -> void:
 		if not cb.act.is_empty(): cb.act["t"] = cb.act["dur"] * 0.4      # freeze the swing at full reach for the picture
 		var c3: Vector3 = (fp["pos"] + me) * 0.5
 		pos = c3 + Vector3(0, 1.6, 3.4); look = c3 + Vector3(0, 1.1, 0)
+	elif s[0] == "@pinned" and main.combat:
+		# a grappler has taken you down and is on top of you; HUD shows the struggle meter
+		main.hud.visible = true
+		var cb2 = main.combat
+		if not has_meta("pin_p"):
+			var f2: Vector3 = main.focus_world(); var pk = null
+			for q in main.peds.peds:
+				if q["state"] == "walk" and (q["pos"] - f2).length() < 120.0: pk = q; break
+			if pk == null:
+				shot_wait += dt
+				return
+			set_meta("pin_p", pk); pk["style"] = "grappler"; cb2.start_fight(pk)
+			var me4: Vector3 = pk["pos"] + Vector3(1.0, 0, 0)
+			main.player.global_position = Vector3(me4.x, float(pk["y"]) + 0.1, me4.z) - main.world_offset
+			pk["ai"]["mode"] = "wind"; pk["ai"]["move"] = "tackle"; pk["ai"]["t"] = 0.05
+		main.needs.health = maxf(main.needs.health, 70.0)
+		var pp2: Vector3 = main.player.global_position + main.world_offset
+		pos = pp2 + Vector3(2.6, 2.2, 2.6); look = pp2 + Vector3(0, 0.3, 0)
+		if shot_wait < 3.0:
+			shot_wait += dt
+			cb2.escape = 0.35
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 60.0
+			return
 	elif s[0] == "@carshow":
 		# 3/4 view of the cars at the curb
 		main.hud.visible = false

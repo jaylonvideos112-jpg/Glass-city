@@ -119,7 +119,7 @@ func _ready() -> void:
 	help_label.text = "CONTROLS\n\n" + \
 		"WASD  move / drive        Mouse  look        Shift  sprint        Space  jump / handbrake\n" + \
 		"F  get in / out of a car        E  use, talk, apply, clock in, doors        T  activity here (eat, gym, bowl...)\n" + \
-		"Left click  punch (tap for combos)        Right click  kick        Q (hold)  guard        Ctrl  dodge\n" + \
+		"Left click  punch (tap: combo)   Right click  kick   Z / middle click  tackle   Q  guard (tap just before a hit = parry)   Ctrl  dodge   Space  struggle / get up\n" + \
 		"Tab  phone        J  job board        I  inventory        K  dealership catalogue\n" + \
 		"R  flip car / rent / deposit        B  buy / collect        G  garage        N  auto-deposit\n" + \
 		"P / C / U  repair / respray / upgrade at an auto shop        V  camera view        H  this help\n" + \
@@ -364,7 +364,17 @@ func _draw_fish() -> void:
 	fish_ctl.draw_string(font_bold, Vector2(0, h - 12), label, HORIZONTAL_ALIGNMENT_CENTER, w, 20 if bite else 15, Color(1, 0.88, 0.25) if bite else Color(0.85, 0.92, 1.0))
 
 func _draw_target() -> void:
-	if main == null or main.get("combat") == null or main.combat.target == null or main.camera == null: return
+	if main == null or main.get("combat") == null or main.camera == null: return
+	var cbt = main.combat
+	if cbt.pstate in ["pinned", "down"]:
+		var vs: Vector2 = _tgt.size
+		var bw := 360.0; var x0 := (vs.x - bw) * 0.5; var y0 := vs.y - 210.0
+		var label := "PINNED  -  MASH  SPACE" if cbt.pstate == "pinned" else "KNOCKED DOWN  -  SPACE to get up"
+		_tgt.draw_string(font_bold, Vector2(0, y0 - 12), label, HORIZONTAL_ALIGNMENT_CENTER, vs.x, 22, Color(1, 0.85, 0.3))
+		if cbt.pstate == "pinned":
+			_tgt.draw_rect(Rect2(x0, y0, bw, 16), Color(0, 0, 0, 0.7))
+			_tgt.draw_rect(Rect2(x0 + 2, y0 + 2, (bw - 4) * clampf(cbt.escape, 0.0, 1.0), 12), Color(0.95, 0.75, 0.2))
+	if cbt.target == null: return
 	var t: Dictionary = main.combat.target
 	var head: Vector3 = Vector3(t["pos"].x, float(t["y"]) + 2.0, t["pos"].z) - main.world_offset
 	if main.camera.is_position_behind(head): return

@@ -79,6 +79,7 @@ func _run() -> void:
 		["falls_hurt_and_wasted_wakes_in_hospital", t_wasted],
 		["car_knocks_down_pedestrian_crowd_scatters", t_knockdown],
 		["melee_punch_kick_ko_fight_back_block", t_melee],
+		["fight_ai_takedown_pin_sweep_parry_adapt", t_fight_ai],
 		["on_foot_feel_metrics", t_foot_feel],
 		["emergency_responds_with_siren", t_dispatch],
 	]
@@ -1493,30 +1494,121 @@ func t_melee() -> Array:
 	for i in 60: await _frames(1)
 	if cb.hits_landed < 1 or float(p["hp"]) >= hp0: return [false, "punch didn't land (hp %.0f -> %.0f, dist %.2f)" % [hp0, p["hp"], (p["pos"] - (pl.global_position + main.world_offset)).length()]]
 	if p["state"] != "fight": return [false, "they didn't fight back (%s)" % p["state"]]
-	# let them hit us for a few seconds, guarding for half of it
+	# let them work for a few seconds, then compare a straight hook open vs behind a guard
 	var h0: float = main.needs.health
 	for i in 360:
 		await _frames(1)
-		var me2: Vector3 = p["pos"] + Vector3(1.0, 0, 0)
-		pl.global_position = Vector3(me2.x, pl.global_position.y, me2.z) - main.world_offset
+		if cb.pstate != "": break
 	var open_loss: float = h0 - main.needs.health
-	cb.guard = true
-	var h1: float = main.needs.health
-	for i in 360:
-		await _frames(1)
-		var me3: Vector3 = p["pos"] + Vector3(1.0, 0, 0)
-		pl.global_position = Vector3(me3.x, pl.global_position.y, me3.z) - main.world_offset
-	var guard_loss: float = h1 - main.needs.health
-	cb.guard = false
+	if cb.pstate == "pinned": cb._break_pin()
+	cb._set_pstate("", 0.0)
+	main.needs.health = 100.0
+	var dist: float = (p["pos"] - (pl.global_position + main.world_offset)).length()
+	cb.guard = false; cb._ped_strike(p, "jab", 1.0)
+	var jab_open: float = 100.0 - main.needs.health
+	main.needs.health = 100.0
+	cb.guard = true; cb._guard_pressed_t = 5.0; cb._ped_strike(p, "jab", 1.0)
+	var jab_guard: float = 100.0 - main.needs.health
+	cb.guard = false; cb._set_pstate("", 0.0)
+	var guard_loss := jab_guard
 	if open_loss <= 0.0: return [false, "they never hit back"]
-	if guard_loss > open_loss * 0.6: return [false, "guard barely helped (%.0f vs %.0f)" % [guard_loss, open_loss]]
+	if jab_guard > jab_open * 0.4: return [false, "guard barely helped (%.1f vs %.1f)" % [jab_guard, jab_open]]
 	# finish them: combo + kicks until they go down
 	var tries := 0
-	while not (p["state"] in ["fly", "down", "injured", "flee"]) and tries < 20:
+	while not (p["state"] in ["fly", "down", "injured", "flee", "surrender"]) and tries < 20:
 		tries += 1
+		# like a player would: wait for an opening (they're winding up or recovering), then swing
+		for w in 240:
+			if cb.pstate != "": cb._set_pstate("", 0.0)
+			if p.get("ai", {}).get("mode", "") in ["recover", "wind"] or not (p["state"] == "fight"): break
+			await _frames(1)
+		var toward: Vector3 = (pl.global_position + main.world_offset) - p["pos"]; toward.y = 0
+		var stand: Vector3 = p["pos"] + toward.normalized() * 1.0
+		pl.global_position = Vector3(stand.x, pl.global_position.y, stand.z) - main.world_offset
 		cb.target = p
 		cb.attack("kick" if tries % 4 == 0 else "punch")
-		for i in 80: await _frames(1)
+		for i in 50: await _frames(1)
 	main.needs.health = 100.0
 	if not (p["state"] in ["fly", "down", "injured", "flee"]): return [false, "couldn't put them down in 20 swings (hp %.0f)" % p["hp"]]
 	return [true, "punch landed, they fought back (-%.0f open, -%.0f guarding), down after %d more swings, %d KOs" % [open_loss, guard_loss, tries, cb.kos]]
+
+
+func _fight_partner(style: String):
+	var pd = main.peds
+	var keep_h: float = main.tod.total_hours
+	main.tod.set_date("fall", 3, 12.5)
+	var p = null
+	for i in 240:
+		var f: Vector3 = main.focus_world()
+		for q in pd.peds:
+			if q["state"] == "walk" and (q["pos"] - f).length() < 150.0: p = q; break
+		if p != null: break
+		await _frames(10)
+	main.tod.total_hours = keep_h; main.tod.apply_now()
+	if p == null: return null
+	p["style"] = style
+	main.combat.start_fight(p)
+	var me: Vector3 = p["pos"] + Vector3(1.2, 0, 0)
+	main.player.global_position = Vector3(me.x, float(p["y"]) + 0.1, me.z) - main.world_offset
+	main.player.velocity = Vector3.ZERO
+	return p
+
+func t_fight_ai() -> Array:
+	main.input_enabled = false
+	if main.current_car: main.toggle_vehicle()
+	var cb = main.combat
+	main.needs.health = 100.0
+	# 1) a grappler tackles you to the ground and pins you; mashing Space gets you out
+	var g = await _fight_partner("grappler")
+	if g == null: return [false, "nobody to fight"]
+	var ai: Dictionary = g["ai"]
+	ai["mode"] = "wind"; ai["move"] = "tackle"; ai["t"] = 0.05
+	for i in 120:
+		await _frames(1)
+		if cb.pstate == "pinned": break
+	if cb.pstate != "pinned": return [false, "tackle didn't pin you (pstate '%s', mode %s)" % [cb.pstate, g["ai"]["mode"]]]
+	var h_pin: float = main.needs.health
+	for i in 240: await _frames(1)
+	var gnp_loss: float = h_pin - main.needs.health
+	for k in 30:
+		cb.struggle(); await _frames(4)
+		if cb.pstate == "": break
+	if cb.pstate != "": return [false, "couldn't struggle free"]
+	cb._end_fight(g)
+	main.needs.health = 100.0
+	# 2) a kicker sweeps your legs: you go down, then get up
+	var kk = await _fight_partner("kicker")
+	kk["ai"]["mode"] = "wind"; kk["ai"]["move"] = "sweep"; kk["ai"]["t"] = 0.05
+	for i in 120:
+		await _frames(1)
+		if cb.pstate == "down": break
+	var swept: bool = cb.pstate == "down"
+	for i in 400:
+		await _frames(1)
+		if cb.pstate == "": break
+	cb._end_fight(kk)
+	if not swept: return [false, "sweep didn't knock you down"]
+	if cb.pstate != "": return [false, "never got back up"]
+	# 3) parry: tap guard right before a hook lands
+	main.needs.health = 100.0
+	var bx = await _fight_partner("boxer")
+	bx["ai"]["mode"] = "strike"; bx["ai"]["move"] = "hook"; bx["ai"]["t"] = 0.12; bx["ai"]["hit"] = false
+	cb.set_guard(false); cb.set_guard(true)
+	var h0: float = main.needs.health
+	for i in 40: await _frames(1)
+	var parried: bool = cb.parries >= 1 and main.needs.health >= h0 - 0.01 and cb.counter_bonus > 0.0
+	cb.set_guard(false)
+	cb._end_fight(bx)
+	if not parried: return [false, "no parry (parries %d, lost %.1f)" % [cb.parries, h0 - main.needs.health]]
+	# 4) they adapt: if you turtle behind your guard, grabs become far more likely
+	var probe := {"style": "boxer", "hp": 100.0, "hp_max": 100.0}
+	cb.habit = {"guard": 0.0, "attack": 0.0, "dodge": 0.0}
+	var t0 := 0
+	for i in 400: t0 += 1 if cb._choose_move(probe, 1.0) in ["tackle", "shove"] else 0
+	cb.habit["guard"] = 6.0
+	var t1 := 0
+	for i in 400: t1 += 1 if cb._choose_move(probe, 1.0) in ["tackle", "shove"] else 0
+	cb.habit = {"guard": 0.0, "attack": 0.0, "dodge": 0.0}
+	main.needs.health = 100.0
+	if t1 <= t0 * 2: return [false, "no adaptation to guarding (%d -> %d grabs/shoves of 400)" % [t0, t1]]
+	return [true, "tackled + pinned (-%.0f from ground punches), struggled free; swept and got up; parried a hook; turtling raises grabs %d -> %d /400" % [gnp_loss, t0, t1]]
