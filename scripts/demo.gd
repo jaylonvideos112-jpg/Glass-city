@@ -301,6 +301,17 @@ func _shots(dt: float) -> void:
 			main._update_camera(0.2)
 			return
 		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 30.0
+	elif s[0] == "@carshow":
+		# 3/4 view of the cars at the curb
+		main.hud.visible = false
+		var c0 = main.cars[1] if main.cars.size() > 1 else main.cars[0]
+		var cp: Vector3 = c0.global_position + main.world_offset
+		var fw: Vector3 = -c0.global_transform.basis.z; var rt: Vector3 = c0.global_transform.basis.x
+		pos = cp + fw * 4.5 + rt * 3.2 + Vector3(0, 1.3, 0); look = cp + Vector3(0, 0.6, 0) - fw * 1.0
+		if shot_wait < 2.0:
+			shot_wait += dt
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 55.0
+			return
 	elif s[0] == "@fishing" and main.activities:
 		main.hud.visible = true
 		var ac = main.activities

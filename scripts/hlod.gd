@@ -50,6 +50,14 @@ func _avg_color(m: Material) -> Color:
 				c *= img.get_pixel(0, 0)
 		c.a = wall
 		return _clamp01(c)
+	if m is ShaderMaterial and m.get_shader_parameter("albedo_tex") != null:   # photo-scanned ground (ground_pbr)
+		var img2: Image = (m.get_shader_parameter("albedo_tex") as Texture2D).get_image()
+		if img2 != null:
+			if img2.is_compressed(): img2.decompress()
+			img2.resize(1, 1, Image.INTERPOLATE_BILINEAR)
+			var c2: Color = img2.get_pixel(0, 0) * float(m.get_shader_parameter("brightness"))
+			c2.a = 0.0
+			return _clamp01(c2)
 	return Color(0.62, 0.62, 0.64, 1.0)    # facade shader buildings
 
 const AER_RES := 16

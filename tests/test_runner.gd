@@ -1017,12 +1017,14 @@ func t_wet() -> Array:
 	var wet: float = tod.wetness
 	tod.apply_now()
 	var g: float = tod.globals["wetness"]
-	var asphalt: StandardMaterial3D = main.streamer.materials["asphalt"]
-	var r_wet: float = asphalt.roughness
+	var asphalt = main.streamer.materials["asphalt"]
+	# photo-scanned asphalt (ground_pbr shader) reads the wetness global itself; older StandardMaterial path is tweaked by time_of_day
+	var shader_wet: bool = asphalt is ShaderMaterial and (asphalt as ShaderMaterial).shader.code.contains("wetness")
+	var r_wet: float = 0.0 if shader_wet else asphalt.roughness
 	w.set_state("clear"); for i in 12: tod.step_surface(1.0)
 	var dry: float = tod.wetness
 	tod.apply_now()
-	var r_dry: float = asphalt.roughness
+	var r_dry: float = 1.0 if shader_wet else asphalt.roughness
 	tod.wetness = kw; tod.snow_cover = kn; w.set_state(ks); w.snap(); tod.apply_now()
 	if wet < 0.9 or g < 0.9: return [false, "after 1 h of rain wetness=%.2f (shader %.2f)" % [wet, g]]
 	if r_wet > r_dry - 0.3: return [false, "wet asphalt not glossier (%.2f vs %.2f)" % [r_wet, r_dry]]

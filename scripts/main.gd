@@ -528,7 +528,10 @@ func _setup_environment() -> void:
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.9
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	env.tonemap_mode = Environment.TONE_MAPPER_ACES
+	env.tonemap_white = 6.0
+	# screen-space reflections: glass towers, wet streets and car paint pick up the city around them
+	env.ssr_enabled = true; env.ssr_max_steps = 48; env.ssr_fade_in = 0.15; env.ssr_fade_out = 2.0; env.ssr_depth_tolerance = 0.3
 	env.fog_enabled = true
 	env.fog_light_color = Color(0.72, 0.76, 0.82)
 	env.fog_density = 0.00022

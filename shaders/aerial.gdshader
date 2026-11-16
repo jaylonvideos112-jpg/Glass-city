@@ -17,6 +17,14 @@ uniform float clean_scale = 0.25;
 uniform float classify = 0.0;
 uniform sampler2D alt : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform float alt_scale = 0.15;
+// photo-scanned normal / roughness for the clean (paved) and alt (lawn) layers
+uniform sampler2D clean_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D clean_rough : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform sampler2D alt_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D alt_rough : hint_default_white, filter_linear_mipmap, repeat_enable;
+uniform float use_pbr = 0.0;
+uniform vec3 alt_tint : source_color = vec3(1.0);
+uniform float alt_tint_mix = 0.0;
 global uniform float wetness;
 global uniform float snow_cover;
 varying vec2 plan;
@@ -24,6 +32,8 @@ varying float up;
 void vertex() {
 	plan = VERTEX.xz;
 	up = NORMAL.y;
+	TANGENT = vec3(1.0, 0.0, 0.0);
+	BINORMAL = vec3(0.0, 0.0, 1.0);
 }
 float n2(vec2 p) { return fract(sin(dot(floor(p), vec2(12.9898, 78.233))) * 43758.5453); }
 float vn(vec2 p) { vec2 i = floor(p); vec2 f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -37,6 +47,7 @@ void fragment() {
 	float l = dot(a, vec3(0.299, 0.587, 0.114));
 	a = mix(vec3(l), a, 1.18);
 	vec3 col = a * mix(1.0, 0.75 + d * 0.6, detail_strength);
+	float pbr_rough = -1.0;
 	float big = vn(plan * 0.05) * 0.5 + vn(plan * 0.013 + 7.0) * 0.5;   // broad patchiness
 	if (classify > 0.5) {
 		vec3 b = textureLod(aerial, clamp(auv, vec2(0.001), vec2(0.999)), 4.0).rgb;
@@ -44,10 +55,22 @@ void fragment() {
 		float g = b.g - max(b.r, b.b);
 		float lawn = smoothstep(0.004, 0.03, g) * smoothstep(0.05, 0.11, bl);
 		vec3 paved = texture(clean, plan * clean_scale).rgb;
-		vec3 grass = texture(alt, plan * alt_scale).rgb * mix(0.85, 1.08, big);
+		vec3 grass = texture(alt, plan * alt_scale).rgb;
+		float gl = dot(grass, vec3(0.299, 0.587, 0.114));
+		grass = mix(grass, alt_tint * gl * 2.0, alt_tint_mix) * mix(0.85, 1.08, big);
 		col = mix(paved, grass, lawn);
+		if (use_pbr > 0.5) {
+			NORMAL_MAP = mix(texture(clean_nor, plan * clean_scale).rgb, texture(alt_nor, plan * alt_scale).rgb, lawn);
+			pbr_rough = mix(texture(clean_rough, plan * clean_scale).r, texture(alt_rough, plan * alt_scale).r, lawn);
+		}
 	} else if (photo_mix < 0.01) {
 		col = texture(clean, plan * clean_scale).rgb * mix(0.86, 1.06, big);
+		if (use_pbr > 0.5) {
+			float cl2 = dot(col, vec3(0.299, 0.587, 0.114));
+			col = mix(col, alt_tint * cl2 * 2.0, alt_tint_mix);
+			NORMAL_MAP = texture(clean_nor, plan * clean_scale).rgb;
+			pbr_rough = texture(clean_rough, plan * clean_scale).r;
+		}
 	} else if (photo_mix < 0.999) {
 		vec3 c = texture(clean, plan * clean_scale).rgb;
 		float cl = max(dot(c, vec3(0.299, 0.587, 0.114)), 0.02);
@@ -55,7 +78,7 @@ void fragment() {
 		vec3 cc = c * clamp(l / cl, 0.7, 1.25) * tint;
 		col = mix(cc, col, photo_mix);
 	}
-	float rough = 0.92;
+	float rough = pbr_rough >= 0.0 ? pbr_rough : 0.92;
 	// snow settles on flat surfaces first; patchy while thin
 	float flat_ = smoothstep(0.6, 0.95, up);
 	float patch = smoothstep(0.0, 1.0, snow_cover * 1.6 - 0.6 * d - 0.3 * n2(plan * 0.7));

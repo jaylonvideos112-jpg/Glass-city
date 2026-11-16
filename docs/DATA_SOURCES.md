@@ -35,3 +35,13 @@ Elevation data: USGS 3D Elevation Program
 Building records: Lucas County Auditor (AREIS)
 Aerial imagery: Ohio Statewide Imagery Program (OGRIP)
 ```
+
+## Poly Haven (CC0 1.0, polyhaven.com)
+Photo-scanned PBR materials and models, downloaded with tools/pipeline/fetch_polyhaven.py (public API, generic UA):
+- Ground (textures/pbr): asphalt_02, asphalt_04, concrete_pavement, brushed_concrete, grass_ground, forest_leaves_02, coast_sand_01
+- Walls (textures/pbr): red_brick_03, brick_wall_001, brick_wall_003, brick_wall_005, large_sandstone_blocks, concrete_wall_008,
+  exterior_wall_cladding, white_stucco, white_sandstone_bricks, box_profile_metal_sheet, concrete_block_wall
+  -> composed into the tiling facade textures by tools/pipeline/make_facades.py (window layout kept from textures/_orig)
+- Models (assets_src, not shipped): tree_small_02, island_tree_02 -> billboard impostors in textures/trees baked by
+  tools/dbg/bake_impostor.gd
+CC0: no attribution required; listed here for provenance.

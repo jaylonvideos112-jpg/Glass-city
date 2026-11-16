@@ -87,21 +87,8 @@ func _ready() -> void:
 		add_child(w)
 		wheels.append(w)
 		var tire := MeshInstance3D.new()
-		var cyl := CylinderMesh.new()
-		cyl.top_radius = wr; cyl.bottom_radius = wr; cyl.height = 0.26; cyl.radial_segments = 12; cyl.rings = 1
-		tire.mesh = cyl
-		tire.rotation.z = PI / 2
-		var tm := StandardMaterial3D.new(); tm.albedo_color = Color(0.08, 0.08, 0.08)
-		tire.material_override = tm
+		tire.mesh = preload("res://scripts/wheel_mesh.gd").make(wr, 0.25)
 		w.add_child(tire)
-		var hub := MeshInstance3D.new()
-		var hc := CylinderMesh.new()
-		hc.top_radius = wr * 0.58; hc.bottom_radius = wr * 0.58; hc.height = 0.28; hc.radial_segments = 8; hc.rings = 1
-		hub.mesh = hc
-		hub.rotation.z = PI / 2
-		var hm := StandardMaterial3D.new(); hm.albedo_color = Color(0.7, 0.7, 0.72); hm.metallic = 0.8; hm.roughness = 0.3
-		hub.material_override = hm
-		w.add_child(hub)
 
 func _mat(c: Color, metal := 0.0, rough := 0.5) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new(); m.albedo_color = c; m.metallic = metal; m.roughness = rough; return m

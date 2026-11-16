@@ -14,6 +14,17 @@ uniform sampler2D noise_tex : hint_default_white, filter_linear_mipmap, repeat_e
 uniform float night = 0.0;
 uniform float occupancy = 0.6;   // share of rooms with lights on (by hour, from climate.json)
 
+// photo-scanned wall materials (CC0 Poly Haven): brick, stone, concrete, metal panel; *_mean = average colour
+uniform sampler2D brick_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D brick_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D stone_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D stone_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D conc_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D conc_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D metal_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D metal_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform vec3 brick_mean = vec3(0.4); uniform vec3 stone_mean = vec3(0.4); uniform vec3 conc_mean = vec3(0.4); uniform vec3 metal_mean = vec3(0.4);
+uniform float use_photo = 0.0;
 varying vec4 c0;
 varying vec2 fb;
 
@@ -22,6 +33,8 @@ const vec3 GLASS[6] = vec3[](vec3(0.16, 0.19, 0.22), vec3(0.12, 0.23, 0.29), vec
 
 void vertex() {
 	c0 = CUSTOM0;
+	TANGENT = abs(NORMAL.y) > 0.9 ? vec3(1.0, 0.0, 0.0) : normalize(cross(vec3(0.0, 1.0, 0.0), NORMAL));
+	BINORMAL = abs(NORMAL.y) > 0.9 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
 	fb = UV2;
 }
 
@@ -44,8 +57,19 @@ void fragment() {
 	float wmat = COLOR.a;
 	vec3 glass = pow(GLASS[clamp(gl, 0, 5)], vec3(2.2));
 	float n = texture(noise_tex, m * 0.37).r;
+	vec3 pn = vec3(0.5, 0.5, 1.0);
+	vec3 col;
+	if (use_photo > 0.5) {
+		vec3 ph; vec3 mean;
+		if (wmat < 0.12) { ph = texture(brick_tex, m / 1.0).rgb; pn = texture(brick_nor, m / 1.0).rgb; mean = brick_mean; }
+		else if (wmat < 0.37) { ph = texture(stone_tex, m / 3.0).rgb; pn = texture(stone_nor, m / 3.0).rgb; mean = stone_mean;
+			ph = mix(mean, ph, 0.55); }
+		else if (wmat < 0.62) { ph = texture(conc_tex, m / 2.71).rgb; pn = texture(conc_nor, m / 2.71).rgb; mean = conc_mean; }
+		else { ph = texture(metal_tex, m / 2.0).rgb; pn = texture(metal_nor, m / 2.0).rgb; mean = metal_mean; }
+		col = wall * clamp(ph / max(mean, vec3(0.02)), vec3(0.0), vec3(2.5)) * (0.94 + 0.1 * n);
+	} else {
 	// wall surface detail by material
-	vec3 col = wall * (0.92 + 0.12 * n);
+		col = wall * (0.92 + 0.12 * n);
 	if (wmat < 0.12) {                 // brick coursing
 		vec2 b = m * vec2(1.0 / 0.21, 1.0 / 0.075);
 		b.x += step(1.0, mod(b.y, 2.0)) * 0.5;
@@ -64,6 +88,8 @@ void fragment() {
 		float fade = clamp(1.6 - 2.2 * fwidth(m.y / fh) * 40.0, 0.0, 1.0);
 		col *= mix(0.996, mix(1.0, 0.85, step(fract(m.y / fh), 0.025)), fade);
 	}
+	}
+	float wallness = 1.0;
 	float rough = 0.85, metal = 0.0, spec = 0.4;
 	vec3 emit = vec3(0.0);
 	float fy = fract(m.y / fh), fx = fract(m.x / bw);
@@ -76,13 +102,13 @@ void fragment() {
 		float band = step(base - 0.8, m.y);
 		col = mix(col * 0.55, glass * 0.9, glz);
 		col = mix(col, wall * 0.45, band * 0.6);
-		if (glz > 0.5) { rough = 0.08; spec = 0.9; emit = vec3(1.0, 0.82, 0.55) * 0.3 * night; }
+		if (glz > 0.5) { rough = 0.08; spec = 0.9; emit = vec3(1.0, 0.82, 0.55) * 0.3 * night; wallness = 0.0; }
 	} else if (style == 2 || wmat > 0.88) {
 		// curtain wall: glass everywhere, thin mullions on the bay grid, spandrel line at each floor
 		float mull = step(fx, 0.025) + step(0.975, fx);
 		float spand = step(fy, 0.1);
 		col = mix(glass * (0.85 + 0.25 * hash(cell)), wall * 0.6, clamp(mull + spand * 0.7, 0.0, 1.0));
-		rough = mix(0.06, 0.5, clamp(mull + spand, 0.0, 1.0)); metal = 0.2; spec = 0.8;
+		rough = mix(0.06, 0.5, clamp(mull + spand, 0.0, 1.0)); metal = 0.2; spec = 0.8; wallness = 0.0;
 		emit = room_light(cell, fy) * night * lit * (1.0 - spand);
 	} else if (style == 4 || style == 6) {
 		if (style == 6) col *= mix(1.0, 0.8, clamp(step(fx, 0.012) + step(fract(m.y / (fh * 0.5)), 0.02), 0.0, 1.0));
@@ -110,7 +136,7 @@ void fragment() {
 			if (style == 1) frame = 0.0;
 			float sash = step(abs(fy - (y0 + y1) * 0.5), 0.012);
 			col = mix(glass * (0.8 + 0.3 * hash(cell)), vec3(0.85), clamp(frame + sash, 0.0, 1.0));
-			rough = 0.08; spec = 0.9; metal = 0.15;
+			rough = 0.08; spec = 0.9; metal = 0.15; wallness = 0.0;
 			emit = room_light(cell, fy) * night * lit * (1.0 - frame);
 		} else {
 			// sill / lintel shadow lines
@@ -123,4 +149,5 @@ void fragment() {
 	METALLIC = metal;
 	SPECULAR = spec;
 	EMISSION = emit;
+	NORMAL_MAP = mix(vec3(0.5, 0.5, 1.0), pn, wallness);
 }

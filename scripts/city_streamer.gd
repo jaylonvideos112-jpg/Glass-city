@@ -26,9 +26,24 @@ const AERIAL_LAYERS := {"lot": true, "grass": true, "parking": true, "industrial
 var _aerial_shader: Shader = preload("res://shaders/aerial.gdshader")
 var _detail_tex: Texture2D = preload("res://textures/parking.png")
 ## ground layers drawn from the aerial photo, and how much photo to keep (the rest is a clean tiled texture)
-## photo_mix -1 = classify mode (photo only picks lawn vs paved), 0 = clean texture only
-const PHOTO_MIX := {"lot": [-1.0, "ground_concrete", 0.12], "parking": [0.0, "asphalt", 0.15], "industrial": [0.0, "ground_concrete", 0.12],
-	"grass": [0.0, "grass", 0.15], "forest_floor": [0.0, "forest_floor", 0.15]}
+## photo_mix -1 = classify mode (photo only picks lawn vs paved), 0 = clean texture only.
+## [photo_mix, clean set, clean tile metres]; sets are CC0 Poly Haven scans in textures/pbr/
+const PHOTO_MIX := {"lot": [-1.0, "brushed_concrete", 2.5], "parking": [0.0, "asphalt_04", 3.0], "industrial": [0.0, "brushed_concrete", 2.5],
+	"grass": [0.0, "grass_ground", 2.5], "forest_floor": [0.0, "forest_leaves_02", 2.5]}
+const LAWN_TINT := Color(0.28, 0.5, 0.16)
+var _pbr_cache := {}
+func pbr(set_name: String) -> Dictionary:
+	if not _pbr_cache.has(set_name):
+		var b := "res://textures/pbr/%s_" % set_name
+		_pbr_cache[set_name] = {"diff": load(b + "diff.jpg"), "nor": load(b + "nor.jpg"), "rough": load(b + "rough.jpg")}
+	return _pbr_cache[set_name]
+func ground_mat(set_name: String, tile_m: float, tint := Color.WHITE, tint_mix := 0.0, bright := 1.0, break_tiling := 1.0) -> ShaderMaterial:
+	var t := pbr(set_name)
+	var m := ShaderMaterial.new(); m.shader = load("res://shaders/ground_pbr.gdshader")
+	m.set_shader_parameter("albedo_tex", t["diff"]); m.set_shader_parameter("normal_tex", t["nor"]); m.set_shader_parameter("rough_tex", t["rough"])
+	m.set_shader_parameter("tile_m", tile_m); m.set_shader_parameter("tint", tint); m.set_shader_parameter("tint_mix", tint_mix)
+	m.set_shader_parameter("brightness", bright); m.set_shader_parameter("break_tiling", break_tiling)
+	return m
 var label_font_size := 96
 var lamp_bulb_mat: StandardMaterial3D = null
 var bars: Node = null   # bars.gd: builds bar exteriors and handles enter/exit
@@ -56,6 +71,9 @@ func _tex_mat(tex: String, tint := Color.WHITE, rough := 0.9) -> StandardMateria
 	m.albedo_color = tint
 	m.roughness = rough
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	var np_ := "res://textures/%s_nor.png" % tex
+	if ResourceLoader.exists(np_):
+		m.normal_enabled = true; m.normal_texture = load(np_); m.normal_scale = 1.0
 	var rp := "res://textures/%s_rough.png" % tex
 	if ResourceLoader.exists(rp):
 		# windows are glossy and a little metallic, so they pick up the sky; walls stay matte
@@ -87,7 +105,7 @@ func _make_materials() -> void:
 	for i in tints.size():
 		materials["siding%d" % i] = _tex_mat("siding", tints[i])
 	materials["roof"] = _tex_mat("roof")
-	materials["sand"] = _tex_mat("sand", Color(0.95, 0.9, 0.78))   # island beaches
+	materials["sand"] = ground_mat("coast_sand_01", 2.5)   # island beaches
 	var fac := ShaderMaterial.new()
 	fac.shader = load("res://shaders/facade.gdshader")
 	var nt := NoiseTexture2D.new()
@@ -98,6 +116,17 @@ func _make_materials() -> void:
 	nt.width = 256
 	nt.height = 256
 	fac.set_shader_parameter("noise_tex", nt)
+	# photo wall materials for the parametric facades
+	for pair in [["brick", "red_brick_03"], ["stone", "large_sandstone_blocks"], ["conc", "concrete_wall_008"], ["metal", "box_profile_metal_sheet"]]:
+		var ps := pbr(pair[1])
+		fac.set_shader_parameter(pair[0] + "_tex", ps["diff"]); fac.set_shader_parameter(pair[0] + "_nor", ps["nor"])
+		var im: Image = (ps["diff"] as Texture2D).get_image()
+		if im != null:
+			if im.is_compressed(): im.decompress()
+			im.resize(1, 1, Image.INTERPOLATE_BILINEAR)
+			var mc: Color = im.get_pixel(0, 0).srgb_to_linear()
+			fac.set_shader_parameter(pair[0] + "_mean", Vector3(mc.r, mc.g, mc.b))
+	fac.set_shader_parameter("use_photo", 1.0)
 	materials["facade"] = fac
 	# county-record house facades: era texture x paint tint (tints mirror ERA_TINTS in tools/build_city.py)
 	var era_tints := {"old": ["#e9e3d2", "#c8b386", "#7f8d6f", "#9b5c4b", "#61748a", "#d8c27c", "#5e6b5a", "#efe8d8"],
@@ -115,8 +144,8 @@ func _make_materials() -> void:
 	for nm in ["bar_shooters", "bar_anchor", "bar_cardboard", "bar_easypour", "bar_velvet", "bar_lakefront", "bar_coyote", "bar_gator",
 			"dive_twobuck", "dive_dollar", "dive_cornertap", "dive_happyhour", "dive_tipsytom", "dive_bar", "dive_lastcall"]:
 		materials[nm] = _tex_mat(nm)
-	materials["asphalt"] = _tex_mat("asphalt", Color.WHITE, 0.95)
-	materials["sidewalk"] = _tex_mat("sidewalk", Color(0.78, 0.77, 0.75))
+	materials["asphalt"] = ground_mat("asphalt_02", 3.0, Color.WHITE, 0.0, 0.95)
+	materials["sidewalk"] = ground_mat("concrete_pavement", 1.8, Color.WHITE, 0.0, 1.05, 0.0)
 	materials["lot"] = _tex_mat("grass", Color(0.7, 0.72, 0.62))
 	materials["grass"] = _tex_mat("grass", Color(0.85, 0.9, 0.8))
 	materials["parking"] = _tex_mat("parking")
@@ -287,15 +316,22 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 			m = aerial_mat
 			if PHOTO_MIX.has(layer["mat"]):
 				var pm: Array = PHOTO_MIX[layer["mat"]]
-				var key2: String = pm[1]
+				var key2: String = layer["mat"]
 				if not _ground_mats.has(key2):
 					var gm := aerial_mat.duplicate() as ShaderMaterial
+					var cs := pbr(pm[1])
 					gm.set_shader_parameter("photo_mix", maxf(pm[0], 0.0))
+					gm.set_shader_parameter("use_pbr", 1.0)
+					gm.set_shader_parameter("clean", cs["diff"]); gm.set_shader_parameter("clean_nor", cs["nor"]); gm.set_shader_parameter("clean_rough", cs["rough"])
+					gm.set_shader_parameter("clean_scale", 1.0 / float(pm[2]))
+					if layer["mat"] == "grass":
+						gm.set_shader_parameter("alt_tint", LAWN_TINT); gm.set_shader_parameter("alt_tint_mix", 0.7)
 					if pm[0] < 0.0:
+						var gs := pbr("grass_ground")
 						gm.set_shader_parameter("classify", 1.0)
-						gm.set_shader_parameter("alt", load("res://textures/grass.png"))
-					gm.set_shader_parameter("clean", load("res://textures/%s.png" % pm[1]))
-					gm.set_shader_parameter("clean_scale", pm[2])
+						gm.set_shader_parameter("alt", gs["diff"]); gm.set_shader_parameter("alt_nor", gs["nor"]); gm.set_shader_parameter("alt_rough", gs["rough"])
+						gm.set_shader_parameter("alt_scale", 1.0 / 2.5)
+						gm.set_shader_parameter("alt_tint", LAWN_TINT); gm.set_shader_parameter("alt_tint_mix", 0.7)
 					_ground_mats[key2] = gm
 				m = _ground_mats[key2]
 		mesh.surface_set_material(nsurf, m)
@@ -321,7 +357,11 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		elif p[0] == "lamp": lamps.append(p)
 		else: _add_prop(root, p)
 	if not trees.is_empty():
-		root.add_child(_multimesh(_tree_mesh(), trees, true))
+		# two species of photo-real billboard trees (baked from CC0 Poly Haven models)
+		var tA: Array = []; var tB: Array = []
+		for tp in trees: (tA if (int(absf(tp[1]) * 7.0 + absf(tp[2]) * 3.0) % 3) != 0 else tB).append(tp)
+		if not tA.is_empty(): root.add_child(_multimesh(_tree_mesh(0), tA, true))
+		if not tB.is_empty(): root.add_child(_multimesh(_tree_mesh(1), tB, true))
 	if not lamps.is_empty():
 		root.add_child(_multimesh(_lamp_mesh(), lamps, false))
 		# night light pools on the ground + head positions for street_lights.gd
@@ -415,19 +455,41 @@ func _multimesh(mesh: Mesh, items: Array, scale_from_data: bool) -> MultiMeshIns
 func _merge_into(st: SurfaceTool, m: PrimitiveMesh, xf: Transform3D) -> void:
 	st.append_from(m, 0, xf)
 
-func _tree_mesh() -> ArrayMesh:
-	if _tree_cache: return _tree_cache
+var _tree_meshes := {}
+## A billboard tree: three crossed quads textured with renders of a real tree model (textures/trees, baked by
+## tools/dbg/bake_impostor.gd). Normals bend outward from the crown so the canopy shades like a volume.
+func _tree_mesh(variant := 0) -> ArrayMesh:
+	if _tree_meshes.has(variant): return _tree_meshes[variant]
+	var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://textures/trees/meta.json"))
+	var views: Array = [["tree_small_02_a", "tree_small_02_b"], ["island_tree_02_c", "island_tree_02_d"]][variant]
+	var height: float = [9.0, 7.0][variant]
 	var am := ArrayMesh.new()
-	var trunk := CylinderMesh.new(); trunk.top_radius = 0.18; trunk.bottom_radius = 0.28; trunk.height = 3.0; trunk.radial_segments = 6; trunk.rings = 1
-	var crown := SphereMesh.new(); crown.radius = 2.6; crown.height = 4.6; crown.radial_segments = 7; crown.rings = 4
-	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES); st.append_from(trunk, 0, Transform3D(Basis(), Vector3(0, 1.5, 0)))
-	st.commit(am)
-	var st2 := SurfaceTool.new(); st2.begin(Mesh.PRIMITIVE_TRIANGLES); st2.append_from(crown, 0, Transform3D(Basis(), Vector3(0, 4.6, 0)))
-	st2.commit(am)
-	var tm := StandardMaterial3D.new(); tm.albedo_color = Color(0.33, 0.24, 0.16)
-	var cm := StandardMaterial3D.new(); cm.albedo_color = Color(0.22, 0.42, 0.18); cm.roughness = 1.0
-	am.surface_set_material(0, tm); am.surface_set_material(1, cm)
-	_tree_cache = am
+	var angles := [0.0, PI / 3.0, 2.0 * PI / 3.0]
+	for vi in 2:
+		var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+		var view: String = views[vi]
+		var S: float = height / float(meta[view]["h_frac"])
+		var cy: float = height * 0.62
+		for ai in angles.size():
+			if (ai == 1) != (vi == 1): continue          # view b on the middle quad, view a on the others
+			var b := Basis(Vector3.UP, angles[ai])
+			var corners := [Vector3(-S * 0.5, 0, 0), Vector3(S * 0.5, 0, 0), Vector3(S * 0.5, S, 0), Vector3(-S * 0.5, S, 0)]
+			var uvs := [Vector2(0, 1), Vector2(1, 1), Vector2(1, 0), Vector2(0, 0)]
+			for k in [0, 1, 2, 0, 2, 3]:
+				var v: Vector3 = b * corners[k]
+				var n := (v - Vector3(0, cy, 0)).normalized().lerp(Vector3.UP, 0.35).normalized()
+				st.set_normal(n); st.set_uv(uvs[k]); st.add_vertex(v)
+		st.commit(am)
+		var m := StandardMaterial3D.new()
+		m.albedo_texture = load("res://textures/trees/%s.png" % view)
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR; m.alpha_scissor_threshold = 0.45
+		m.alpha_antialiasing_mode = BaseMaterial3D.ALPHA_ANTIALIASING_ALPHA_TO_COVERAGE
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED; m.roughness = 0.9
+		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+		m.backlight_enabled = true; m.backlight = Color(0.12, 0.16, 0.06)      # light through the leaves
+		m.metallic_specular = 0.15
+		am.surface_set_material(am.get_surface_count() - 1, m)
+	_tree_meshes[variant] = am
 	return am
 
 var _pool_cache: PlaneMesh

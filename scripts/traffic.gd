@@ -25,7 +25,7 @@ var cars: Array = []    # active agents (Dictionary each)
 var _mesh_cache := {}
 var _head_mat: StandardMaterial3D
 var _tail_mat: StandardMaterial3D
-var _body_mat: StandardMaterial3D
+var _body_mat: ShaderMaterial
 var enabled := true
 var time_s := 0.0       # signal clock (real seconds)
 var spawned_total := 0
@@ -42,16 +42,14 @@ static func roster_types() -> Array:
 			"cabin": CAB.get(m["body"], [0.2, 0.5]), "body": m["body"], "old": m.get("old", false)})
 	return out
 
+const WheelMesh := preload("res://scripts/wheel_mesh.gd")
+
 func _ready() -> void:
 	T = JSON.parse_string(FileAccess.get_file_as_string(DATA_PATH))
 	T["vehicles"] = roster_types() + T["vehicles"]
 	rng.seed = 1977
 	main.streamer.chunk_loaded.connect(func(_k): _dirty = true)
-	_body_mat = StandardMaterial3D.new()
-	_body_mat.vertex_color_use_as_albedo = true
-	_body_mat.vertex_color_is_srgb = true
-	_body_mat.roughness = 0.45
-	_body_mat.metallic = 0.25
+	_body_mat = ShaderMaterial.new(); _body_mat.shader = load("res://shaders/car_paint.gdshader")
 	_head_mat = StandardMaterial3D.new(); _head_mat.albedo_color = Color(1.0, 0.96, 0.85)
 	_head_mat.emission_enabled = true; _head_mat.emission = Color(1.0, 0.95, 0.82)
 	_tail_mat = StandardMaterial3D.new(); _tail_mat.albedo_color = Color(0.7, 0.04, 0.03)
@@ -196,6 +194,131 @@ func _hexa(st: SurfaceTool, b: Array, t: Array, cols: Dictionary) -> void:
 		for v in [a, bb, c, a, c, d]:
 			dst.set_color(col); dst.set_normal(-n); dst.add_vertex(v)
 
+## Smooth car body lofted through rounded cross-sections along the length: bonnet and boot that curve down at
+## the ends, a raked windscreen and rear window, side glass that leans in (tumblehome), a B pillar, and wheel
+## arches cut out of the lower body. Quads take one colour each (paint / glass / dark) so window edges stay crisp;
+## normals are smoothed across the surface so the paint reflects like a real panel.
+func _loft_body(st: SurfaceTool, v: Dictionary, paint: Color, paint_dark: Color, glass: Color, dark: Color, trim: Color, sill: float, belt: float, wr: float) -> void:
+	var L: float = v["size"][0]; var W: float = v["size"][1]; var H: float = v["size"][2]
+	var body: String = v["body"]
+	var hw := W * 0.5; var zf := -L * 0.5
+	var cab: Array = v["cabin"]
+	var c0: float = L * cab[0]; var cl: float = L * cab[1]
+	var c1: float = c0 + cl
+	if body in ["hatch", "suv", "wagon"]: c1 = minf(L - 0.25, c1)
+	var rake_f: float = cl * (0.34 if body in ["coupe", "sports"] else 0.28)
+	var rake_r: float = cl * (0.34 if body in ["sedan", "coupe", "sports"] else 0.08)
+	var hood: float = belt + 0.04
+	var trunk: float = belt + (0.06 if body in ["sedan", "coupe", "sports"] else 0.0)
+	var wz: float = L * 0.33
+	var axles := [-wz, wz]
+	var NZ := 34
+	var zs: Array = []
+	for i in NZ + 1:
+		var t := float(i) / NZ
+		zs.append(t * t * (3.0 - 2.0 * t) * 0.3 + t * 0.7)     # a little denser at the ends
+	# profile point count per side (bottom centre -> roof centre)
+	var NP := 11
+	var grid: Array = []      # [i][j] Vector3, j over the full ring 0..2*NP-2 (right side then left side mirrored)
+	var kind: Array = []      # [i] -> per-band tags along the ring for colouring
+	for i in zs.size():
+		var z: float = float(zs[i]) * L                    # 0..L from the front
+		var tf := clampf(z / 0.45, 0.0, 1.0); var tr2 := clampf((L - z) / 0.4, 0.0, 1.0)
+		var endw: float = 0.86 + 0.14 * sin(minf(tf, tr2) * PI * 0.5)     # rounded corners in plan
+		var endh: float = 1.0 - 0.1 * (1.0 - sin(tf * PI * 0.5)) - 0.06 * (1.0 - sin(tr2 * PI * 0.5))
+		var w := hw * endw
+		# top line: bonnet -> windscreen -> roof -> rear window -> boot
+		var top: float
+		if z < c0: top = hood * endh
+		elif z < c0 + rake_f: top = lerpf(hood, H, smoothstep(0.0, 1.0, (z - c0) / rake_f))
+		elif z < c1 - rake_r: top = H
+		elif z < c1: top = lerpf(H, trunk, smoothstep(0.0, 1.0, (z - (c1 - rake_r)) / rake_r))
+		else: top = trunk * endh
+		var in_cab: bool = z > c0 + rake_f * 0.15 and z < c1 - rake_r * 0.1
+		var gh: float = clampf(top - belt, 0.0, 1.0)       # greenhouse height here
+		var bot := sill + 0.06 * (1.0 - minf(tf, tr2))
+		# wheel arch: lift the side bottom over the tyre
+		var arch := 0.0
+		for az in axles:
+			var dz: float = (z - L * 0.5) - az
+			var rr: float = wr * 1.12
+			if absf(dz) < rr: arch = maxf(arch, sqrt(rr * rr - dz * dz) + wr - bot + 0.02)
+		var side_bot: float = bot + arch
+		var pts := [
+			Vector3(0.0, bot - 0.02, 0), Vector3(w * 0.85, bot, 0), Vector3(w * 0.97, side_bot + 0.03, 0),
+			Vector3(w, maxf(side_bot + 0.08, lerpf(bot, belt, 0.42)), 0), Vector3(w * 0.995, lerpf(bot, belt, 0.8), 0),
+			Vector3(w * 0.965, belt, 0),
+			Vector3(w * (0.93 - 0.02 * minf(gh * 3.0, 1.0)), belt + minf(gh, 0.04), 0),
+			Vector3(w * (0.92 - 0.2 * minf(gh / 0.45, 1.0)), belt + gh * 0.55 + minf(gh, 0.04) * 0.45, 0),
+			Vector3(w * (0.9 - 0.25 * minf(gh / 0.45, 1.0)), top - 0.04 * minf(gh * 4.0, 1.0), 0),
+			Vector3(w * (0.6 - 0.12 * minf(gh / 0.45, 1.0)), top, 0),
+			Vector3(0.0, top + 0.015, 0)]
+		if not in_cab and gh < 0.05:    # bonnet / boot: flatten the greenhouse points onto a crowned panel
+			pts[6] = Vector3(w * 0.9, top - 0.01, 0); pts[7] = Vector3(w * 0.75, top + 0.008, 0); pts[8] = Vector3(w * 0.55, top + 0.016, 0); pts[9] = Vector3(w * 0.3, top + 0.02, 0)
+			pts[10] = Vector3(0.0, top + 0.022, 0)
+		var ring: Array = []
+		for j in NP: ring.append(Vector3(pts[j].x, pts[j].y, zf + z))
+		for j in range(NP - 2, -1, -1): ring.append(Vector3(-pts[j].x, pts[j].y, zf + z))
+		grid.append(ring)
+		kind.append({"z": z, "cab": in_cab, "wind": z > c0 and z < c0 + rake_f, "rear": z > c1 - rake_r and z < c1 and body in ["sedan", "coupe", "sports"],
+			"hatchback": z > c1 - 0.05 and body in ["hatch", "suv", "wagon"], "bpil": absf(z - (c0 + cl * 0.5)) < 0.06,
+			"cpil": absf(z - (c1 - rake_r - 0.05)) < 0.06 and body in ["suv", "wagon"]})
+	var nr: int = grid[0].size()
+	# smooth normals
+	var nrm: Array = []
+	for i in grid.size():
+		var row: Array = []
+		for j in nr:
+			var a: Vector3 = grid[mini(i + 1, grid.size() - 1)][j] - grid[maxi(i - 1, 0)][j]
+			var b: Vector3 = grid[i][(j + 1) % nr] - grid[i][(j - 1 + nr) % nr]
+			var n := b.cross(a).normalized()
+			if n == Vector3.ZERO: n = Vector3.UP
+			row.append(n)
+		nrm.append(row)
+	for i in grid.size() - 1:
+		var k0: Dictionary = kind[i]; var k1: Dictionary = kind[i + 1]
+		for j in nr - 1:
+			var band: int = mini(j, nr - 2 - j)
+			var col := paint
+			if band <= 1: col = dark
+			elif band == 6 or band == 7:          # side glass band
+				if k0["cab"] and k1["cab"] and not k0["bpil"] and not k1["bpil"] and not k0["cpil"]: col = glass
+			elif band >= 8:                         # roof region: windscreen / rear window
+				if (k0["wind"] and k1["wind"]) or (k0["rear"] and k1["rear"]): col = glass
+			if band >= 6 and (k0["hatchback"] or k1["hatchback"]) and band < 9 and k0["cab"]: col = glass
+			var dst := _glass_st if (_glass_st != null and col == glass) else st
+			var q := [grid[i][j], grid[i + 1][j], grid[i + 1][j + 1], grid[i][j + 1]]
+			var qn := [nrm[i][j], nrm[i + 1][j], nrm[i + 1][j + 1], nrm[i][j + 1]]
+			for k in [0, 1, 2, 0, 2, 3]:
+				dst.set_color(col); dst.set_normal(qn[k]); dst.add_vertex(q[k])
+	# end caps (front and rear faces)
+	for e in [0, grid.size() - 1]:
+		var ring: Array = grid[e]; var c := Vector3(0, 0, 0)
+		for p in ring: c += p
+		c /= ring.size()
+		var fn := Vector3(0, 0, -1) if e == 0 else Vector3(0, 0, 1)
+		for j in nr - 1:
+			for tri in [[c, ring[j], ring[j + 1]], [c, ring[j + 1], ring[j]]]:     # both windings: caps are tiny
+				for p in tri:
+					st.set_color(paint_dark); st.set_normal(fn); st.add_vertex(p)
+
+## mark each vertex's surface type in its colour alpha for shaders/car_paint.gdshader (paint 1, glass .5, chrome .3)
+func _code_surfaces(am: ArrayMesh, paints: Array, chromes: Array) -> ArrayMesh:
+	var arr := am.surface_get_arrays(0)
+	var cols: PackedColorArray = arr[Mesh.ARRAY_COLOR]
+	for i in cols.size():
+		var c: Color = cols[i]; c.a = 0.0
+		for p in paints:
+			if c.is_equal_approx(Color(p.r, p.g, p.b, 0.0)): c.a = 1.0
+		if c.is_equal_approx(Color(GLASS.r, GLASS.g, GLASS.b, 0.0)): c.a = 0.5
+		for ch in chromes:
+			if c.is_equal_approx(Color(ch.r, ch.g, ch.b, 0.0)): c.a = 0.3
+		cols[i] = c
+	arr[Mesh.ARRAY_COLOR] = cols
+	var out := ArrayMesh.new()
+	out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	return out
+
 func _corners(x: float, y: float, zf: float, zr: float) -> Array:
 	return [Vector3(-x, y, zf), Vector3(x, y, zf), Vector3(x, y, zr), Vector3(-x, y, zr)]
 
@@ -242,27 +365,16 @@ func vehicle_mesh(v: Dictionary, paint: Color, with_wheels := true) -> ArrayMesh
 	# --- lower body: sill -> belt, with a sloped bonnet and boot and slightly narrower shoulders
 	var sill := floor_y
 	var nl := L * (0.12 if not tall else 0.03)      # nose length that slopes
-	_hexa(st, _corners(hw, sill, zf + nl, zr - nl), _corners(hw * 0.97, belt, zf + nl, zr - nl), cols)
-	_hexa(st, _corners(hw * 0.96, sill + 0.06, zf, zf + nl), _corners(hw * 0.94, belt - nose * H * 0.5, zf + 0.06, zf + nl), cols)   # nose
-	_hexa(st, _corners(hw * 0.96, sill + 0.06, zr - nl, zr), _corners(hw * 0.94, belt - nose * H * 0.3, zr - nl, zr - 0.06), cols)   # tail
+	var lofted: bool = body in ["sedan", "coupe", "sports", "hatch", "suv", "wagon"]
+	if not lofted:
+		_hexa(st, _corners(hw, sill, zf + nl, zr - nl), _corners(hw * 0.97, belt, zf + nl, zr - nl), cols)
+		_hexa(st, _corners(hw * 0.96, sill + 0.06, zf, zf + nl), _corners(hw * 0.94, belt - nose * H * 0.5, zf + 0.06, zf + nl), cols)   # nose
+		_hexa(st, _corners(hw * 0.96, sill + 0.06, zr - nl, zr), _corners(hw * 0.94, belt - nose * H * 0.3, zr - nl, zr - 0.06), cols)   # tail
 	# --- glasshouse / cargo box
 	var roof_col := {"side": glass, "top": paint, "front": glass, "rear": glass, "bottom": paint}
 	match body:
 		"sedan", "coupe", "sports", "hatch", "suv", "wagon":
-			var cab: Array = v["cabin"]
-			var cl: float = L * cab[1]
-			var c0: float = zf + L * cab[0] + (0.0 if body != "hatch" else 0.1)
-			var c1: float = c0 + cl
-			if body in ["hatch", "suv", "wagon"]: c1 = minf(zr - 0.25, c0 + cl)
-			var rake_f: float = cl * (0.26 if body in ["coupe", "sports"] else 0.2)
-			var rake_r: float = cl * (0.24 if body in ["sedan", "coupe", "sports"] else 0.06)
-			_hexa(st, _corners(hw * 0.92, belt, c0, c1), _corners(hw * 0.74, H, c0 + rake_f, c1 - rake_r), roof_col)
-			# pillars between the side windows (B pillar)
-			var bz := c0 + cl * 0.48
-			for sx in [-1, 1]:
-				var x0: float = sx * hw * 0.83
-				_hexa(st, [Vector3(x0 - 0.04 * sx, belt, bz - 0.05), Vector3(x0 + 0.06 * sx, belt, bz - 0.05), Vector3(x0 + 0.06 * sx, belt, bz + 0.05), Vector3(x0 - 0.04 * sx, belt, bz + 0.05)],
-					[Vector3(x0 * 0.82 - 0.03 * sx, H - 0.02, bz - 0.05), Vector3(x0 * 0.82 + 0.05 * sx, H - 0.02, bz - 0.05), Vector3(x0 * 0.82 + 0.05 * sx, H - 0.02, bz + 0.05), Vector3(x0 * 0.82 - 0.03 * sx, H - 0.02, bz + 0.05)], {"side": trim})
+			_loft_body(st, v, paint, paint_dark, glass, dark, trim, sill, belt, wr)
 		"pickup":
 			var c0p: float = zf + L * 0.2; var c1p: float = zf + L * 0.48
 			_hexa(st, _corners(hw * 0.94, belt, c0p, c1p), _corners(hw * 0.8, H, c0p + 0.32, c1p - 0.05), roof_col)
@@ -302,8 +414,9 @@ func vehicle_mesh(v: Dictionary, paint: Color, with_wheels := true) -> ArrayMesh
 			_hexa(st, [Vector3(x4, sill + 0.3, zf + 0.2), Vector3(x4 + sx * 0.01, sill + 0.3, zf + 0.2), Vector3(x4 + sx * 0.01, sill + 0.3, zr - 0.2), Vector3(x4, sill + 0.3, zr - 0.2)],
 				[Vector3(x4, sill + 0.45, zf + 0.2), Vector3(x4 + sx * 0.01, sill + 0.45, zf + 0.2), Vector3(x4 + sx * 0.01, sill + 0.45, zr - 0.2), Vector3(x4, sill + 0.45, zr - 0.2)], {"side": Color(0.95, 0.85, 0.2)})
 	# --- bumpers, grille, plates, mirrors
-	_hexa(st, _corners(hw * 0.98, sill - 0.04, zf - 0.04, zf + 0.12), _corners(hw * 0.98, sill + 0.2, zf - 0.04, zf + 0.12), {"side": trim})
-	_hexa(st, _corners(hw * 0.98, sill - 0.04, zr - 0.12, zr + 0.04), _corners(hw * 0.98, sill + 0.2, zr - 0.12, zr + 0.04), {"side": trim})
+	var bw: float = hw * (0.86 if lofted else 0.98)
+	_hexa(st, _corners(bw, sill, zf - 0.03, zf + 0.1), _corners(bw, sill + 0.14, zf - 0.03, zf + 0.1), {"side": trim})
+	_hexa(st, _corners(bw, sill, zr - 0.1, zr + 0.03), _corners(bw, sill + 0.14, zr - 0.1, zr + 0.03), {"side": trim})
 	var gy: float = belt - nose * H * 0.5 - 0.08
 	_hexa(st, _corners(hw * 0.38, sill + 0.24, zf + 0.02, zf + 0.05), _corners(hw * 0.38, minf(gy, sill + 0.5), zf + 0.02, zf + 0.05), {"side": dark, "front": dark})
 	_hexa(st, _corners(0.26, sill + 0.24, zr - 0.04, zr - 0.01), _corners(0.26, sill + 0.38, zr - 0.04, zr - 0.01), {"side": Color(0.9, 0.9, 0.85), "rear": Color(0.92, 0.92, 0.88)})
@@ -319,24 +432,26 @@ func vehicle_mesh(v: Dictionary, paint: Color, with_wheels := true) -> ArrayMesh
 	for az in axles:
 		for sx in [-1, 1]:
 			var wc := Vector3(sx * (hw - 0.12), wr, az)
-			_hexa(st, _corners(0.13, wr + 0.02, az - wr * 1.05, az + wr * 1.05).map(func(p): return p + Vector3(sx * (hw - 0.12), 0, 0)),
-				_corners(0.13, wr * 2.05, az - wr * 0.9, az + wr * 0.9).map(func(p): return p + Vector3(sx * (hw - 0.12), 0, 0)), {"side": dark})
-			if with_wheels: _wheel(st, wc, wr, 0.24, tire, hub)
-	var am := st.commit()
+			if not lofted:
+				_hexa(st, _corners(0.13, wr + 0.02, az - wr * 1.05, az + wr * 1.05).map(func(p): return p + Vector3(sx * (hw - 0.12), 0, 0)),
+					_corners(0.13, wr * 2.05, az - wr * 0.9, az + wr * 0.9).map(func(p): return p + Vector3(sx * (hw - 0.12), 0, 0)), {"side": dark})
+			if with_wheels and not lofted: _wheel(st, wc, wr, 0.24, tire, hub)
+	var am := _code_surfaces(st.commit(), [paint, paint_dark, paint.lightened(0.05), paint.darkened(0.1)], [chrome, hub])
 	am.surface_set_material(0, _body_mat)
 	# lights: headlights (white, surface 1) and taillights (red, surface 2)
 	var st2 := SurfaceTool.new(); st2.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var st3 := SurfaceTool.new(); st3.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var ly: float = minf(gy, belt - 0.12)
 	for sx in [-1, 1]:
-		_box(st2, Vector3(W * 0.2, 0.12, 0.04), Vector3(sx * hw * 0.66, ly, zf + 0.03), Color.WHITE)
-		_box(st3, Vector3(W * 0.18, 0.14, 0.04), Vector3(sx * hw * 0.7, belt - nose * H * 0.3 - 0.1 if not tall else sill + 0.5, zr - 0.03), Color.WHITE)
+		var lz: float = 0.012 if lofted else -0.03
+		_box(st2, Vector3(W * 0.2, 0.12, 0.05), Vector3(sx * hw * 0.62, ly, zf - lz), Color.WHITE)
+		_box(st3, Vector3(W * 0.18, 0.14, 0.05), Vector3(sx * hw * 0.64, belt - nose * H * 0.3 - 0.1 if not tall else sill + 0.5, zr + lz), Color.WHITE)
 	st2.commit(am); am.surface_set_material(1, _head_mat)
 	st3.commit(am); am.surface_set_material(2, _tail_mat)
 	if _glass_st != null:
 		if _glass_mat == null:
-			_glass_mat = StandardMaterial3D.new(); _glass_mat.albedo_color = Color(0.06, 0.08, 0.1, 0.74)
-			_glass_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; _glass_mat.roughness = 0.08; _glass_mat.metallic_specular = 0.9
+			_glass_mat = StandardMaterial3D.new(); _glass_mat.albedo_color = Color(0.015, 0.02, 0.025, 0.9)
+			_glass_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; _glass_mat.roughness = 0.05; _glass_mat.metallic_specular = 0.45
 			_glass_mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_glass_st.commit(am); am.surface_set_material(am.get_surface_count() - 1, _glass_mat)
 		_glass_st = null
@@ -359,6 +474,13 @@ func _spawn_on(eid: int, s: float, type_id := "") -> Dictionary:
 	var mi := MeshInstance3D.new(); mi.mesh = vehicle_mesh(v, paint)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	body.add_child(mi)
+	if v.get("body", "") in ["sedan", "coupe", "sports", "hatch", "suv", "wagon"]:     # alloy wheels under smooth bodies
+		var vh: float = v["size"][2]; var wr2: float = 0.34 if vh < 1.6 else 0.4
+		for az in [-1.0, 1.0]:
+			for sx in [-1.0, 1.0]:
+				var wm := MeshInstance3D.new(); wm.mesh = WheelMesh.make(wr2, 0.24)
+				wm.position = Vector3(sx * (float(v["size"][1]) * 0.5 - 0.12), wr2, az * float(v["size"][0]) * 0.33)
+				body.add_child(wm)
 	main.world.add_child(body)
 	var per_dir: int = e["lanes"] if e["oneway"] else max(1, e["lanes"] / 2)
 	var c := {"node": body, "type": v["id"], "paint": paint, "len": float(v["size"][0]), "edge": eid, "ea": e["a"], "eb": e["b"], "s": s,
