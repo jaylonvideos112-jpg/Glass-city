@@ -377,7 +377,10 @@ func _park_at_curb() -> void:
 		var to := Vector3(p.x - bq.x, 0, p.z - bq.z)
 		var sgn := 1.0 if to.dot(right) >= 0.0 else -1.0
 		if e2["oneway"]: sgn = 1.0
-		var q2: Vector3 = bq + right * sgn * maxf(float(e2["w"]) * 0.5 - 1.25, 1.8)
+		# clear of the outermost travel lane (so traffic isn't stuck behind it), at the curb where the road is wide enough
+		var lw: float = float(traffic.T["driver"]["lane_width"])
+		var outer: float = ((int(e2["lanes"]) - 1) * 0.5 * lw) if e2["oneway"] else ((maxi(1, int(e2["lanes"]) / 2) - 0.5) * lw)
+		var q2: Vector3 = bq + right * sgn * maxf(float(e2["w"]) * 0.5 - 1.25, outer + lw * 0.5 + 1.15)
 		for u in used:     # keep them a car length apart
 			if Vector2(u.x - q2.x, u.z - q2.z).length() < 6.5: q2 += dir * 7.0
 		used.append(q2)

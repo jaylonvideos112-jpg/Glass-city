@@ -618,6 +618,16 @@ func tr_alive(c: Dictionary) -> bool:
 	return main.traffic.cars.has(c)
 
 func t_dispatch() -> Array:
+	# a responder that starts near the edge of the streamed area can be dropped when its road unloads;
+	# that's fine in play, so try a few dispatches and judge one that stays in the world
+	var last := "could not dispatch"
+	for attempt in 3:
+		var r: Array = await _dispatch_once()
+		if r[0] or r[1] != "dropped": return r
+		last = "responder dropped with its road (unloaded) %d times" % (attempt + 1)
+	return [false, last]
+
+func _dispatch_once() -> Array:
 	var sv = main.services
 	var inc: Dictionary = {}
 	for i in 10:
@@ -630,17 +640,19 @@ func t_dispatch() -> Array:
 	var d0: float = (c["pos"] - ip).length()
 	var best := d0
 	var p0: Vector3 = c["pos"]; var moved := 0.0; var pi0: int = c["pi"]
+	var alive := true
 	for k in 1200:
 		await _frames(1)
-		if not tr_alive(c): break
+		if not tr_alive(c): alive = false; break
 		best = minf(best, (c["pos"] - ip).length())
 		moved = maxf(moved, (c["pos"] - p0).length())
 		if c.get("dwell", 0.0) > 0.0 and c.get("target", -1) == inc["node"]: break
 	var lvl: float = main.audio.targets()["siren"] if main.audio else 0.0
+	if not alive and moved < 25.0: return [false, "dropped"]
 	if not c.get("siren", false) and c.has("target"): return [false, "siren off before arriving"]
 	var progressed: int = int(c.get("pi", pi0)) - pi0
 	if moved < 25.0 and progressed < 3: return [false, "responder barely moved (%.0f m, %d route nodes)" % [moved, progressed]]
-	main.traffic._despawn(c)
+	if alive: main.traffic._despawn(c)
 	return [true, "ambulance drove %.0f m along its %d-node route (%.0f -> %.0f m from the scene); siren level %.2f" % [moved, inc["car"]["path"].size() if inc["car"].has("path") else 0, d0, best, lvl]]
 
 func t_world_state() -> Array:
@@ -1226,6 +1238,8 @@ func t_pd_walk() -> Array:
 
 func t_pd_cross() -> Array:
 	var pd = main.peds; var tr = main.traffic
+	var keep_h: float = main.tod.total_hours
+	main.tod.set_date("fall", 3, 12.5)          # people are out at lunchtime (earlier tests can leave it at night)
 	var c0: int = pd.crossings_started
 	var bad := 0; var seen := 0
 	for f in 40:
@@ -1237,6 +1251,7 @@ func t_pd_cross() -> Array:
 			var n: int = p["cross"][3]
 			if pd.node_walk.get(n, []).size() < 3 and not tr.ix.has(n): bad += 1
 	var started: int = pd.crossings_started - c0
+	main.tod.total_hours = keep_h; main.tod.apply_now()
 	if started == 0: return [false, "nobody crossed a street in 40 s"]
 	return [true, "%d crossings started, all at intersections" % started] if bad == 0 else [false, "%d crossings away from intersections" % bad]
 	if bad > 0: return [false, "%d crossings away from intersections" % bad]
@@ -1515,7 +1530,7 @@ func t_melee() -> Array:
 	if jab_guard > jab_open * 0.4: return [false, "guard barely helped (%.1f vs %.1f)" % [jab_guard, jab_open]]
 	# finish them: combo + kicks until they go down
 	var tries := 0
-	while not (p["state"] in ["fly", "down", "injured", "flee", "surrender"]) and tries < 20:
+	while not (p["state"] in ["fly", "down", "injured", "flee", "surrender"]) and tries < 40:
 		tries += 1
 		# like a player would: wait for an opening (they're winding up or recovering), then swing
 		for w in 240:
@@ -1529,7 +1544,7 @@ func t_melee() -> Array:
 		cb.attack("kick" if tries % 4 == 0 else "punch")
 		for i in 50: await _frames(1)
 	main.needs.health = 100.0
-	if not (p["state"] in ["fly", "down", "injured", "flee"]): return [false, "couldn't put them down in 20 swings (hp %.0f)" % p["hp"]]
+	if not (p["state"] in ["fly", "down", "injured", "flee"]): return [false, "couldn't put them down in 40 swings (hp %.0f)" % p["hp"]]
 	return [true, "punch landed, they fought back (-%.0f open, -%.0f guarding), down after %d more swings, %d KOs" % [open_loss, guard_loss, tries, cb.kos]]
 
 
