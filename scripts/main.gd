@@ -231,7 +231,8 @@ func _setup_input() -> void:
 	_add_key("right", [KEY_D, KEY_RIGHT])
 	_add_key("sprint", [KEY_SHIFT])
 	_add_key("jump", [KEY_SPACE])
-	_add_key("enter", [KEY_E, KEY_F])
+	_add_key("enter", [KEY_E])          # use / talk / apply / clock in / doors
+	_add_key("vehicle", [KEY_F])        # get in / out of cars (GTA-style), never steals the E key
 	_add_key("reset_car", [KEY_R])
 	_add_key("toggle_help", [KEY_H])
 
@@ -245,6 +246,9 @@ func _unhandled_input(e: InputEvent) -> void:
 	if e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		cam_yaw -= e.relative.x * mouse_sens
 		cam_pitch = clamp(cam_pitch - e.relative.y * mouse_sens, -1.2, 0.5)
+	if e.is_action_pressed("vehicle"):
+		if not bars.inside and not dying: toggle_vehicle()
+		return
 	if e.is_action_pressed("enter"):
 		if current_car == null and jobs and jobs.try_interact(player.global_position):
 			return
@@ -252,8 +256,6 @@ func _unhandled_input(e: InputEvent) -> void:
 			return
 		if current_car == null and bars.try_interact(player):
 			return
-		if not bars.inside:
-			toggle_vehicle()
 	if e.is_action_pressed("reset_car") and current_car:
 		current_car.reset_upright()
 	elif e.is_action_pressed("reset_car") and money:

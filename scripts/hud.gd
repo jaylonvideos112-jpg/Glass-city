@@ -117,7 +117,7 @@ func _ready() -> void:
 	remove_child(help_label); help_box.add_child(help_label)
 	help_label.text = "CONTROLS\n\n" + \
 		"WASD  move / drive        Mouse  look        Shift  sprint        Space  jump / handbrake\n" + \
-		"E  get in/out, use, talk, apply, clock in        T  activity here (eat, gym, bowl, fish...)\n" + \
+		"F  get in / out of a car        E  use, talk, apply, clock in, doors        T  activity here (eat, gym, bowl...)\n" + \
 		"Tab  phone        J  job board        I  inventory        K  dealership catalogue\n" + \
 		"R  flip car / rent / deposit        B  buy / collect        G  garage        N  auto-deposit\n" + \
 		"P / C / U  repair / respray / upgrade at an auto shop        V  camera view        H  this help\n" + \
@@ -285,7 +285,7 @@ func _process(dt: float) -> void:
 		if main.get("activities") and main.activities:
 			var ap: String = main.activities.prompt(main.player.global_position)
 			if ap != "": bp = (bp + "\n" + ap) if bp != "" else ap
-		if bp == "" and main.nearest_car() != null and not main.bars.inside: bp = "Press E to get in"
+		if bp == "" and main.nearest_car() != null and not main.bars.inside: bp = "Press F to get in"
 		_set_prompt(bp)
 	# first seconds: a hint about the controls
 	if _hint_t > 0.0:

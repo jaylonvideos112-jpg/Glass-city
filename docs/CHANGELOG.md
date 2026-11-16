@@ -260,5 +260,6 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
   wanted level cleared). Falling in the river costs health instead of a fake "wasted".
 - Getting out of a car picks a free spot (driver side, passenger side, front/back, or over the roof).
 - Camera collision ignores passing traffic (no more camera jumps).
+- F gets in and out of cars; E is only for using things (no more applying for a job when you meant to get in your car).
 - Pedestrians hit by a car are knocked down (thrown, land, lie there) and get up and run, or stay injured and an
   ambulance is sent; people nearby scatter. Police still log it as a crime.
