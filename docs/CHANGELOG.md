@@ -315,3 +315,14 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
   (categories, weapon on a turntable, stat bars, prices), ammo, attachments (scope = tighter + zoom, extended
   magazine, suppressor = quiet: no flash, people/police barely hear, grip = less recoil/spread, flashlight at
   night) and finishes (black, olive, tan, steel, gold, pink) shown on the gun.
+
+## Own look for weapons and the gun store
+- Weapon models with real proportions (scripts/gun_models.gd): slides, angled grips, trigger guards, sights, rails,
+  barrels, pump forends, curved magazines, tapered stocks, a turned bat, a clip-point knife, grenade spoon and pin;
+  attachments and finishes show on them; merged per material.
+- Gun store interior redesigned as a Glass City armory in an old brick warehouse: photo brick and polished
+  concrete, steel columns, exposed ducts and pendant lamps, a dark slatwall of long guns lit by cool LED strips, a
+  backlit pistol cabinet, a walnut-and-glass counter, a window onto the shooting lanes, the store name in neon.
+- Store menu in its own style: smoked-glass panels with an ice-blue accent, breadcrumb pills, segmented stat bars
+  with your current gun as a comparison tick, weapon card, keycap hints; the gun turns on a lit display disc.
+- Weapon wheel redrawn: a segmented glass ring with weapon silhouettes, ice-blue selection, the world dims.

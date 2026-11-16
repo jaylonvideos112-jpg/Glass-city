@@ -53,6 +53,7 @@ var _decals: Array = []
 var _hole_tex: ImageTexture
 const WHEEL := ["fists", "melee", "pistol", "shotgun", "rifle", "grenade"]
 const Signs := preload("res://scripts/signs.gd")
+const GunModels := preload("res://scripts/gun_models.gd")
 
 func _ready() -> void:
 	rng.randomize()
@@ -416,31 +417,11 @@ func _update_gun_mesh() -> void:
 	_gun_node.position = Vector3(0.27, 0.86, -0.12)      # right hand, held low
 	main.player.model.add_child(_gun_node)
 
-## simple weapon model (placeholder art): body / barrel / stock boxes, coloured by the gun's finish
+## the weapon model (scripts/gun_models.gd) in its finish, with the attachments fitted
 func build_gun_mesh(id: String) -> Node3D:
+	var fin: String = W.get("finishes", {}).get(tints.get(id, ""), {}).get("color", "#1a1b1e")
 	var n := Node3D.new(); n.name = "Weapon"
-	var fin: Color = Color(W.get("finishes", {}).get(tints.get(id, ""), {}).get("color", "#141416"))
-	var dark := StandardMaterial3D.new(); dark.albedo_color = fin; dark.metallic = 0.6; dark.roughness = 0.4
-	var wood := StandardMaterial3D.new(); wood.albedo_color = Color(0.45, 0.28, 0.14)
-	var steel := StandardMaterial3D.new(); steel.albedo_color = Color(0.7, 0.7, 0.72); steel.metallic = 0.9; steel.roughness = 0.25
-	var black := StandardMaterial3D.new(); black.albedo_color = Color(0.04, 0.04, 0.045); black.metallic = 0.5; black.roughness = 0.5
-	var parts: Array = []
-	match id:
-		"pistol": parts = [[Vector3(0.04, 0.05, 0.2), Vector3(0, 0.02, -0.08), dark], [Vector3(0.035, 0.11, 0.05), Vector3(0, -0.04, 0.0), black]]
-		"shotgun": parts = [[Vector3(0.05, 0.06, 0.75), Vector3(0, 0.02, -0.3), dark], [Vector3(0.05, 0.1, 0.28), Vector3(0, -0.02, 0.2), wood], [Vector3(0.045, 0.045, 0.2), Vector3(0, -0.03, -0.35), wood]]
-		"rifle": parts = [[Vector3(0.05, 0.08, 0.7), Vector3(0, 0.02, -0.25), dark], [Vector3(0.04, 0.14, 0.05), Vector3(0, -0.07, -0.1), black], [Vector3(0.05, 0.09, 0.22), Vector3(0, 0.0, 0.2), dark]]
-		"bat": parts = [[Vector3(0.06, 0.06, 0.85), Vector3(0, 0.0, -0.4), wood]]
-		"knife": parts = [[Vector3(0.02, 0.03, 0.12), Vector3(0, 0.0, 0.0), black], [Vector3(0.01, 0.025, 0.12), Vector3(0, 0.0, -0.12), steel]]
-		"grenade": parts = [[Vector3(0.07, 0.09, 0.07), Vector3(0, 0, 0), dark]]
-	var mods: Array = attachments.get(id, [])
-	if "scope" in mods: parts.append([Vector3(0.04, 0.045, 0.16), Vector3(0, 0.08, -0.12), black])
-	if "suppressor" in mods: parts.append([Vector3(0.035, 0.035, 0.18), Vector3(0, 0.02, -0.28 if id == "pistol" else -0.74), black])
-	if "ext_mag" in mods: parts.append([Vector3(0.035, 0.12, 0.05), Vector3(0, -0.14, -0.1), black])
-	if "grip" in mods: parts.append([Vector3(0.03, 0.08, 0.03), Vector3(0, -0.06, -0.35), black])
-	if "flashlight" in mods: parts.append([Vector3(0.03, 0.03, 0.08), Vector3(0.04, 0.0, -0.3), steel])
-	for pt in parts:
-		var mi := MeshInstance3D.new(); var bm := BoxMesh.new(); bm.size = pt[0]; mi.mesh = bm; mi.position = pt[1]; mi.material_override = pt[2]
-		n.add_child(mi)
+	n.add_child(GunModels.build(id, fin, attachments.get(id, [])))
 	return n
 
 func _gun_tip() -> Vector3:
@@ -555,27 +536,64 @@ func _slot_owned(sl: String) -> bool:
 	if sl == "melee": return melee_pick != ""
 	return owned.has(sl)
 
+## silhouettes for the wheel (unit space, x right / y down, ~[-1, 1]), drawn as filled polygons
+const ICONS := {
+	"fists": [[[-0.5, -0.45], [0.45, -0.45], [0.45, 0.05], [-0.5, 0.05]], [[-0.5, 0.05], [0.3, 0.05], [0.3, 0.5], [-0.35, 0.5], [-0.5, 0.3]], [[0.45, -0.1], [0.65, 0.0], [0.6, 0.25], [0.3, 0.3], [0.3, 0.05]]],
+	"pistol": [[[-0.85, -0.35], [0.75, -0.35], [0.75, -0.05], [-0.05, -0.05], [-0.15, 0.6], [-0.55, 0.6], [-0.45, -0.05], [-0.85, -0.05]]],
+	"shotgun": [[[-1.0, -0.2], [0.95, -0.2], [0.95, -0.05], [-0.25, -0.05], [-0.35, 0.3], [-0.55, 0.3], [-0.55, 0.0], [-1.0, 0.25]]],
+	"rifle": [[[-1.0, -0.15], [0.95, -0.15], [0.95, 0.02], [0.2, 0.02], [0.1, 0.5], [-0.1, 0.5], [-0.05, 0.02], [-0.35, 0.02], [-0.45, 0.35], [-0.6, 0.35], [-0.55, 0.02], [-1.0, 0.25]]],
+	"melee": [[[-0.55, -0.05], [0.95, -0.16], [0.98, 0.0], [0.95, 0.16], [-0.55, 0.05]], [[-1.0, -0.06], [-0.55, -0.05], [-0.55, 0.05], [-1.0, 0.06]], [[-1.06, -0.1], [-0.98, -0.1], [-0.98, 0.1], [-1.06, 0.1]]],
+	"grenade": [[[0.0, -0.55], [0.35, -0.4], [0.45, 0.0], [0.35, 0.4], [0.0, 0.55], [-0.35, 0.4], [-0.45, 0.0], [-0.35, -0.4]], [[0.05, -0.75], [0.35, -0.7], [0.35, -0.5], [0.05, -0.55]]]}
+
 func _draw_wheel() -> void:
-	var c: Vector2 = _wheel_ui.size * 0.5
-	var font: Font = load("res://fonts/Inter-Bold.otf")
-	_wheel_ui.draw_circle(c, 230.0, Color(0.02, 0.03, 0.05, 0.55))
-	for i in WHEEL.size():
+	var V: Vector2 = _wheel_ui.size
+	var c: Vector2 = V * 0.5
+	var fb: Font = load("res://fonts/Inter-Bold.otf"); var fm: Font = load("res://fonts/Inter-Medium.otf")
+	var ice := Color(0.56, 0.83, 1.0)
+	_wheel_ui.draw_rect(Rect2(Vector2.ZERO, V), Color(0.0, 0.02, 0.05, 0.35))        # the world dims while you choose
+	var R0 := 120.0; var R1 := 250.0; var gap := 0.035
+	var n := WHEEL.size()
+	for i in n:
 		var sl: String = WHEEL[i]
-		var a := TAU * i / WHEEL.size()
-		var dir := Vector2(sin(a), -cos(a))
-		var pos := c + dir * 150.0
+		var mid := TAU * i / n                          # 0 = top, clockwise
+		var a0 := mid - PI / n + gap; var a1 := mid + PI / n - gap
 		var on: bool = sl == wheel_pick or (wheel_pick == "" and ((sl == "melee" and def(current).get("type", "") == "melee") or sl == current))
 		var have := _slot_owned(sl)
-		_wheel_ui.draw_circle(pos, 62.0, Color(0.95, 0.95, 0.95, 0.92) if on else Color(0.1, 0.12, 0.16, 0.85 if have else 0.4))
-		var nm: String = "FISTS" if sl == "fists" else (def(melee_pick)["name"].to_upper() if sl == "melee" and melee_pick != "" else (def(sl)["name"].to_upper() if def(sl).size() > 0 else sl.to_upper()))
-		if sl == "melee" and melee_pick == "": nm = "MELEE"
-		var tc := Color(0.05, 0.05, 0.08) if on else (Color.WHITE if have else Color(1, 1, 1, 0.35))
-		_wheel_ui.draw_string(font, pos + Vector2(-60, -2), nm, HORIZONTAL_ALIGNMENT_CENTER, 120, 14, tc)
-		var sub := ""
-		if have and def(sl).get("type", "") == "gun": sub = "%d / %d" % [int(mag.get(sl, 0)), int(ammo.get(def(sl)["ammo"], 0))]
-		elif have and sl == "grenade": sub = "x%d" % int(ammo.get("grenade", 0))
-		_wheel_ui.draw_string(font, pos + Vector2(-60, 18), sub, HORIZONTAL_ALIGNMENT_CENTER, 120, 13, tc)
-	_wheel_ui.draw_string(font, c + Vector2(-120, 6), "move the mouse · release Tab", HORIZONTAL_ALIGNMENT_CENTER, 240, 13, Color(1, 1, 1, 0.7))
+		var pts := PackedVector2Array()
+		var steps := 20
+		for k in steps + 1:
+			var a := lerpf(a0, a1, float(k) / steps); pts.append(c + Vector2(sin(a), -cos(a)) * (R1 + (10.0 if on else 0.0)))
+		for k in range(steps, -1, -1):
+			var a2 := lerpf(a0, a1, float(k) / steps); pts.append(c + Vector2(sin(a2), -cos(a2)) * R0)
+		var fill := Color(0.04, 0.06, 0.09, 0.82) if not on else Color(0.56, 0.83, 1.0, 0.92)
+		if not have: fill.a *= 0.5
+		_wheel_ui.draw_colored_polygon(pts, fill)
+		var edge := PackedVector2Array()
+		for k in steps + 1:
+			var a3 := lerpf(a0, a1, float(k) / steps); edge.append(c + Vector2(sin(a3), -cos(a3)) * (R1 + (10.0 if on else 0.0)))
+		_wheel_ui.draw_polyline(edge, ice if on else Color(1, 1, 1, 0.18), 2.0 if on else 1.0, true)
+		# weapon silhouette
+		var ic: Vector2 = c + Vector2(sin(mid), -cos(mid)) * ((R0 + R1) * 0.5)
+		var col := Color(0.03, 0.05, 0.08) if on else (Color(1, 1, 1, 0.92) if have else Color(1, 1, 1, 0.25))
+		for poly in ICONS.get(sl, []):
+			var pp := PackedVector2Array()
+			for v in poly: pp.append(ic + Vector2(v[0], v[1]) * (38.0 if sl in ["shotgun", "rifle", "melee"] else 30.0))
+			_wheel_ui.draw_colored_polygon(pp, col)
+		if have and def(sl).get("type", "") == "gun":
+			_wheel_ui.draw_string(fb, ic + Vector2(-50, 40), "%d" % (int(mag.get(sl, 0)) + int(ammo.get(def(sl)["ammo"], 0))), HORIZONTAL_ALIGNMENT_CENTER, 100, 13, col)
+		elif have and sl == "grenade":
+			_wheel_ui.draw_string(fb, ic + Vector2(-50, 40), "x%d" % int(ammo.get("grenade", 0)), HORIZONTAL_ALIGNMENT_CENTER, 100, 13, col)
+	# centre: what you're about to hold
+	var show: String = wheel_pick if wheel_pick != "" else ("melee" if def(current).get("type", "") == "melee" else current)
+	var nm: String = "FISTS" if show == "fists" else ("MELEE" if show == "melee" and melee_pick == "" else (def(melee_pick if show == "melee" else show).get("name", "").to_upper()))
+	_wheel_ui.draw_circle(c, R0 - 14.0, Color(0.03, 0.045, 0.07, 0.9))
+	_wheel_ui.draw_arc(c, R0 - 14.0, 0, TAU, 64, Color(1, 1, 1, 0.12), 1.0, true)
+	_wheel_ui.draw_string(fb, c + Vector2(-95, -2), nm, HORIZONTAL_ALIGNMENT_CENTER, 190, 17, Color.WHITE)
+	var sub := ""
+	var sid: String = melee_pick if show == "melee" else show
+	if def(sid).get("type", "") == "gun" and owned.has(sid): sub = "%d  |  %d" % [int(mag.get(sid, 0)), int(ammo.get(def(sid)["ammo"], 0))]
+	elif sid == "grenade": sub = "x%d" % int(ammo.get("grenade", 0))
+	_wheel_ui.draw_string(fm, c + Vector2(-95, 22), sub, HORIZONTAL_ALIGNMENT_CENTER, 190, 14, ice)
 
 # ------------------------------------------------------------------ cover (Q): snap to the nearest wall or car in front
 func try_cover() -> bool:
