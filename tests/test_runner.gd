@@ -1678,8 +1678,10 @@ func t_weapons() -> Array:
 	var stand: Vector3 = p["pos"] + Vector3(8.0, 0, 0)
 	pl.global_position = Vector3(stand.x, float(p["y"]) + 0.1, stand.z) - main.world_offset; pl.velocity = Vector3.ZERO
 	main.cam_yaw = atan2(1.0, 0.0); main.cam_pitch = 0.0
+	p["state"] = "surrender"; p["surrender_t"] = 30.0          # hold still for the shot
 	wp.aiming = true
 	await _frames(20)
+	wp.lock = p; wp.lock_off = Vector2.ZERO
 	var chest: Vector3 = Vector3(p["pos"].x, float(p["y"]) + 1.25, p["pos"].z) - main.world_offset
 	main.camera.look_at(chest, Vector3.UP)
 	var hp0: float = main.combat.ped_hp(p)
