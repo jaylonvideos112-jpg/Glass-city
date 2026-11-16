@@ -13,6 +13,7 @@ var needs: Node = null          # needs.gd (stamina limits sprinting, fitness sp
 var want_jump := false
 var model: Node3D
 var anim_t := 0.0
+var move_mult := 1.0            # combat.gd slows you while you swing or guard
 var _fall_v := 0.0              # fastest downward speed since leaving the ground
 signal hurt(amount: float, cause: String)
 
@@ -68,7 +69,7 @@ func _physics_process(dt: float) -> void:
 		move = move.normalized()
 	var can_run: bool = needs == null or needs.can_sprint()
 	var spd: float = (SPRINT * (needs.sprint_mult() if needs else 1.0)) if (sprint and can_run) else WALK
-	var target := move * spd
+	var target := move * spd * move_mult
 	var accel := 12.0 if is_on_floor() else 3.0
 	velocity.x = move_toward(velocity.x, target.x, accel * spd * dt)
 	velocity.z = move_toward(velocity.z, target.z, accel * spd * dt)

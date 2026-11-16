@@ -377,7 +377,17 @@ func _flee(o: Dictionary, from: Vector3) -> void:
 var knockdowns := 0
 func _step_special(p: Dictionary, dt: float) -> bool:
 	var mi: MeshInstance3D = p["node"]
+	if p.has("react_t"): p["react_t"] = maxf(0.0, float(p["react_t"]) - dt)
+	var cb = main.get("combat")
+	if cb and (p["state"] == "fight" or float(p.get("react_t", 0.0)) > 0.0 or p.get("posed", false)):
+		var pose: Array = cb.ped_pose(p)
+		if is_instance_valid(mi):
+			mi.set_instance_shader_parameter("act", pose[0]); mi.set_instance_shader_parameter("act_t", pose[1])
+		p["posed"] = pose[0] > 0.0
 	match p["state"]:
+		"fight":
+			if cb: cb.step_fighter(p, dt)
+			_ground(p, false)
 		"fly":
 			var v: Vector3 = p["fly_v"]
 			v.y -= 18.0 * dt; v.x *= 1.0 - dt * 0.6; v.z *= 1.0 - dt * 0.6
@@ -419,12 +429,14 @@ func _step_special(p: Dictionary, dt: float) -> bool:
 			return false
 	if is_instance_valid(mi):
 		var lying: float = p.get("spin", 0.0)
-		var b := Basis(Vector3.UP, p.get("fall_yaw", p["yaw"]) if p["state"] != "flee" else p["yaw"])
+		var b := Basis(Vector3.UP, p.get("fall_yaw", p["yaw"]) if not (p["state"] in ["flee", "fight"]) else p["yaw"])
 		if lying > 0.0: b = b * Basis(Vector3(1, 0, 0), -lying)
 		var yoff := 0.18 if lying > 1.2 else 0.0
 		mi.global_transform = Transform3D(b, Vector3(p["pos"].x, p["y"] + yoff, p["pos"].z) - main.world_offset)
 		mi.set_instance_shader_parameter("phase", p["phase"])
-		mi.set_instance_shader_parameter("swing", 1.3 if p["state"] == "flee" else 0.0)
+		var mv: float = 1.3 if p["state"] == "flee" else 0.0
+		if p["state"] == "fight": mv = 0.0
+		mi.set_instance_shader_parameter("swing", mv)
 	return true
 
 func _step(p: Dictionary, dt: float) -> void:

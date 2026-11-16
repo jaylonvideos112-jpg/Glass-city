@@ -92,7 +92,7 @@ static func _box(st: SurfaceTool, size: Vector3, c: Vector3, col: Color) -> void
 		var n: Vector3 = f[0]; var u: Vector3 = f[1]; var v: Vector3 = f[2]
 		var o := c + n * h; var uu := u * h; var vv := v * h
 		var q := [o - uu - vv, o + uu - vv, o + uu + vv, o - uu + vv]
-		for i in [0, 2, 1, 0, 3, 2]:
+		for i in [0, 2, 1, 0, 3, 2, 0, 1, 2, 0, 2, 3]:     # both windings: never inside-out
 			st.set_color(col); st.set_normal(n); st.add_vertex(q[i])
 
 static func _cyl(st: SurfaceTool, c: Vector3, r: float, h: float, col: Color, n: int) -> void:
@@ -101,8 +101,9 @@ static func _cyl(st: SurfaceTool, c: Vector3, r: float, h: float, col: Color, n:
 		var p0 := Vector3(cos(a0) * r, 0, sin(a0) * r); var p1 := Vector3(cos(a1) * r, 0, sin(a1) * r)
 		var nm := Vector3(cos((a0 + a1) * 0.5), 0, sin((a0 + a1) * 0.5))
 		if h > 0.0:
-			for v in [c + p0, c + p1 + Vector3(0, h, 0), c + p1, c + p0, c + p0 + Vector3(0, h, 0), c + p1 + Vector3(0, h, 0)]:
+			for v in [c + p0, c + p1 + Vector3(0, h, 0), c + p1, c + p0, c + p0 + Vector3(0, h, 0), c + p1 + Vector3(0, h, 0),
+					c + p0, c + p1, c + p1 + Vector3(0, h, 0), c + p0, c + p1 + Vector3(0, h, 0), c + p0 + Vector3(0, h, 0)]:
 				st.set_color(col); st.set_normal(nm); st.add_vertex(v)
 		var top := c + Vector3(0, h, 0)
-		for v in [top, top + p1, top + p0]:
+		for v in [top, top + p1, top + p0, top, top + p0, top + p1]:
 			st.set_color(col.lightened(0.05)); st.set_normal(Vector3.UP); st.add_vertex(v)

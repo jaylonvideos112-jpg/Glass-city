@@ -301,6 +301,34 @@ func _shots(dt: float) -> void:
 			main._update_camera(0.2)
 			return
 		pos = cam.global_position + main.world_offset; look = pos - cam.global_transform.basis.z * 30.0
+	elif s[0] == "@fight" and main.combat:
+		# a street fight: you square up to someone who fights back; shot mid-punch
+		main.hud.visible = true
+		var cb = main.combat
+		if not has_meta("fight_p"):
+			var f: Vector3 = main.focus_world(); var pick = null
+			for q in main.peds.peds:
+				if q["state"] == "walk" and (q["pos"] - f).length() < 120.0: pick = q; break
+			if pick == null:
+				shot_wait += dt
+				return
+			set_meta("fight_p", pick); pick["fighter"] = true; cb.start_fight(pick)
+		var fp: Dictionary = get_meta("fight_p")
+		var me: Vector3 = fp["pos"] + Vector3(1.05, 0, 0)
+		main.player.global_position = Vector3(me.x, float(fp["y"]) + 0.05, me.z) - main.world_offset
+		main.player.model.rotation.y = atan2(1.0, 0.0)
+		main.needs.health = maxf(main.needs.health, 60.0)
+		cb.target = fp
+		if shot_wait < 2.0:
+			shot_wait += dt
+			if cb.act.is_empty() and shot_wait > 1.9: cb.attack("punch")
+			var c2: Vector3 = (fp["pos"] + me) * 0.5
+			pos = c2 + Vector3(0, 1.6, 3.4); look = c2 + Vector3(0, 1.1, 0)
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 55.0
+			return
+		if not cb.act.is_empty(): cb.act["t"] = cb.act["dur"] * 0.4      # freeze the swing at full reach for the picture
+		var c3: Vector3 = (fp["pos"] + me) * 0.5
+		pos = c3 + Vector3(0, 1.6, 3.4); look = c3 + Vector3(0, 1.1, 0)
 	elif s[0] == "@carshow":
 		# 3/4 view of the cars at the curb
 		main.hud.visible = false

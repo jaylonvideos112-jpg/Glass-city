@@ -263,3 +263,11 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 - F gets in and out of cars; E is only for using things (no more applying for a job when you meant to get in your car).
 - Pedestrians hit by a car are knocked down (thrown, land, lie there) and get up and run, or stay injured and an
   ambulance is sent; people nearby scatter. Police still log it as a crime.
+
+## Hand-to-hand combat (Bible section 14)
+- Left click punch (tap for jab-cross-hook combos), right click kick, hold Q to guard (blocks ~80%), Ctrl to dodge.
+- Auto lock-on to the nearest person in front; you turn to face them; red marker + their health over their head.
+- People have health; hits make them flinch, heavy hits can floor them, at 0 they go down (get up later and run).
+- Some fight back (step in, guard up, throw punches that hurt you), the rest run; bystanders scatter.
+- A witnessed assault is a crime (1 star). Punches cost stamina; tired fighters swing slower.
+- Poses come from the people shader (punch, kick, guard, flinch). Street furniture no longer renders inside-out.

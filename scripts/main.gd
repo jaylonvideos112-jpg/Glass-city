@@ -137,6 +137,7 @@ func _ready() -> void:
 	world_state.register("needs", needs)
 	player.needs = needs
 	player.hurt.connect(hurt)
+	combat = load("res://scripts/combat.gd").new(); combat.name = "Combat"; combat.main = self; add_child(combat)
 	Car.driver_hurt = hurt
 	inventory = load("res://scripts/inventory.gd").new(); inventory.name = "Inventory"; inventory.main = self; add_child(inventory)
 	world_state.register("inventory", inventory)
@@ -275,6 +276,7 @@ func nearest_car(max_d := 5.0) -> VehicleBody3D:
 
 # ------------------------------------------------------------------ injury, death and the hospital
 var dying := false
+var combat: Node
 var hospitals: Array = []
 var times_wasted := 0
 func hurt(amount: float, cause: String) -> void:

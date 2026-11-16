@@ -39,6 +39,7 @@ var _overlays: Array = []
 var _mm_vp: SubViewport
 var _mm_cam: Camera3D
 var _mm_t := 0.0
+var _tgt: Control              # combat lock-on marker + the target's health
 var hit_flash := 0.0           # red edge flash when you get hurt
 var _vignette: ColorRect
 var fish := {}                 # {"state": "wait"|"bite", "frac": 0..1 of the bite window left} or {} = hidden
@@ -118,6 +119,7 @@ func _ready() -> void:
 	help_label.text = "CONTROLS\n\n" + \
 		"WASD  move / drive        Mouse  look        Shift  sprint        Space  jump / handbrake\n" + \
 		"F  get in / out of a car        E  use, talk, apply, clock in, doors        T  activity here (eat, gym, bowl...)\n" + \
+		"Left click  punch (tap for combos)        Right click  kick        Q (hold)  guard        Ctrl  dodge\n" + \
 		"Tab  phone        J  job board        I  inventory        K  dealership catalogue\n" + \
 		"R  flip car / rent / deposit        B  buy / collect        G  garage        N  auto-deposit\n" + \
 		"P / C / U  repair / respray / upgrade at an auto shop        V  camera view        H  this help\n" + \
@@ -145,6 +147,8 @@ func _ready() -> void:
 	vm.shader.code = "shader_type canvas_item; uniform float a = 0.0; uniform float low = 0.0; void fragment() { vec2 q = UV - 0.5; float e = smoothstep(0.25, 0.75, length(q) * 1.4); float k = max(a, low * (0.55 + 0.25 * sin(TIME * 4.0))); COLOR = vec4(0.6, 0.0, 0.0, e * k * 0.8); }"
 	_vignette.material = vm
 	add_child(_vignette); move_child(_vignette, 0)
+	_tgt = Control.new(); _tgt.set_anchors_preset(Control.PRESET_FULL_RECT); _tgt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tgt.draw.connect(_draw_target); add_child(_tgt)
 	fish_ctl = Control.new()
 	fish_ctl.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	fish_ctl.offset_left = -130; fish_ctl.offset_right = 130; fish_ctl.offset_top = -150; fish_ctl.offset_bottom = -12
@@ -304,6 +308,7 @@ func _process(dt: float) -> void:
 	radar.queue_redraw()
 	bars.queue_redraw()
 	hit_flash = maxf(0.0, hit_flash - dt * 1.5)
+	_tgt.queue_redraw()
 	var lowh: float = 0.0
 	if main and main.get("needs") and main.needs: lowh = clampf((30.0 - main.needs.health) / 30.0, 0.0, 1.0)
 	(_vignette.material as ShaderMaterial).set_shader_parameter("a", hit_flash)
@@ -357,6 +362,19 @@ func _draw_fish() -> void:
 	fish_ctl.draw_rect(Rect2(c.x - 1.5, c.y + dip - 20, 3, 8), Color(0.15, 0.15, 0.15))
 	var label := "BITE!  SPACE" if bite else "Waiting for a bite..."
 	fish_ctl.draw_string(font_bold, Vector2(0, h - 12), label, HORIZONTAL_ALIGNMENT_CENTER, w, 20 if bite else 15, Color(1, 0.88, 0.25) if bite else Color(0.85, 0.92, 1.0))
+
+func _draw_target() -> void:
+	if main == null or main.get("combat") == null or main.combat.target == null or main.camera == null: return
+	var t: Dictionary = main.combat.target
+	var head: Vector3 = Vector3(t["pos"].x, float(t["y"]) + 2.0, t["pos"].z) - main.world_offset
+	if main.camera.is_position_behind(head): return
+	var sp: Vector2 = main.camera.unproject_position(head)
+	var col := Color(1.0, 0.3, 0.25) if t["state"] == "fight" else Color(1, 1, 1, 0.9)
+	_tgt.draw_colored_polygon(PackedVector2Array([sp + Vector2(-9, -12), sp + Vector2(9, -12), sp + Vector2(0, 0)]), col)
+	if t.has("hp"):
+		var f: float = clampf(float(t["hp"]) / maxf(float(t.get("hp_max", 100.0)), 1.0), 0.0, 1.0)
+		_tgt.draw_rect(Rect2(sp + Vector2(-26, -26), Vector2(52, 6)), Color(0, 0, 0, 0.6))
+		_tgt.draw_rect(Rect2(sp + Vector2(-25, -25), Vector2(50 * f, 4)), Color(0.9, 0.25, 0.2))
 
 ## aim meter: a track, a green sweet spot in the middle, a white marker
 func _draw_meter() -> void:

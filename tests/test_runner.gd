@@ -78,6 +78,7 @@ func _run() -> void:
 		["driving_feel_metrics", t_drive_feel],
 		["falls_hurt_and_wasted_wakes_in_hospital", t_wasted],
 		["car_knocks_down_pedestrian_crowd_scatters", t_knockdown],
+		["melee_punch_kick_ko_fight_back_block", t_melee],
 		["on_foot_feel_metrics", t_foot_feel],
 		["emergency_responds_with_siren", t_dispatch],
 	]
@@ -1461,3 +1462,61 @@ func t_knockdown() -> Array:
 	if not got_up: return [false, "light hit never got up (%s)" % p["state"]]
 	if not hard.is_empty() and stayed != "injured": return [false, "hard hit should stay down (%s)" % stayed]
 	return [true, "light hit: down then ran off; hard hit: stays injured; %d still in the world" % pd.peds.size()]
+
+
+func t_melee() -> Array:
+	main.input_enabled = false
+	if main.current_car: main.toggle_vehicle()
+	var cb = main.combat; var pd = main.peds; var pl = main.player
+	var keep_h: float = main.tod.total_hours
+	main.tod.set_date("fall", 3, 12.5)
+	var p = null
+	for i in 240:
+		var f: Vector3 = main.focus_world()
+		for q in pd.peds:
+			if q["state"] == "walk" and (q["pos"] - f).length() < 150.0: p = q; break
+		if p != null: break
+		await _frames(10)
+	main.tod.total_hours = keep_h; main.tod.apply_now()
+	if p == null: return [false, "nobody to fight"]
+	main.needs.health = 100.0; main.needs.stamina = 100.0
+	# square up: stand 1 m in front of them, facing them
+	var me: Vector3 = p["pos"] + Vector3(1.0, 0, 0)
+	pl.global_position = Vector3(me.x, float(p["y"]) + 0.2, me.z) - main.world_offset; pl.velocity = Vector3.ZERO
+	pl.model.rotation.y = atan2(1.0, 0.0)          # facing -x (toward them)
+	main.cam_yaw = pl.model.rotation.y
+	await _frames(10)
+	p["fighter"] = true                          # this one swings back
+	var hp0: float = cb.ped_hp(p)
+	cb.target = p
+	if not cb.attack("punch"): return [false, "couldn't throw a punch"]
+	for i in 60: await _frames(1)
+	if cb.hits_landed < 1 or float(p["hp"]) >= hp0: return [false, "punch didn't land (hp %.0f -> %.0f, dist %.2f)" % [hp0, p["hp"], (p["pos"] - (pl.global_position + main.world_offset)).length()]]
+	if p["state"] != "fight": return [false, "they didn't fight back (%s)" % p["state"]]
+	# let them hit us for a few seconds, guarding for half of it
+	var h0: float = main.needs.health
+	for i in 360:
+		await _frames(1)
+		var me2: Vector3 = p["pos"] + Vector3(1.0, 0, 0)
+		pl.global_position = Vector3(me2.x, pl.global_position.y, me2.z) - main.world_offset
+	var open_loss: float = h0 - main.needs.health
+	cb.guard = true
+	var h1: float = main.needs.health
+	for i in 360:
+		await _frames(1)
+		var me3: Vector3 = p["pos"] + Vector3(1.0, 0, 0)
+		pl.global_position = Vector3(me3.x, pl.global_position.y, me3.z) - main.world_offset
+	var guard_loss: float = h1 - main.needs.health
+	cb.guard = false
+	if open_loss <= 0.0: return [false, "they never hit back"]
+	if guard_loss > open_loss * 0.6: return [false, "guard barely helped (%.0f vs %.0f)" % [guard_loss, open_loss]]
+	# finish them: combo + kicks until they go down
+	var tries := 0
+	while not (p["state"] in ["fly", "down", "injured", "flee"]) and tries < 20:
+		tries += 1
+		cb.target = p
+		cb.attack("kick" if tries % 4 == 0 else "punch")
+		for i in 80: await _frames(1)
+	main.needs.health = 100.0
+	if not (p["state"] in ["fly", "down", "injured", "flee"]): return [false, "couldn't put them down in 20 swings (hp %.0f)" % p["hp"]]
+	return [true, "punch landed, they fought back (-%.0f open, -%.0f guarding), down after %d more swings, %d KOs" % [open_loss, guard_loss, tries, cb.kos]]
