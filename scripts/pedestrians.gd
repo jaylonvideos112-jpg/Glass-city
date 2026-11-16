@@ -246,7 +246,11 @@ func _manage(focus: Vector3) -> void:
 	for p in peds.duplicate():
 		if Vector2(p["pos"].x - focus.x, p["pos"].z - focus.z).length() > float(B["despawn_m"]): _despawn(p)
 	var want := target_count()
-	while peds.size() > want + 8: _despawn(peds[0])     # thin out (e.g. a storm starts, or the player went inside)
+	while peds.size() > want + 8:
+		var vict: Dictionary = peds[0]
+		for q in peds:
+			if not (q["state"] in ["fly", "down", "injured", "flee"]): vict = q; break
+		_despawn(vict)     # thin out (e.g. a storm starts, or the player went inside)
 	var tries := 0
 	var first: bool = main.traffic.time_s < 6.0
 	while peds.size() < want and tries < (80 if first else 6) and not walk_edges.is_empty():
@@ -353,10 +357,81 @@ func _physics_process(dt: float) -> void:
 		_step(p, dt)
 
 var _raining := false
+## hit by a car: thrown along `vel`, lands, lies there, then gets up and runs - or stays down if it was a hard hit
+func knock_down(p: Dictionary, vel: Vector3) -> void:
+	if p["state"] in ["fly", "down", "injured"]: return
+	p["state"] = "fly"; p["fly_v"] = vel + Vector3(0, 3.0 + vel.length() * 0.15, 0)
+	p["hit_speed"] = vel.length(); p["fall_yaw"] = atan2(-vel.x, -vel.z)
+	p["spin"] = 0.0
+	knockdowns += 1
+	# people nearby scatter
+	for o in peds:
+		if o != p and o["state"] in ["walk", "wait", "cross"] and (o["pos"] - p["pos"]).length() < 18.0:
+			_flee(o, p["pos"])
+
+func _flee(o: Dictionary, from: Vector3) -> void:
+	o["state"] = "flee"; o["flee_t"] = rng.randf_range(10.0, 18.0)
+	var away: Vector3 = o["pos"] - from; away.y = 0
+	o["flee_dir"] = away.normalized() if away.length() > 0.1 else Vector3(1, 0, 0)
+
+var knockdowns := 0
+func _step_special(p: Dictionary, dt: float) -> bool:
+	var mi: MeshInstance3D = p["node"]
+	match p["state"]:
+		"fly":
+			var v: Vector3 = p["fly_v"]
+			v.y -= 18.0 * dt; v.x *= 1.0 - dt * 0.6; v.z *= 1.0 - dt * 0.6
+			p["fly_v"] = v
+			p["pos"] = p["pos"] + v * dt
+			p["spin"] = minf(PI * 0.5, p["spin"] + dt * 6.0)
+			_ground(p, true)
+			if p["pos"].y <= p["y"] + 0.05 and v.y < 0.0:
+				var lp: Vector3 = p["pos"]; lp.y = p["y"]; p["pos"] = lp
+				p["state"] = "down" if p["hit_speed"] < 14.0 else "injured"
+				p["down_t"] = rng.randf_range(4.0, 8.0)
+				if p["state"] == "injured" and main.services and main.services.has_method("dispatch_to"):
+					main.services.dispatch_to("ambulance", p["pos"])
+		"down":
+			p["down_t"] -= dt
+			p["spin"] = PI * 0.5
+			if p["down_t"] <= 0.0:
+				_flee(p, p["pos"] - Vector3(sin(p["fall_yaw"]), 0, cos(p["fall_yaw"])))
+				p["spin"] = 0.0
+		"injured":
+			p["spin"] = PI * 0.5
+			p["down_t"] -= dt
+			if p["down_t"] < -90.0 and (p["pos"] - main.focus_world()).length() > 40.0:
+				_despawn(p); return true          # taken away by the ambulance
+		"flee":
+			p["flee_t"] -= dt
+			var fd: Vector3 = p["flee_dir"]
+			var np: Vector3 = p["pos"] + fd * p["speed"] * 2.4 * dt
+			p["pos"] = np
+			p["yaw"] = lerp_angle(p["yaw"], atan2(-fd.x, -fd.z), clampf(dt * 8.0, 0.0, 1.0))
+			p["phase"] = fmod(p["phase"] + dt * p["speed"] * 2.4 * 5.2, TAU)
+			_ground(p, false)
+			if p["flee_t"] <= 0.0:
+				# back to a normal walk on the nearest sidewalk
+				p["state"] = "walk"
+				var e: Dictionary = main.traffic.edges[p["edge"]]
+				p["s"] = clampf((p["pos"] - main.traffic.npos[e["a"]]).dot(e["dir"]), 0.0, float(e["len"]))
+		_:
+			return false
+	if is_instance_valid(mi):
+		var lying: float = p.get("spin", 0.0)
+		var b := Basis(Vector3.UP, p.get("fall_yaw", p["yaw"]) if p["state"] != "flee" else p["yaw"])
+		if lying > 0.0: b = b * Basis(Vector3(1, 0, 0), -lying)
+		var yoff := 0.18 if lying > 1.2 else 0.0
+		mi.global_transform = Transform3D(b, Vector3(p["pos"].x, p["y"] + yoff, p["pos"].z) - main.world_offset)
+		mi.set_instance_shader_parameter("phase", p["phase"])
+		mi.set_instance_shader_parameter("swing", 1.3 if p["state"] == "flee" else 0.0)
+	return true
+
 func _step(p: Dictionary, dt: float) -> void:
 	var tr = main.traffic
 	p["umbrella"] = move_toward(p["umbrella"], 1.0 if _raining and p["has_umb"] else 0.0, dt * 2.0)
 	if p["edge"] >= tr.edges.size(): return
+	if _step_special(p, dt): return
 	var target: Vector3
 	var moving := true
 	match p["state"]:

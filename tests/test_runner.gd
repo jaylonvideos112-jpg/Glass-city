@@ -75,6 +75,10 @@ func _run() -> void:
 		["activities_food_gym_games_fishing_bowling", t_activities],
 		["phone_apps_gps_tow_photo", t_phone],
 		["police_close_in_offroad_and_helicopter", t_police_heli],
+		["driving_feel_metrics", t_drive_feel],
+		["falls_hurt_and_wasted_wakes_in_hospital", t_wasted],
+		["car_knocks_down_pedestrian_crowd_scatters", t_knockdown],
+		["on_foot_feel_metrics", t_foot_feel],
 		["emergency_responds_with_siren", t_dispatch],
 	]
 	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
@@ -1280,3 +1284,180 @@ func t_pd_umbrella() -> Array:
 	if dry > 0: return [false, "%d umbrellas still up when dry" % dry]
 	return [true, "%d of %d umbrellas up in rain, all down after" % [up, pd.count()]]
 
+
+
+# ------------------------------------------------------------------ feel probes (numbers for tuning, with sane bounds)
+func _straight_edge(min_len: float) -> int:
+	var tr = main.traffic; var f: Vector3 = main.focus_world(); var best := -1; var bd := 1e9
+	for i in tr.edges.size():
+		var e: Dictionary = tr.edges[i]
+		if e["len"] < min_len or e["cls"] < 2 or e["cls"] > 5: continue
+		var d: float = (tr.npos[e["a"]] - f).length()
+		if d < bd: bd = d; best = i
+	return best
+
+func t_drive_feel() -> Array:
+	# a flat test pad high above the city (pure handling, no traffic or kerbs)
+	var tr = main.traffic
+	main.input_enabled = false        # earlier tests (menus, phone) may have handed control back to the keyboard
+	if main.current_car: main.toggle_vehicle()
+	var home_p: Vector3 = main.player.global_position
+	var was: bool = tr.enabled; tr.enabled = false
+	var pad := StaticBody3D.new(); var pcs := CollisionShape3D.new(); var pb2 := BoxShape3D.new(); pb2.size = Vector3(3000, 2, 3000)
+	pcs.shape = pb2; pad.add_child(pcs); main.world.add_child(pad)
+	var c = null
+	for cc in main.cars:
+		if is_instance_valid(cc) and cc.visible: c = cc; break
+	if c == null: tr.enabled = was; pad.queue_free(); return [false, "no car out"]
+	pad.global_position = main.player.global_position + Vector3(0, 800, 0)
+	var start: Vector3 = pad.global_position + Vector3(0, 1.8, 600)
+	var e := {"dir": Vector3(0, 0, -1)}
+	c.global_transform = Transform3D(Basis(), start)
+	c.linear_velocity = Vector3.ZERO; c.angular_velocity = Vector3.ZERO; c.health = 1000.0; c.freeze = false
+	c.process_mode = Node.PROCESS_MODE_INHERIT
+	main.player.global_position = c.global_position + Vector3(2.5, 0, 0)
+	await _frames(30)
+	main.toggle_vehicle()
+	if main.current_car != c:
+		tr.enabled = was; pad.queue_free(); main.player.global_position = home_p; main.player.velocity = Vector3.ZERO
+		c.global_position = home_p + Vector3(3, 1, 0)
+		return [false, "could not get in"]
+	# 0-60 mph and speed after 8 s
+	var t := 0.0; var t60 := -1.0; var p0: Vector3 = c.global_position
+	c.throttle = 1.0; c.steer_in = 0.0
+	c.health = 1000.0
+	await _frames(10)
+	while t < 8.0:
+		await _frames(1); t += 1.0 / float(Engine.physics_ticks_per_second)
+		if t60 < 0.0 and c.speed_mps() * 2.237 >= 60.0: t60 = t
+	var v8: float = c.speed_mps() * 2.237
+	var dist8: float = (c.global_position - p0).length()
+	# brake from current speed
+	var vb: float = c.speed_mps(); var pb: Vector3 = c.global_position
+	c.throttle = -1.0
+	var tb := 0.0
+	while c.speed_mps() > 0.5 and tb < 8.0:
+		await _frames(1); tb += 1.0 / float(Engine.physics_ticks_per_second)
+	c.throttle = 0.0
+	var brake_d: float = (c.global_position - pb).length()
+	var brake_60: float = brake_d * pow(26.8 / maxf(vb, 1.0), 2.0)     # scaled to 60 mph (v^2 law)
+	# full-lock turn at ~30 mph: radius and stability
+	c.global_transform = Transform3D(Basis(), start)
+	c.linear_velocity = -c.global_transform.basis.z * 13.4; c.angular_velocity = Vector3.ZERO
+	await _frames(5)
+	c.throttle = 0.35; c.steer_in = 1.0
+	var yaw0: float = c.global_rotation.y; var tt := 0.0; var min_up := 1.0
+	var pts: Array = []
+	while tt < 3.0:
+		await _frames(1); tt += 1.0 / float(Engine.physics_ticks_per_second)
+		min_up = minf(min_up, c.global_transform.basis.y.y)
+		pts.append(c.global_position)
+	var spd_turn: float = c.speed_mps()
+	var yaw_rate: float = absf(wrapf(c.global_rotation.y - yaw0, -PI, PI)) / 3.0
+	var radius: float = spd_turn / maxf(yaw_rate, 0.01)
+	# high-speed swerve at 60 mph: must stay on its wheels
+	c.global_transform = Transform3D(Basis(), start); c.angular_velocity = Vector3.ZERO
+	c.linear_velocity = -c.global_transform.basis.z * 26.8
+	await _frames(5)
+	c.throttle = 0.6; var min_up_hs := 1.0
+	for k in 3:
+		c.steer_in = 1.0 if k % 2 == 0 else -1.0
+		for i in 90:
+			await _frames(1); min_up_hs = minf(min_up_hs, c.global_transform.basis.y.y)
+	min_up = minf(min_up, min_up_hs)
+	c.throttle = 0.0; c.steer_in = 0.0
+	main.toggle_vehicle()
+	tr.enabled = was
+	var pp: Vector3 = home_p
+	main.last_safe = home_p + main.world_offset
+	c.global_transform = Transform3D(Basis(), pp + Vector3(3, 1, 0)); c.linear_velocity = Vector3.ZERO
+	main.player.global_position = pp + Vector3(0, 0.5, 0); main.player.velocity = Vector3.ZERO
+	pad.queue_free()
+	var msg := "0-60 mph %.1f s, %.0f mph after 8 s (%.0f m), 60-0 brake %.0f m, full-lock radius %.1f m at %.0f mph, min upright %.2f" % [t60, v8, dist8, brake_60, radius, spd_turn * 2.237, min_up]
+	print("[feel] drive: ", msg)
+	if t60 < 0.0 or t60 > 9.0: return [false, "too slow: " + msg]
+	if brake_60 > 55.0: return [false, "brakes weak: " + msg]
+	if min_up < 0.6: return [false, "tips over in a turn: " + msg]
+	return [true, msg]
+
+func t_foot_feel() -> Array:
+	main.input_enabled = false
+	var pl = main.player
+	if main.current_car: main.toggle_vehicle()
+	var p0: Vector3 = pl.global_position
+	pl.input_dir = Vector2(0, 1); pl.sprint = false
+	await _frames(120)
+	var walk: float = Vector2(pl.velocity.x, pl.velocity.z).length()
+	pl.sprint = true
+	await _frames(90)
+	var run: float = Vector2(pl.velocity.x, pl.velocity.z).length()
+	pl.sprint = false; pl.input_dir = Vector2.ZERO
+	await _frames(30)
+	var y0: float = pl.global_position.y; var top := y0
+	pl.want_jump = true
+	for i in 90:
+		await _frames(1); top = maxf(top, pl.global_position.y)
+	var msg := "walk %.1f m/s, sprint %.1f m/s, jump %.2f m" % [walk, run, top - y0]
+	print("[feel] foot: ", msg)
+	pl.global_position = p0
+	if walk < 1.0: return [false, "can't walk: " + msg]
+	return [true, msg]
+
+
+func t_wasted() -> Array:
+	if main.current_car: main.toggle_vehicle()
+	var nd = main.needs; var pl = main.player
+	nd.health = 100.0
+	var p0: Vector3 = pl.global_position
+	pl.global_position = p0 + Vector3(0, 14.0, 0); pl.velocity = Vector3.ZERO
+	for i in 400:
+		await _frames(1)
+		if pl.is_on_floor() and i > 20: break
+	var after_fall: float = nd.health
+	if after_fall >= 100.0: return [false, "a 14 m drop did no harm"]
+	var c0: int = main.money.cash + main.money.wallet; var h0: float = main.tod.total_hours
+	main.police.report("hit_car", main.focus_world(), true)
+	main.hurt(500.0, "fall")
+	if not main.dying: return [false, "not wasted at 0 health"]
+	for i in 480:
+		await _frames(1)
+		if not main.dying: break
+	if main.dying: return [false, "never woke up"]
+	var bill: int = c0 - (main.money.cash + main.money.wallet)
+	var ok: bool = nd.health >= 99.0 and main.police.stars == 0 and main.tod.total_hours > h0 + 5.0
+	var hp: Vector3 = main.focus_world(); var hd := 1e9
+	for h in main.hospitals: hd = minf(hd, Vector2(float(h["x"]) - hp.x, float(h["z"]) - hp.z).length())
+	if not ok or hd > 60.0: return [false, "after waking: health %d, stars %d, %.0f m from a hospital" % [int(nd.health), main.police.stars, hd]]
+	return [true, "14 m fall: health %d; wasted -> hospital (%.0f m), bill $%d, wanted cleared" % [int(after_fall), hd, bill]]
+
+
+func t_knockdown() -> Array:
+	main.input_enabled = false
+	var pd = main.peds
+	var keep_h: float = main.tod.total_hours
+	main.tod.set_date("fall", 3, 12.5)        # lunchtime crowds
+	var near: Array = []
+	for i in 240:
+		var f: Vector3 = main.focus_world()
+		near = pd.peds.filter(func(q): return (q["pos"] - f).length() < 120.0 and q["state"] == "walk")
+		if near.size() >= 2: break
+		await _frames(10)
+	main.tod.total_hours = keep_h; main.tod.apply_now()
+	if near.size() < 2: return [false, "no pedestrians near the player"]
+	var p: Dictionary = near[0]
+	var hard: Dictionary = near[1]
+	pd.knock_down(p, Vector3(8.0, 0, 0))
+	if not hard.is_empty(): pd.knock_down(hard, Vector3(0, 0, 18.0))
+	var landed := false
+	for i in 240:
+		await _frames(1)
+		if p["state"] in ["down", "flee"]: landed = true
+	if not landed: return [false, "never landed (state %s, still listed %s, pos %s, ground %.1f, v %s, focus %s)" % [p["state"], pd.peds.has(p), p["pos"], p["y"], p.get("fly_v"), main.focus_world()]]
+	for i in 1200:
+		await _frames(1)
+		if p["state"] == "flee": break
+	var got_up: bool = p["state"] in ["flee", "walk"]
+	var stayed: String = hard.get("state", "-") if not hard.is_empty() else "-"
+	if not got_up: return [false, "light hit never got up (%s)" % p["state"]]
+	if not hard.is_empty() and stayed != "injured": return [false, "hard hit should stay down (%s)" % stayed]
+	return [true, "light hit: down then ran off; hard hit: stays injured; %d still in the world" % pd.peds.size()]

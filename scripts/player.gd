@@ -13,6 +13,8 @@ var needs: Node = null          # needs.gd (stamina limits sprinting, fitness sp
 var want_jump := false
 var model: Node3D
 var anim_t := 0.0
+var _fall_v := 0.0              # fastest downward speed since leaving the ground
+signal hurt(amount: float, cause: String)
 
 func _ready() -> void:
 	var cs := CollisionShape3D.new()
@@ -76,7 +78,11 @@ func _physics_process(dt: float) -> void:
 	else:
 		velocity.y -= GRAVITY * dt
 	want_jump = false
+	if not is_on_floor(): _fall_v = minf(_fall_v, velocity.y)
 	move_and_slide()
+	if is_on_floor() and _fall_v < -9.0:          # a hard landing hurts (about a one-storey drop and up)
+		hurt.emit((-_fall_v - 9.0) * 7.0, "fall")
+	if is_on_floor(): _fall_v = 0.0
 	# face movement direction + simple walk cycle
 	var hv := Vector2(velocity.x, velocity.z)
 	if hv.length() > 0.3:

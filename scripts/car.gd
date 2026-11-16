@@ -19,7 +19,8 @@ var _smoke: CPUParticles3D = null
 var last_hit := 0.0                # size of the last damaging hit (for tests/HUD)
 
 var MAX_ENGINE := 5200.0
-var MAX_BRAKE := 60.0
+const ENGINE_SCALE := 2.0     # roster "engine" numbers are relative; this gives arcade-brisk acceleration (0-60 ~5-7 s for a family sedan)
+var MAX_BRAKE := 34.0
 var MAX_STEER := 0.55
 var TOP_SPEED := 52.0   # m/s (~116 mph)
 var GRIP := 2.6
@@ -33,13 +34,14 @@ var _heads: Array[SpotLight3D] = []
 var _hl_mat: StandardMaterial3D
 var _tl_mat: StandardMaterial3D
 var wheels: Array[VehicleWheel3D] = []
-static var surface_grip := 1.0    # set each frame by main.gd from time_of_day.road_grip() (wet/snowy roads)
+static var surface_grip := 1.0
+static var driver_hurt: Callable    # main.gd: hurt the player when the car they drive crashes hard    # set each frame by main.gd from time_of_day.road_grip() (wet/snowy roads)
 
 func apply_spec() -> void:
 	if spec.is_empty(): return
-	MAX_ENGINE = float(spec["engine"]) * (1.0 + 0.12 * int(upgrades.get("engine", 0)))
+	MAX_ENGINE = float(spec["engine"]) * ENGINE_SCALE * (1.0 + 0.12 * int(upgrades.get("engine", 0)))
 	TOP_SPEED = float(spec["top_mps"]) * (1.0 + 0.05 * int(upgrades.get("engine", 0)))
-	MAX_BRAKE = 60.0 * (1.0 + 0.2 * int(upgrades.get("brakes", 0)))
+	MAX_BRAKE = 34.0 * (1.0 + 0.2 * int(upgrades.get("brakes", 0)))
 	MAX_STEER = float(spec["steer"])
 	GRIP = float(spec["grip"]) * (1.0 + 0.06 * int(upgrades.get("suspension", 0)))
 	model_name = "%s %s" % [spec["make"], spec["model"]]
@@ -156,13 +158,19 @@ func speed_mps() -> float:
 	return linear_velocity.length()
 
 ## a sudden change of velocity (not braking) is a crash: damage grows with the size of the hit
+var _prev_p := Vector3.INF
 func _check_damage() -> void:
 	var dv: float = (linear_velocity - _prev_v).length()
 	_prev_v = linear_velocity
+	# a teleport (tow truck, respawn, scripted move) or origin rebase is not a crash
+	var jumped: bool = _prev_p != Vector3.INF and global_position.distance_to(_prev_p) > maxf(5.0, linear_velocity.length() * 0.1 + 3.0)
+	_prev_p = global_position
+	if jumped: return
 	if dv > 4.0 and not freeze:
 		var dmg: float = (dv - 4.0) * 55.0
 		health = maxf(0.0, health - dmg)
 		last_hit = dv
+		if driven and dv > 11.0 and driver_hurt.is_valid(): driver_hurt.call((dv - 11.0) * 4.0, "crash")
 	if _smoke: _smoke.emitting = health < 350.0 and visible
 	if _smoke and health <= 0.0: (_smoke.mesh.material as StandardMaterial3D).albedo_color = Color(0.1, 0.1, 0.1, 0.7)
 

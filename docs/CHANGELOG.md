@@ -251,3 +251,14 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 - Title screen: clear air for the skyline (less haze); repeated notices refresh instead of stacking.
 - Minimap picture refreshes twice a second (cheaper).
 - Fishing: rod, line and bobber, plus a bite widget (only at fishing spots).
+
+## Core mechanics pass
+- Driving retuned from measurements (new feel probe test): family sedan 0-60 mph ~5-6 s, 60-0 braking ~25-30 m,
+  stays on its wheels in a 60 mph swerve. Teleports/tows/rebases no longer register as crashes.
+- Injury and death: hard landings, being hit by traffic, big crashes and bailing out of a moving car hurt you; red
+  damage flash and a low-health pulse. At 0 health: WASTED, wake at the nearest hospital (bill, 6 hours gone,
+  wanted level cleared). Falling in the river costs health instead of a fake "wasted".
+- Getting out of a car picks a free spot (driver side, passenger side, front/back, or over the roof).
+- Camera collision ignores passing traffic (no more camera jumps).
+- Pedestrians hit by a car are knocked down (thrown, land, lie there) and get up and run, or stay injured and an
+  ambulance is sent; people nearby scatter. Police still log it as a crime.

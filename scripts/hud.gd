@@ -39,6 +39,8 @@ var _overlays: Array = []
 var _mm_vp: SubViewport
 var _mm_cam: Camera3D
 var _mm_t := 0.0
+var hit_flash := 0.0           # red edge flash when you get hurt
+var _vignette: ColorRect
 var fish := {}                 # {"state": "wait"|"bite", "frac": 0..1 of the bite window left} or {} = hidden
 var fish_ctl: Control
 var meter := -1.0               # 0..1 shows the minigame aim meter (bowling); < 0 hides it
@@ -138,6 +140,11 @@ func _ready() -> void:
 	meter_ctl.offset_left = -220; meter_ctl.offset_right = 220; meter_ctl.offset_top = -150; meter_ctl.offset_bottom = -110
 	meter_ctl.draw.connect(_draw_meter)
 	add_child(meter_ctl)
+	_vignette = ColorRect.new(); _vignette.set_anchors_preset(Control.PRESET_FULL_RECT); _vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var vm := ShaderMaterial.new(); vm.shader = Shader.new()
+	vm.shader.code = "shader_type canvas_item; uniform float a = 0.0; uniform float low = 0.0; void fragment() { vec2 q = UV - 0.5; float e = smoothstep(0.25, 0.75, length(q) * 1.4); float k = max(a, low * (0.55 + 0.25 * sin(TIME * 4.0))); COLOR = vec4(0.6, 0.0, 0.0, e * k * 0.8); }"
+	_vignette.material = vm
+	add_child(_vignette); move_child(_vignette, 0)
 	fish_ctl = Control.new()
 	fish_ctl.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	fish_ctl.offset_left = -130; fish_ctl.offset_right = 130; fish_ctl.offset_top = -150; fish_ctl.offset_bottom = -12
@@ -195,10 +202,10 @@ func toggle_help() -> void:
 ## a notice: a toast top-left (big news gets the centre banner too)
 func flash(t: String) -> void:
 	if main and main.get("phone") and main.phone: main.phone.notify(t)     # every notice also lands in Messages
-	var big := t.begins_with("BUSTED") or t.begins_with("You lost the police") or t.begins_with("You were fired")
+	var big := t.begins_with("BUSTED") or t.begins_with("WASTED") or t.begins_with("You lost the police") or t.begins_with("You were fired")
 	if big:
 		flash_label.text = t.split(" - ")[0].to_upper()
-		flash_label.add_theme_color_override("font_color", Color(0.95, 0.25, 0.2) if t.begins_with("BUSTED") or t.begins_with("You were") else Color(0.4, 0.85, 1.0))
+		flash_label.add_theme_color_override("font_color", Color(0.95, 0.25, 0.2) if t.begins_with("BUSTED") or t.begins_with("WASTED") or t.begins_with("You were") else Color(0.4, 0.85, 1.0))
 		flash_t = 3.0
 	_toast(t)
 
@@ -296,6 +303,11 @@ func _process(dt: float) -> void:
 	_update_minimap_cam(dt)
 	radar.queue_redraw()
 	bars.queue_redraw()
+	hit_flash = maxf(0.0, hit_flash - dt * 1.5)
+	var lowh: float = 0.0
+	if main and main.get("needs") and main.needs: lowh = clampf((30.0 - main.needs.health) / 30.0, 0.0, 1.0)
+	(_vignette.material as ShaderMaterial).set_shader_parameter("a", hit_flash)
+	(_vignette.material as ShaderMaterial).set_shader_parameter("low", lowh)
 	meter_ctl.visible = meter >= 0.0
 	fish_ctl.visible = not fish.is_empty()
 	if fish_ctl.visible: fish_ctl.queue_redraw()

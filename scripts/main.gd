@@ -136,6 +136,8 @@ func _ready() -> void:
 	needs = load("res://scripts/needs.gd").new(); needs.name = "Needs"; needs.main = self; add_child(needs)
 	world_state.register("needs", needs)
 	player.needs = needs
+	player.hurt.connect(hurt)
+	Car.driver_hurt = hurt
 	inventory = load("res://scripts/inventory.gd").new(); inventory.name = "Inventory"; inventory.main = self; add_child(inventory)
 	world_state.register("inventory", inventory)
 	activities = load("res://scripts/activities.gd").new(); activities.name = "Activities"; activities.main = self; add_child(activities)
@@ -269,6 +271,69 @@ func nearest_car(max_d := 5.0) -> VehicleBody3D:
 			bd = d; best = c
 	return best
 
+# ------------------------------------------------------------------ injury, death and the hospital
+var dying := false
+var hospitals: Array = []
+var times_wasted := 0
+func hurt(amount: float, cause: String) -> void:
+	if dying or needs == null or amount <= 0.0: return
+	needs.health = maxf(0.0, needs.health - amount)
+	if hud: hud.hit_flash = minf(1.0, hud.hit_flash + amount / 40.0)
+	if needs.health <= 0.0: wasted(cause)
+
+func wasted(cause: String) -> void:
+	if dying: return
+	dying = true
+	input_enabled = false
+	if hud: hud.flash("WASTED")
+	if current_car: current_car.throttle = 0.0
+	get_tree().create_timer(3.0).timeout.connect(_wake_in_hospital.bind(cause))
+
+## nearest hospital: medical bill, half a day gone, wanted level cleared, health back
+func _wake_in_hospital(cause: String) -> void:
+	if hospitals.is_empty():
+		hospitals = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/stations.json"))["stations"]["hospital"]
+	if current_car: toggle_vehicle()
+	var pw := focus_world(); var best: Dictionary = {}; var bd := 1e18
+	for h in hospitals:
+		var d := Vector2(float(h["x"]) - pw.x, float(h["z"]) - pw.z).length()
+		if d < bd: bd = d; best = h
+	var bill := 0
+	if money: bill = money.fine(mini(500, 150 + int((money.cash + money.wallet) * 0.05)), "Hospital bill")
+	if police and police.stars > 0:
+		police.stars = 0; police.searching = false; police._release_units()
+	if tod: tod.total_hours += 6.0; tod.apply_now()
+	if not best.is_empty():
+		var sp := Vector3(float(best["x"]), 0, float(best["z"]))
+		streamer.load_now(sp)
+		var y: float = services._ground_y(sp) if services else 0.0
+		player.global_position = Vector3(sp.x, y + 1.0, sp.z) - world_offset
+		player.velocity = Vector3.ZERO
+		last_safe = player.global_position + world_offset
+	needs.health = 100.0
+	times_wasted += 1
+	dying = false
+	input_enabled = true
+	if hud: hud.flash("You woke up in the hospital (%s) - medical bill $%d" % [{"fall": "bad fall", "crash": "car crash", "hit": "hit by a car", "drown": "nearly drowned"}.get(cause, cause), bill])
+
+## people on foot get hit by traffic that can't stop in time
+func _check_traffic_hits() -> void:
+	if current_car or dying or traffic == null: return
+	var pp: Vector3 = player.global_position + world_offset
+	for c in traffic.cars:
+		var v: float = float(c["v"])
+		if v < 4.0: continue
+		var d: Vector3 = c["pos"] - pp; d.y = 0
+		if d.length() > float(c["len"]) * 0.5 + 0.6: continue
+		var fwd := Vector3(-sin(float(c["yaw"])), 0, -cos(float(c["yaw"])))
+		var lat: float = absf(d.cross(fwd).y)
+		if lat > 1.25: continue
+		if d.dot(fwd) > 0.0: continue       # the car is moving away from us
+		hurt(v * 5.0, "hit")
+		player.velocity = fwd * v * 0.8 + Vector3(0, 4.0, 0)
+		c["v"] = v * 0.3
+		break
+
 var _park_fix_pending := true
 var _fill: OmniLight3D
 ## after dark a soft light follows the player (camera side) so you're never a black silhouette
@@ -376,12 +441,29 @@ func toggle_vehicle() -> void:
 		c.driven = false
 		c.throttle = 0; c.steer_in = 0
 		current_car = null
-		var exit_pos: Vector3 = c.global_position - c.global_transform.basis.x * 2.0 + Vector3(0, 0.5, 0)
+		var exit_pos := _free_exit_spot(c)
+		var bail_speed: float = c.speed_mps()
 		player.global_position = exit_pos
 		player.velocity = Vector3.ZERO
+		if bail_speed > 6.0:              # bailing out of a moving car: you tumble out and it hurts
+			player.velocity = c.linear_velocity * 0.45
+			hurt(bail_speed * 1.6, "crash")
 		player.process_mode = Node.PROCESS_MODE_INHERIT
 		player.get_child(0).disabled = false
 		player.visible = true
+
+## driver's door first, then the passenger side, then out over the roof - never into a wall or another car
+func _free_exit_spot(c: Node3D) -> Vector3:
+	var space := get_world_3d().direct_space_state
+	var cap := CapsuleShape3D.new(); cap.radius = 0.35; cap.height = 1.7
+	var q := PhysicsShapeQueryParameters3D.new(); q.shape = cap; q.collision_mask = 1 | 2
+	q.exclude = [c.get_rid()]
+	var bx: Vector3 = c.global_transform.basis.x
+	for cand in [-bx * 2.0, bx * 2.1, -bx * 2.8, bx * 2.8, -c.global_transform.basis.z * 3.6, c.global_transform.basis.z * 3.6]:
+		var p: Vector3 = c.global_position + cand + Vector3(0, 1.1, 0)
+		q.transform = Transform3D(Basis(), p)
+		if space.intersect_shape(q, 1).is_empty(): return p - Vector3(0, 0.55, 0)
+	return c.global_position + Vector3(0, 2.2, 0)       # boxed in: climb out on top
 
 # ------------------------------------------------------------------ loop
 func focus_local() -> Vector3:
@@ -409,6 +491,7 @@ func focus_world() -> Vector3:
 	return focus_local() + world_offset
 
 func _physics_process(dt: float) -> void:
+	_check_traffic_hits()
 	if input_enabled:
 		var mv := Vector2(Input.get_axis("left", "right"), Input.get_axis("back", "forward"))
 		if current_car:
@@ -436,7 +519,8 @@ func _physics_process(dt: float) -> void:
 				last_safe = f + world_offset
 
 func _respawn() -> void:
-	hud.flash("WASTED... you can't swim in the Stone Ridge.")
+	hud.flash("You dragged yourself out of the water")
+	if needs: needs.health = maxf(1.0, needs.health - 25.0)
 	var p := last_safe - world_offset + Vector3(0, 1.0, 0)
 	if current_car:
 		current_car.global_position = p + Vector3(0, 0.5, 0)
@@ -491,7 +575,8 @@ func _update_camera(dt: float) -> void:
 		var back := Vector3(sin(cam_yaw), 0, cos(cam_yaw))
 		var desired := target + back * dist * cos(-0.18) + Vector3(0, dist * sin(0.18) + 0.6, 0)
 		var cq := PhysicsRayQueryParameters3D.create(target, desired)
-		cq.exclude = [c.get_rid()]
+		cq.exclude = [c.get_rid()]; cq.collision_mask = 1      # only the city, not passing traffic
+
 		var ch := get_world_3d().direct_space_state.intersect_ray(cq)
 		var blocked := not ch.is_empty()
 		if blocked:
@@ -505,7 +590,7 @@ func _update_camera(dt: float) -> void:
 		var desired := target + dir * cam_dist
 		# keep the camera out of walls
 		var q := PhysicsRayQueryParameters3D.create(target, desired)
-		q.exclude = [player.get_rid()]
+		q.exclude = [player.get_rid()]; q.collision_mask = 1
 		var hit := get_world_3d().direct_space_state.intersect_ray(q)
 		if not hit.is_empty():
 			desired = hit["position"] - dir * 0.3

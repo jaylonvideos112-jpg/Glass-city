@@ -144,8 +144,10 @@ func _check_peds_hit() -> void:
 	if car == null or main.peds == null or car.speed_mps() < 4.0: return
 	var cp: Vector3 = car.global_position + main.world_offset
 	for p in main.peds.peds.duplicate():
+		if p["state"] in ["fly", "down", "injured"]: continue
 		if Vector2(p["pos"].x - cp.x, p["pos"].z - cp.z).length() < 2.3 and absf(p["pos"].y - cp.y) < 3.0:
-			main.peds._despawn(p)
+			main.peds.knock_down(p, car.linear_velocity * 0.9)
+			car.linear_velocity *= 0.93
 			report("hit_ped", cp)
 			return
 

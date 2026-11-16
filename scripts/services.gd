@@ -202,16 +202,22 @@ func _pick_kind() -> String:
 	return "police"
 
 ## start an emergency near the player. Returns the incident or {} if no road layout fits right now.
-func dispatch(kind := "") -> Dictionary:
+## send a responder to a specific spot (e.g. someone the player knocked down)
+func dispatch_to(kind: String, at: Vector3) -> Dictionary:
+	var inc: int = main.police._nearest_node(at) if main.police else -1
+	if inc < 0: return {}
+	return dispatch(kind, inc)
+
+func dispatch(kind := "", force_node := -1) -> Dictionary:
 	if kind == "": kind = _pick_kind()
 	var focus: Vector3 = main.focus_world()
 	var nodes: Array = tr.npos.keys()
 	if nodes.is_empty(): return {}
 	for attempt in 30:
-		var inc: int = nodes[rng.randi() % nodes.size()]
+		var inc: int = nodes[rng.randi() % nodes.size()] if force_node < 0 else force_node
 		var ip: Vector3 = tr.npos[inc]
 		var di := Vector2(ip.x - focus.x, ip.z - focus.z).length()
-		if di < float(S["incident_m"][0]) or di > float(S["incident_m"][1]): continue
+		if force_node < 0 and (di < float(S["incident_m"][0]) or di > float(S["incident_m"][1])): continue
 		if tr.nout.get(inc, []).is_empty(): continue
 		# responder starts on a road edge in range of the player, a good way from the scene
 		for a2 in 20:
