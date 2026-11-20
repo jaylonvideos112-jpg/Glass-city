@@ -1,0 +1,132 @@
+{
+ "name": "PNC Bank Building (Ohio Bank Building, 1930), 405 Madison Ave",
+ "refs": "refs/w429957793/00 (National City Bank Building Toledo, Ohio, 2007, Wikimedia Commons) + LiDAR setbacks",
+ "notes": "27 storeys, 112 m: buff limestone Art Deco setback tower. Punched single windows in a regular grid, shallow piers, notched (crenellated) parapets on every setback and the crown; black granite at the banking base.",
+ "materials": {
+  "base": "limestone",
+  "body": "limestone",
+  "trim": "limestone",
+  "pier": "limestone",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat"
+ },
+ "simplify": 0.2,
+ "min_face": 3.0,
+ "bay": 2.9,
+ "corner_pier": 1.4,
+ "window": {
+  "w": 0.42,
+  "h": 0.56,
+  "group": 1,
+  "depth": 0.22,
+  "mull": "transom",
+  "sill_frac": 0.5
+ },
+ "piers": {
+  "every": 2,
+  "w": 0.5,
+  "d": 0.1
+ },
+ "floors": [
+  {
+   "n": 1,
+   "h": 3.8
+  }
+ ],
+ "tiers": [
+  {
+   "floors": [
+    {
+     "n": 1,
+     "h": 6.5,
+     "kind": "storefront",
+     "glass_h": 0.85
+    },
+    {
+     "n": 1,
+     "h": 7.0,
+     "group": 1,
+     "ww": 0.7,
+     "wh": 0.78,
+     "mull": "cross"
+    },
+    {
+     "n": 2,
+     "h": 3.1,
+     "ww": 0.6
+    }
+   ],
+   "bay": 3.6,
+   "piers": {
+    "every": 1,
+    "w": 0.7,
+    "d": 0.2
+   },
+   "mat_over": {
+    "base": "granite_dark"
+   },
+   "plinth": 1.2,
+   "cornice": {
+    "h": 0.6,
+    "out": 0.4,
+    "profile": "belt"
+   }
+  },
+  {
+   "floors": [
+    {
+     "n": 1,
+     "h": 1.5,
+     "kind": "blank"
+    }
+   ],
+   "piers": null
+  },
+  {
+   "floors": [
+    {
+     "n": 4,
+     "h": 3.12
+    }
+   ],
+   "parapet": 1.4,
+   "battlement": true
+  },
+  {
+   "floors": [
+    {
+     "n": 10,
+     "h": 3.65
+    }
+   ],
+   "parapet": 1.4,
+   "battlement": true
+  },
+  {
+   "floors": [
+    {
+     "n": 7,
+     "h": 3.71
+    }
+   ],
+   "parapet": 1.4,
+   "battlement": true
+  },
+  {
+   "floors": [
+    {
+     "n": 4,
+     "h": 3.4
+    }
+   ],
+   "bay": 2.0,
+   "parapet": 1.4,
+   "battlement": true
+  }
+ ],
+ "orthogonal": true,
+ "grid": 1.5,
+ "smooth_m": 2.5
+}

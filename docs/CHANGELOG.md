@@ -374,8 +374,13 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 - The city build leaves out a replica's generic geometry (and any footprint inside it); `scripts/replicas.gd`
   places the model in its chunk with trimesh collision, binds materials by name to the PBR textures and lights a
   share of the windows at night.
-- Done so far: Nicholas Building, Fiberglas Tower / Tower on the Maumee, Ashland Avenue Baptist Church, Spitzer
-  Building.
+- Builder features: punched masonry facades (window groups, end bays, arched heads, transoms, sills, piers, belts,
+  cornices, parapets, battlements), curtain walls, solid walls, Art Deco spandrels, storefronts, per-LiDAR-tier specs,
+  outline orthogonalisation for noisy LiDAR, composed parts (gable/hip/pyramid/mansard roofs, towers, pinnacles,
+  rose windows), giant-order porticos with or without pediments, domes on colonnaded drums with lanterns.
+- Done so far (10): Nicholas Building, Fiberglas Tower / Tower on the Maumee, PNC Bank Building, Spitzer Building,
+  Lucas County Courthouse, Valentine Theatre building, Toledo Museum of Art, Ashland Avenue Baptist Church,
+  Collingwood Arts Center.
 - Fix: the exact downtown LiDAR massing was keyed to county-footprint ids from an older county join, so 638
   downtown buildings had their heights applied to unrelated houses (floating penthouses, wrong heights).
   Regenerated; the Hotel SeaGate demolition override now finds the building by county address.

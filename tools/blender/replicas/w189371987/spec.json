@@ -1,0 +1,12 @@
+{"name": "Valentine Theatre building (1895, E.O. Fallis), 410 Adams St",
+ "refs": "refs/w189371987/00 (Valentine Theater Building, 2013, Wikimedia Commons)",
+ "notes": "Six storeys of tan brick: stone-trimmed storefront base with pilasters and a transom band, belt course, regular paired windows, smaller top-floor windows under a deep bracketed cornice. The theatre's fly loft (LiDAR 33 m) sits behind; the street block is capped at its real ~25 m.",
+ "materials": {"base": "limestone", "body": "brick_tan", "trim": "limestone", "cornice": "sandstone", "frame": "frame_white", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 1.0, "simplify": 0.2, "z1": 25.0,
+ "floors": [{"n": 1, "h": 5.2, "kind": "storefront", "glass_h": 0.78}, {"n": 4, "h": 3.7}, {"n": 1, "h": 3.2, "wh": 0.45}],
+ "bay": 3.6, "corner_pier": 1.6, "pilaster": 1.1,
+ "window": {"w": 0.6, "h": 0.6, "group": 2, "group_gap": 0.7, "depth": 0.2, "mull": "transom", "sill_frac": 0.5},
+ "plinth": 0.5,
+ "belts": [{"above_floor": 1, "h": 0.7, "out": 0.3}],
+ "cornice": {"h": 1.8, "out": 1.3, "profile": "classical"}
+}

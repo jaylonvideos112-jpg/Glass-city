@@ -169,7 +169,16 @@ def facade(a, b, z0, z1, fl):
             g_here = W.get("end_group", grp) if (i == 0 or i == nb - 1) else grp
             gw = bw * ww * (g_here / grp) ** 0.85; g0 = (c0 + c1) / 2 - gw / 2; g1 = g0 + gw
             quad_on(o, t, n, c0, g0, fz0, fz1, 0, body); quad_on(o, t, n, g1, c1, fz0, fz1, 0, body)
-            quad_on(o, t, n, g0, g1, fz0, wz0, 0, body); quad_on(o, t, n, g0, g1, wz1, fz1, 0, body)
+            sp = mats.get("spandrel_wall")      # Art Deco: recessed dark spandrels stack between the windows
+            if sp:
+                quad_on(o, t, n, g0, g1, fz0, wz0, -0.12, sp); quad_on(o, t, n, g0, g1, wz1, fz1, -0.12, sp)
+                for (za, zb) in ((fz0, wz0), (wz1, fz1)):
+                    for aa in (g0, g1):
+                        p0 = o + t * aa + Vector((0, 0, za)); p1 = o + t * aa + Vector((0, 0, zb))
+                        if aa == g0: face([p1, p0, p0 - n * 0.12, p1 - n * 0.12], body)
+                        else: face([p0, p1, p1 - n * 0.12, p0 - n * 0.12], body)
+            else:
+                quad_on(o, t, n, g0, g1, fz0, wz0, 0, body); quad_on(o, t, n, g0, g1, wz1, fz1, 0, body)
             gap = W.get("group_gap", 0.25)
             each = (gw - gap * (g_here - 1)) / g_here
             for k in range(g_here):
@@ -236,6 +245,41 @@ def roof(poly, z, mat):
     f = bm.faces.new(vs); f.material_index = mi(mat)
     for l in f.loops: l[uvl].uv = (l.vert.co.x, l.vert.co.y); l[uv2].uv = (0, 0)
 
+def orthogonalize(poly, cell=1.0):
+    """snap a noisy LiDAR outline to a rectilinear one: rotate to the dominant edge direction, rasterise on a grid,
+    take the union outline, rotate back. Keeps setbacks and light courts, drops jaggies."""
+    from shapely.geometry import Polygon as SP, box as sbox
+    from shapely.ops import unary_union
+    from shapely import affinity
+    g = SP(poly).buffer(0)
+    if g.is_empty: return poly
+    # dominant direction: longest-edge-weighted angle histogram modulo 90
+    hist = {}
+    for i in range(len(poly)):
+        a, b = poly[i], poly[(i + 1) % len(poly)]
+        L = math.hypot(b[0] - a[0], b[1] - a[1]); ang = round(math.degrees(math.atan2(b[1] - a[1], b[0] - a[0])) % 90)
+        hist[ang] = hist.get(ang, 0) + L
+    ang = max(hist, key=hist.get)
+    r = affinity.rotate(g, -ang, origin=(0, 0))
+    k = S.get("smooth_m", 2.0)       # close small gaps, then open small notches/spikes (square corners)
+    r = r.buffer(k, join_style=2).buffer(-k, join_style=2).buffer(-k, join_style=2).buffer(k, join_style=2)
+    if r.is_empty: return poly
+    mnx, mny, mxx, mxy = r.bounds
+    cells = []
+    y = math.floor(mny / cell) * cell
+    while y < mxy:
+        x = math.floor(mnx / cell) * cell
+        while x < mxx:
+            c = sbox(x, y, x + cell, y + cell)
+            if r.intersection(c).area > cell * cell * 0.5: cells.append(c)
+            x += cell
+        y += cell
+    u = unary_union(cells)
+    if u.is_empty: return poly
+    if u.geom_type != "Polygon": u = max(u.geoms, key=lambda q: q.area)
+    u = affinity.rotate(u.simplify(0.05), ang, origin=(0, 0))
+    return [(x, y) for x, y in list(u.exterior.coords)[:-1]]
+
 def simplify(poly, tol=0.35):
     """drop near-collinear / tiny-edge vertices (LiDAR outlines are noisy)."""
     pts = [Vector(p) for p in poly]
@@ -256,9 +300,10 @@ def build_tier(ti, tr):
     global S
     S = dict(BASE_SPEC); S.update((BASE_SPEC.get("tiers") or [{}] * 99)[ti] if ti < len(BASE_SPEC.get("tiers") or []) else {})
     S["materials"] = dict(BASE_SPEC["materials"]); S["materials"].update(S.get("mat_over", {}))
-    mz0, mz1 = tr["z0"], tr["z1"] - S.get("cornice", {}).get("h", 0.0) - S.get("parapet", 0.0)
+    mz0, mz1 = tr["z0"], min(tr["z1"], S.get("z1", 1e9)) - S.get("cornice", {}).get("h", 0.0) - S.get("parapet", 0.0)
     fl = floors_for(mz0, mz1)
     for poly in tr["polys"]:
+        if S.get("orthogonal"): poly = orthogonalize(poly, S.get("grid", 1.0))
         poly = ccw(simplify(poly, S.get("simplify", 0.35)))
         if len(poly) < 3: continue
         for i in range(len(poly)):
@@ -278,6 +323,14 @@ def build_tier(ti, tr):
             for i in range(len(p2)):
                 a_, b_ = Vector((*p2[i], top)), Vector((*p2[(i + 1) % len(p2)], top))
                 face([a_, b_, b_ + Vector((0, 0, S["parapet"])), a_ + Vector((0, 0, S["parapet"]))], mats.get("parapet", mats["body"]), [(0, top), ((b_ - a_).length, top), ((b_ - a_).length, top + S["parapet"]), (0, top + S["parapet"])])
+            if S.get("battlement"):
+                for i in range(len(p2)):
+                    A, Bv = Vector(p2[i]), Vector(p2[(i + 1) % len(p2)]); L = (Bv - A).length
+                    if L < 1.0: continue
+                    nmer = max(1, int(L / 1.6)); tt = (Bv - A) / L; nn = Vector((tt.y, -tt.x))
+                    for k in range(0, nmer, 2):
+                        box_on(Vector((A.x, A.y, 0)), Vector((tt.x, tt.y, 0)), Vector((nn.x, nn.y, 0)), k * L / nmer, (k + 1) * L / nmer,
+                               top + S["parapet"], top + S["parapet"] + 0.9, -0.45, 0.05, mats.get("parapet", mats["body"]))
             sweep(p2, profile("coping", 1.0, 1.0), top + S["parapet"], mats["trim"])
         roof(poly, top + 0.02, mats.get("roof", "roof_flat"))
 
@@ -294,6 +347,16 @@ def pitched(poly, z, rf, wallmat):
     """gable / hip / pyramid / spire roof over a rectangle (poly from rect_poly, CCW). Gable ridge runs along the
     rectangle's long axis unless rf['ridge'] == 'short'. Gable end triangles are filled with the wall material."""
     kind = rf.get("type", "gable"); mat = rf.get("mat", "slate"); ov = rf.get("overhang", 0.35)
+    if kind == "mansard":
+        # steep slate slope (rf pitch, default 72 deg) up to h, then a flat deck
+        h = rf.get("h", 3.5); ins = h / math.tan(math.radians(rf.get("pitch", 72)))
+        lo = [Vector((p[0], p[1], z)) for p in offset_poly(poly, ov)]
+        hi = [Vector((p[0], p[1], z + h)) for p in offset_poly(poly, -ins)]
+        for i in range(len(lo)):
+            j = (i + 1) % len(lo)
+            face([lo[i], lo[j], hi[j], hi[i]], mat)
+        roof([(q.x, q.y) for q in hi], z + h, rf.get("deck", "roof_flat"))
+        return
     P = [Vector((p[0], p[1], z)) for p in poly]
     e0 = (P[1] - P[0]); e1 = (P[2] - P[1])
     if (e0.length < e1.length) != (rf.get("ridge") == "short"): P = P[1:] + P[:1]; e0, e1 = e1, (P[2] - P[1])
@@ -384,11 +447,90 @@ def build_part(pt):
                 face([A, Bv, Bv + Vector((0, 0, tu["h"])), A + Vector((0, 0, tu["h"]))], mats["body"])
             pitched(sq, top + tu["h"], {"type": "pyramid", "h": tu.get("cap", 2.0), "mat": tu.get("mat", "slate"), "overhang": 0.05}, mats["body"])
 
+# --------------------------------------------------------------------------- classical primitives
+def column(c, r, z0, z1, mat, seg=12):
+    """shaft with a square base block and capital."""
+    for k in range(seg):
+        a0 = 2 * math.pi * k / seg; a1 = 2 * math.pi * (k + 1) / seg
+        A = Vector((c.x + math.cos(a0) * r, c.y + math.sin(a0) * r, 0)); B = Vector((c.x + math.cos(a1) * r, c.y + math.sin(a1) * r, 0))
+        A2 = Vector((c.x + math.cos(a0) * r * 0.85, c.y + math.sin(a0) * r * 0.85, 0)); B2 = Vector((c.x + math.cos(a1) * r * 0.85, c.y + math.sin(a1) * r * 0.85, 0))
+        face([A + Vector((0, 0, z0 + 0.4)), B + Vector((0, 0, z0 + 0.4)), B2 + Vector((0, 0, z1 - 0.6)), A2 + Vector((0, 0, z1 - 0.6))], mat)
+    t = Vector((1, 0, 0)); n = Vector((0, -1, 0)); o = Vector((c.x - r * 1.3, c.y + r * 1.3, 0))
+    box_on(o, t, n, 0, r * 2.6, z0, z0 + 0.4, 0, r * 2.6, mat)
+    box_on(o, t, n, 0, r * 2.6, z1 - 0.6, z1, 0, r * 2.6, mat)
+
+def portico(poly, P_, mats):
+    """giant-order colonnade + entablature + pediment in front of the footprint edge facing P_['facing']."""
+    f = Vector((P_["facing"][0], P_["facing"][1], 0)).normalized()
+    ctr = sum((Vector((p[0], p[1], 0)) for p in poly), Vector()) / len(poly)
+    best = None
+    for i in range(len(poly)):
+        a = Vector((poly[i][0], poly[i][1], 0)); b = Vector((poly[(i + 1) % len(poly)][0], poly[(i + 1) % len(poly)][1], 0))
+        L = (b - a).length
+        if L < P_["width"] * 0.6: continue
+        t = (b - a) / L; n = Vector((t.y, -t.x, 0))
+        score = n.dot(f) * 10 - abs(((a + b) / 2 - ctr).cross(f).z) * 0.05
+        if best is None or score > best[0]: best = (score, a, b, t, n)
+    _, a, b, t, n = best
+    mid = (a + b) / 2; w = P_["width"]; d = P_.get("depth", 3.0); z0 = P_.get("z0", 0.0); z1 = P_["h"]
+    nc = P_.get("columns", 4); r = P_.get("r", 0.55); stone = mats.get("column", mats["trim"])
+    # podium / steps
+    box_on(mid - t * (w / 2 + 1), t, n, 0, w + 2, z0, z0 + P_.get("podium", 1.2), 0, d + 1.5, stone)
+    for i in range(nc):
+        c = mid - t * (w / 2) + t * (w * (i + 0.5) / nc) + n * (d - r * 1.3)
+        column(c, r, z0 + P_.get("podium", 1.2), z1, stone)
+    # entablature
+    box_on(mid - t * (w / 2), t, n, 0, w, z1, z1 + 1.6, 0, d + 0.3, stone)
+    if P_.get("pediment", True) is False:
+        box_on(mid - t * (w / 2), t, n, 0, w, z1 + 1.6, z1 + 2.4, 0, d + 0.4, mats.get("cornice_portico", stone)); return
+    # pediment: triangular prism
+    ph = P_.get("ped_h", w * 0.2); zt = z1 + 1.6
+    A = mid - t * (w / 2) + n * (d + 0.3); B = mid + t * (w / 2) + n * (d + 0.3); A0 = mid - t * (w / 2); B0 = mid + t * (w / 2)
+    apex = mid + n * (d + 0.3) + Vector((0, 0, zt + ph)); apex0 = mid + Vector((0, 0, zt + ph))
+    tri(A + Vector((0, 0, zt)), B + Vector((0, 0, zt)), apex, stone)
+    face([B + Vector((0, 0, zt)), B0 + Vector((0, 0, zt)), apex0, apex], mats.get("roof_ped", "slate"))
+    face([A0 + Vector((0, 0, zt)), A + Vector((0, 0, zt)), apex, apex0], mats.get("roof_ped", "slate"))
+
+def dome(D, mats):
+    c = Vector((D.get("at", [0, 0])[0], D.get("at", [0, 0])[1], 0)); r = D["r"]; z0 = D["z0"]
+    stone = mats.get("column", mats["trim"])
+    dh = D.get("drum_h", 4.0)
+    # drum: ring wall set back + free-standing colonnade
+    seg = 24
+    for k in range(seg):
+        a0 = 2 * math.pi * k / seg; a1 = 2 * math.pi * (k + 1) / seg
+        A = c + Vector((math.cos(a0), math.sin(a0), 0)) * (r * 0.82); B = c + Vector((math.cos(a1), math.sin(a1), 0)) * (r * 0.82)
+        face([A + Vector((0, 0, z0)), B + Vector((0, 0, z0)), B + Vector((0, 0, z0 + dh)), A + Vector((0, 0, z0 + dh))], mats.get("drum", stone))
+    for k in range(D.get("columns", 16)):
+        a = 2 * math.pi * k / D.get("columns", 16)
+        column(c + Vector((math.cos(a), math.sin(a), 0)) * r * 0.95, 0.28, z0, z0 + dh, stone, seg=8)
+    sweep([(c.x + math.cos(2 * math.pi * k / seg) * r, c.y + math.sin(2 * math.pi * k / seg) * r) for k in range(seg)], profile("belt", 0.8 / 0.42, 0.3 / 0.18), z0 + dh, stone)
+    # dome shell (spherical cap) and lantern
+    rings = 7; dz = z0 + dh + 0.8; hh = D.get("h", r * 0.65)
+    pts = [[c + Vector((math.cos(2 * math.pi * k / seg) * r * 0.9 * math.cos(math.pi / 2 * j / rings), math.sin(2 * math.pi * k / seg) * r * 0.9 * math.cos(math.pi / 2 * j / rings), dz + hh * math.sin(math.pi / 2 * j / rings))) for k in range(seg)] for j in range(rings + 1)]
+    for j in range(rings):
+        for k in range(seg):
+            kk = (k + 1) % seg
+            face([pts[j][k], pts[j][kk], pts[j + 1][kk], pts[j + 1][k]], mats.get("dome", "lead"))
+    lr = D.get("lantern_r", r * 0.15)
+    for k in range(8):
+        a0 = 2 * math.pi * k / 8; a1 = 2 * math.pi * (k + 1) / 8
+        A = c + Vector((math.cos(a0), math.sin(a0), 0)) * lr; B = c + Vector((math.cos(a1), math.sin(a1), 0)) * lr
+        face([A + Vector((0, 0, dz + hh)), B + Vector((0, 0, dz + hh)), B + Vector((0, 0, dz + hh + 2.5)), A + Vector((0, 0, dz + hh + 2.5))], mats.get("dome", "lead"))
+        tri(A + Vector((0, 0, dz + hh + 2.5)), B + Vector((0, 0, dz + hh + 2.5)), c + Vector((0, 0, dz + hh + 4.2)), mats.get("dome", "lead"))
+
 if BASE_SPEC.get("parts"):
     for pt in BASE_SPEC["parts"]: build_part(pt)
     tiers = []
 else:
     build_tier(0, tiers[0])
+S = dict(BASE_SPEC)
+if BASE_SPEC.get("portico"):
+    base_poly = ccw(simplify(orthogonalize(M["tiers"][0]["polys"][0], BASE_SPEC.get("grid", 1.0)) if BASE_SPEC.get("orthogonal") else M["tiers"][0]["polys"][0], BASE_SPEC.get("simplify", 0.35)))
+    for P_ in BASE_SPEC["portico"] if isinstance(BASE_SPEC["portico"], list) else [BASE_SPEC["portico"]]:
+        portico(base_poly, P_, BASE_SPEC["materials"])
+if BASE_SPEC.get("dome"):
+    dome(BASE_SPEC["dome"], BASE_SPEC["materials"])
 # upper LiDAR tiers: penthouse / mechanical volumes
 for ti, tr in enumerate(tiers[1:], 1):
     if BASE_SPEC.get("tiers") and ti < len(BASE_SPEC["tiers"]) and BASE_SPEC["tiers"][ti]:

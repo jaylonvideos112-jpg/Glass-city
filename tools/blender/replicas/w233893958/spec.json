@@ -1,0 +1,14 @@
+{"name": "Toledo Museum of Art (1912, Green & Wicks; wings 1926, 1933), 2445 Monroe St",
+ "refs": "refs/w233893958/00 (Toledo Museum of Art exterior 01, Wikimedia Commons)",
+ "notes": "Greek Revival in white Vermont marble: a raised base storey with small windows and the entrances, a long giant Ionic colonnade across the Monroe St front carrying a plain entablature, blank marble walls behind (galleries are top-lit), green copper roof edge.",
+ "materials": {"base": "marble", "body": "marble", "trim": "marble", "column": "marble", "frame": "frame_dark", "glass": "glass_window", "roof": "roof_flat", "parapet": "copper", "cornice": "marble"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 1.5, "simplify": 0.2,
+ "floors": [{"n": 1, "h": 4.2, "ww": 0.25, "wh": 0.45}, {"n": 1, "h": 8.5, "kind": "blank"}],
+ "bay": 4.5, "corner_pier": 2.0,
+ "window": {"w": 0.3, "h": 0.5, "group": 1, "depth": 0.25, "mull": "vertical", "sill_frac": 0.5},
+ "piers": {"every": 1, "w": 0.9, "d": 0.18},
+ "plinth": 0.8,
+ "belts": [{"above_floor": 1, "h": 0.9, "out": 0.35}],
+ "cornice": {"h": 1.2, "out": 0.8}, "parapet": 0.9,
+ "portico": {"facing": [0.54, 0.84], "width": 62.0, "depth": 3.2, "columns": 14, "r": 0.6, "h": 13.0, "z0": 3.6, "podium": 0.6, "pediment": false}
+}

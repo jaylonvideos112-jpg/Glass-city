@@ -1,0 +1,133 @@
+{
+ "name": "Lucas County Courthouse (1897, David L. Stine), 700 Adams St",
+ "refs": "refs/w189363860/00-01 (700 Adams Street, exterior views, 2019, DPLA via Wikimedia Commons): northeast facade, dome",
+ "notes": "Beaux-Arts in buff sandstone: rusticated ground floor with round-arched windows under a belt; two upper storeys between giant pilasters; balustraded parapet; central pavilion with a four-column giant portico and pediment facing Adams St across the square; raised centre with a leaded dome on a colonnaded drum and a lantern. Footprint and centre heights from LiDAR.",
+ "materials": {
+  "base": "sandstone",
+  "body": "sandstone",
+  "trim": "limestone",
+  "column": "limestone",
+  "pier": "sandstone",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "roof": "roof_flat",
+  "dome": "lead",
+  "drum": "sandstone",
+  "roof_ped": "lead",
+  "arch": "limestone",
+  "solid": "sandstone"
+ },
+ "orthogonal": true,
+ "grid": 1.0,
+ "smooth_m": 1.5,
+ "simplify": 0.2,
+ "min_face": 3.0,
+ "bay": 3.0,
+ "corner_pier": 1.4,
+ "window": {
+  "w": 0.5,
+  "h": 0.6,
+  "group": 1,
+  "depth": 0.3,
+  "mull": "cross",
+  "sill_frac": 0.5
+ },
+ "floors": [
+  {
+   "n": 1,
+   "h": 4.0
+  }
+ ],
+ "tiers": [
+  {
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.6,
+     "arched": true,
+     "ww": 0.5,
+     "wh": 0.55
+    },
+    {
+     "n": 2,
+     "h": 5.0
+    },
+    {
+     "n": 1,
+     "h": 1.6,
+     "kind": "blank"
+    }
+   ],
+   "piers": {
+    "every": 1,
+    "w": 0.75,
+    "d": 0.22
+   },
+   "plinth": 1.0,
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.8,
+     "out": 0.4
+    }
+   ],
+   "cornice": {
+    "h": 1.2,
+    "out": 1.0
+   },
+   "parapet": 1.0
+  },
+  {
+   "style": "solid",
+   "solid_below": 999,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.0,
+     "kind": "blank"
+    }
+   ],
+   "cornice": {
+    "h": 0.6,
+    "out": 0.4,
+    "profile": "belt"
+   }
+  },
+  {
+   "style": "solid",
+   "solid_below": 999,
+   "floors": [
+    {
+     "n": 1,
+     "h": 2.5,
+     "kind": "blank"
+    }
+   ]
+  }
+ ],
+ "portico": {
+  "facing": [
+   -0.54,
+   -0.84
+  ],
+  "width": 18.0,
+  "depth": 3.6,
+  "columns": 4,
+  "r": 0.75,
+  "h": 16.0,
+  "podium": 1.3,
+  "ped_h": 3.6
+ },
+ "dome": {
+  "at": [
+   -0.2,
+   -0.2
+  ],
+  "z0": 24.75,
+  "r": 7.0,
+  "drum_h": 4.2,
+  "columns": 16,
+  "h": 5.0,
+  "lantern_r": 1.2
+ }
+}

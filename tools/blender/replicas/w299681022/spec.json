@@ -1,0 +1,194 @@
+{
+ "name": "Collingwood Arts Center (Eberly mansion 1870s + former Ursuline convent), 2413 Collingwood Blvd",
+ "refs": "refs/w299681022/00 (Collingwood Arts Center, Wikimedia Commons)",
+ "notes": "White-painted Second Empire mansion (central entrance tower with mansard cap, two-storey bays with red mansard roofs, round-headed windows) in front of the large dark-brick convent wings with steep slate roofs. Mansion placed at the west (boulevard) end of the county footprint; the wings follow the footprint.",
+ "materials": {
+  "base": "sandstone",
+  "body": "brick_brown",
+  "trim": "limestone",
+  "arch": "limestone",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "roof": "roof_flat"
+ },
+ "window": {
+  "w": 0.42,
+  "h": 0.55,
+  "group": 1,
+  "depth": 0.2,
+  "mull": "vertical",
+  "sill_frac": 0.45
+ },
+ "corner_pier": 1.2,
+ "bay": 3.2,
+ "plinth": 0.7,
+ "floors": [
+  {
+   "n": 1,
+   "h": 4.0
+  }
+ ],
+ "parts": [
+  {
+   "rect": [
+    -52.6,
+    -2.9,
+    13.0,
+    17.5,
+    0.9
+   ],
+   "z1": 10.5,
+   "arched": true,
+   "mat_over": {
+    "body": "paint_white",
+    "trim": "paint_white",
+    "arch": "paint_white"
+   },
+   "floors": [
+    {
+     "n": 2,
+     "h": 5.25,
+     "ww": 0.42,
+     "wh": 0.58
+    }
+   ],
+   "cornice": {
+    "h": 0.8,
+    "out": 0.6
+   },
+   "roof": {
+    "type": "mansard",
+    "h": 3.6,
+    "pitch": 72,
+    "mat": "slate_red",
+    "overhang": 0.25
+   }
+  },
+  {
+   "rect": [
+    -59.9,
+    -2.9,
+    4.2,
+    4.2,
+    0.9
+   ],
+   "z1": 17.5,
+   "arched": true,
+   "corner_pier": 0.6,
+   "bay": 3.0,
+   "mat_over": {
+    "body": "paint_white",
+    "trim": "paint_white",
+    "arch": "paint_white"
+   },
+   "floors": [
+    {
+     "n": 3,
+     "h": 5.83,
+     "ww": 0.5,
+     "wh": 0.6
+    }
+   ],
+   "cornice": {
+    "h": 0.5,
+    "out": 0.4
+   },
+   "roof": {
+    "type": "mansard",
+    "h": 2.6,
+    "pitch": 75,
+    "mat": "slate",
+    "overhang": 0.15
+   }
+  },
+  {
+   "rect": [
+    -33.4,
+    -2.5,
+    23.4,
+    19.2,
+    0.9
+   ],
+   "z1": 14.5,
+   "floors": [
+    {
+     "n": 4,
+     "h": 3.6
+    }
+   ],
+   "roof": {
+    "type": "gable",
+    "pitch": 52,
+    "mat": "slate"
+   }
+  },
+  {
+   "rect": [
+    -6.6,
+    0.6,
+    29.0,
+    13.6,
+    0.9
+   ],
+   "z1": 12.5,
+   "floors": [
+    {
+     "n": 3,
+     "h": 4.1
+    }
+   ],
+   "roof": {
+    "type": "gable",
+    "pitch": 48,
+    "mat": "slate"
+   }
+  },
+  {
+   "rect": [
+    24.8,
+    0.2,
+    32.0,
+    29.8,
+    0.9
+   ],
+   "z1": 15.0,
+   "floors": [
+    {
+     "n": 4,
+     "h": 3.75
+    }
+   ],
+   "roof": {
+    "type": "hip",
+    "pitch": 50,
+    "mat": "slate"
+   }
+  },
+  {
+   "rect": [
+    46.6,
+    8.6,
+    11.8,
+    14.2,
+    0.9
+   ],
+   "z1": 12.0,
+   "arched": true,
+   "bay": 3.4,
+   "floors": [
+    {
+     "n": 1,
+     "h": 12.0,
+     "ww": 0.42,
+     "wh": 0.6
+    }
+   ],
+   "roof": {
+    "type": "gable",
+    "pitch": 55,
+    "mat": "slate",
+    "ridge": "long"
+   }
+  }
+ ]
+}
