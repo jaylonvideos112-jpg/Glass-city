@@ -45,3 +45,7 @@ Photo-scanned PBR materials and models, downloaded with tools/pipeline/fetch_pol
 - Models (assets_src, not shipped): tree_small_02, island_tree_02 -> billboard impostors in textures/trees baked by
   tools/dbg/bake_impostor.gd
 CC0: no attribution required; listed here for provenance.
+
+- **House siding and brick** — Poly Haven `white_planks_clean` and `red_brick_03` (CC0), as `textures/hsid*` / `textures/hbrk*`.
+- **House paint colours** — measured from Lucas County Auditor parcel photos (iCare). Photos are reference only and never
+  shipped; only a 48-colour palette and per-house palette indices go into `data/`.
