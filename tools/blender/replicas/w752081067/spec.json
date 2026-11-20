@@ -1,0 +1,11 @@
+{"name": "Tony Packo's Cafe (1932), 1902 Front St",
+ "refs": "refs/w752081067/00 (Tony Packo's Cafe Toledo, Wikimedia Commons)",
+ "notes": "Two-storey corner building with painted cream siding, green and red trim boards, a bracketed cornice and storefront windows; the famous sign is left off (trademark).",
+ "materials": {"base": "paint_white", "body": "paint_cream", "trim": "paint_green", "cornice": "paint_green", "frame": "paint_red", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat"},
+ "orthogonal": true, "grid": 0.8, "smooth_m": 0.6, "z1": 8.0,
+ "floors": [{"n": 1, "h": 4.2, "kind": "storefront", "glass_h": 0.75}, {"n": 1, "h": 3.8}],
+ "bay": 3.2, "corner_pier": 0.8, "pilaster": 0.5,
+ "window": {"w": 0.4, "h": 0.6, "group": 1, "depth": 0.12, "mull": "cross"},
+ "belts": [{"above_floor": 1, "h": 0.4, "out": 0.15}],
+ "cornice": {"h": 0.7, "out": 0.5}
+}

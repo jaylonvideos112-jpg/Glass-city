@@ -1,0 +1,13 @@
+{"name": "Historic Church of Saint Patrick (1901, Adolphus Druiding), 130 Avondale Ave",
+ "refs": "refs/w429966351/00 (Historic Church of Saint Patrick (Toledo, OH) - exterior, Wikimedia Commons): the dark metal spire with its cross",
+ "notes": "Gothic Revival in buff stone: tall gabled nave over lower aisles, tall arched windows, south front with a central square tower carrying a slender dark spire (rebuilt 2007) to ~44 m.",
+ "materials": {"base": "sandstone", "body": "sandstone", "trim": "limestone", "arch": "limestone", "frame": "frame_dark", "glass": "glass_window", "roof": "roof_flat"},
+ "window": {"w": 0.45, "h": 0.6, "group": 1, "depth": 0.3, "mull": "vertical", "sill_frac": 0.4},
+ "corner_pier": 1.2, "bay": 4.4, "arched": true, "plinth": 0.8,
+ "floors": [{"n": 1, "h": 8.0}],
+ "parts": [
+  {"rect": [0.0, 3.0, 46.0, 30.0, 89.3], "z1": 7.5, "floors": [{"n": 1, "h": 7.5, "ww": 0.45, "wh": 0.62}], "roof": {"type": "gable", "pitch": 18, "mat": "slate", "ridge": "long"}},
+  {"rect": [0.0, 3.0, 46.0, 15.0, 89.3], "z1": 16.0, "bay": 4.4, "floors": [{"n": 1, "h": 16.0, "ww": 0.4, "wh": 0.35, "kind": "typical"}], "roof": {"type": "gable", "pitch": 52, "mat": "slate", "ridge": "long"}},
+  {"rect": [0.1, -23.5, 8.6, 8.6, 89.3], "z1": 27.0, "corner_pier": 1.2, "bay": 6.0, "floors": [{"n": 1, "h": 8.0, "ww": 0.35, "wh": 0.6}, {"n": 2, "h": 6.0, "kind": "blank"}, {"n": 1, "h": 7.0, "group": 2, "ww": 0.6, "wh": 0.65, "mull": "none"}], "parapet": 0.6, "turrets": [{"r": 0.5, "h": 1.2, "cap": 3.0}], "roof": {"type": "spire", "h": 17.0, "mat": "slate", "overhang": 0.0}}
+ ]
+}

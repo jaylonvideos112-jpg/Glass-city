@@ -230,6 +230,7 @@ PROFILES = {
     "belt": [(0.0, 0.0), (0.12, 0.05), (0.18, 0.18), (0.18, 0.32), (0.0, 0.42)],
     "plinth": [(0.0, 0.0), (0.1, 0.0), (0.1, 0.9), (0.04, 1.0), (0.0, 1.0)],
     "coping": [(0.0, 0.0), (0.06, 0.0), (0.06, 0.12), (0.0, 0.12)],
+    "corbel": [(0.0, 0.0), (0.15, 0.0), (0.15, 0.2), (0.35, 0.22), (0.35, 0.42), (0.6, 0.44), (0.6, 0.62), (0.85, 0.64), (0.85, 0.85), (1.0, 0.87), (1.0, 1.0), (0.0, 1.0)],
     "deco": [(0.0, 0.0), (0.25, 0.0), (0.25, 0.4), (0.12, 0.45), (0.12, 1.2), (0.3, 1.25), (0.3, 1.45), (0.0, 1.45)],
 }
 def profile(name, scale_h, scale_out):
@@ -335,6 +336,24 @@ def build_tier(ti, tr):
         roof(poly, top + 0.02, mats.get("roof", "roof_flat"))
 
 # --------------------------------------------------------------------------- parts mode (churches, houses, halls)
+def foot_frame():
+    """Min rotated rectangle of the base LiDAR tier: (cx, cy, long, short, angle_deg of long axis)."""
+    from shapely.geometry import Polygon
+    from shapely.ops import unary_union
+    g = unary_union([Polygon(q) for q in M["tiers"][0]["polys"]]).minimum_rotated_rectangle
+    cs = list(g.exterior.coords)
+    e0 = (cs[1][0] - cs[0][0], cs[1][1] - cs[0][1]); e1 = (cs[2][0] - cs[1][0], cs[2][1] - cs[1][1])
+    L0, L1 = math.hypot(*e0), math.hypot(*e1)
+    if L1 > L0: e0, L0, L1 = e1, L1, L0
+    return g.centroid.x, g.centroid.y, L0, L1, math.degrees(math.atan2(e0[1], e0[0]))
+
+def rel_rect(rel):
+    """rel = [ox, oy, w, d(, extra_ang)] in the footprint frame (x along the long side); w/d <= 0 -> full size."""
+    cx, cy, L, S_, ang = foot_frame()
+    ox, oy, w, d = rel[:4]; a = math.radians(ang)
+    w = L if w <= 0 else w; d = S_ if d <= 0 else d
+    return [cx + math.cos(a) * ox - math.sin(a) * oy, cy + math.sin(a) * ox + math.cos(a) * oy, w, d, ang + (rel[4] if len(rel) > 4 else 0)]
+
 def rect_poly(r):
     cx, cy, w, d = r[:4]; a = math.radians(r[4] if len(r) > 4 else 0.0)
     ca, sa = math.cos(a), math.sin(a)
@@ -400,6 +419,8 @@ def build_part(pt):
     global S
     S = dict(BASE_SPEC); S.update(pt)
     S["materials"] = dict(BASE_SPEC["materials"]); S["materials"].update(pt.get("mat_over", {}))
+    if "rel" in pt: pt["rect"] = rel_rect(pt["rel"])
+    if pt.get("poly") == "auto": pt["poly"] = max(M["tiers"][0]["polys"], key=len)
     poly = rect_poly(pt["rect"]) if "rect" in pt else pt["poly"]
     poly = ccw(poly)
     z0, z1 = pt.get("z0", 0.0), pt["z1"]
@@ -474,6 +495,22 @@ def portico(poly, P_, mats):
     _, a, b, t, n = best
     mid = (a + b) / 2; w = P_["width"]; d = P_.get("depth", 3.0); z0 = P_.get("z0", 0.0); z1 = P_["h"]
     nc = P_.get("columns", 4); r = P_.get("r", 0.55); stone = mats.get("column", mats["trim"])
+    if P_.get("block"):
+        # projecting gabled pavilion: wall block, tall central window, flanking towers with pinnacles
+        wall = mats.get("body"); glass = mats.get("glass", "glass_window")
+        box_on(mid - t * (w / 2), t, n, 0, w, z0, z1, 0, d, wall)
+        quad_on(mid - t * (w / 2), t, n, w * 0.3, w * 0.7, z1 * 0.45, z1 * 0.9, d + 0.02, glass, rng.random())
+        ph = P_.get("ped_h", w * 0.25)
+        A = mid - t * (w / 2) + n * d; B = mid + t * (w / 2) + n * d; A0 = mid - t * (w / 2); B0 = mid + t * (w / 2)
+        tri(A + Vector((0, 0, z1)), B + Vector((0, 0, z1)), mid + n * d + Vector((0, 0, z1 + ph)), wall)
+        face([B + Vector((0, 0, z1)), B0 + Vector((0, 0, z1)), mid + Vector((0, 0, z1 + ph)), mid + n * d + Vector((0, 0, z1 + ph))], P_.get("roof_mat", "slate"))
+        face([A0 + Vector((0, 0, z1)), A + Vector((0, 0, z1)), mid + n * d + Vector((0, 0, z1 + ph)), mid + Vector((0, 0, z1 + ph))], P_.get("roof_mat", "slate"))
+        tw = P_.get("tower_w", 3.0); th = P_.get("tower_h", z1 + 4)
+        for sgn in (-1, 1):
+            o2 = mid + t * (sgn * (w / 2 + tw / 2)) - t * (tw / 2)
+            box_on(o2, t, n, 0, tw, z0, th, -1.0, d + 0.4, P_.get("tower_mat", stone))
+            box_on(o2, t, n, 0.2, tw - 0.2, th, th + 2.0, -0.6, d + 0.2, P_.get("tower_mat", stone))
+        return
     # podium / steps
     box_on(mid - t * (w / 2 + 1), t, n, 0, w + 2, z0, z0 + P_.get("podium", 1.2), 0, d + 1.5, stone)
     for i in range(nc):
@@ -490,6 +527,29 @@ def portico(poly, P_, mats):
     tri(A + Vector((0, 0, zt)), B + Vector((0, 0, zt)), apex, stone)
     face([B + Vector((0, 0, zt)), B0 + Vector((0, 0, zt)), apex0, apex], mats.get("roof_ped", "slate"))
     face([A0 + Vector((0, 0, zt)), A + Vector((0, 0, zt)), apex, apex0], mats.get("roof_ped", "slate"))
+
+def cupola(D, mats):
+    """small square cupola / clock tower with a domed cap (Georgian schools, town halls). 'facing' places it just
+    behind the middle of the footprint edge facing that way."""
+    if D.get("facing"):
+        poly = ccw(simplify(orthogonalize(M["tiers"][0]["polys"][0], BASE_SPEC.get("grid", 1.0)) if BASE_SPEC.get("orthogonal") else M["tiers"][0]["polys"][0], BASE_SPEC.get("simplify", 0.35)))
+        f = Vector((D["facing"][0], D["facing"][1], 0)).normalized(); best = None
+        for i in range(len(poly)):
+            a = Vector((poly[i][0], poly[i][1], 0)); b = Vector((poly[(i + 1) % len(poly)][0], poly[(i + 1) % len(poly)][1], 0))
+            L = (b - a).length
+            if L < 8: continue
+            tt = (b - a) / L; nn = Vector((tt.y, -tt.x, 0)); sc = nn.dot(f) * 10 + L * 0.02
+            if best is None or sc > best[0]: best = (sc, (a + b) / 2 - nn * D.get("inset", 6.0))
+        D = dict(D); D["at"] = [best[1].x, best[1].y]
+    c = Vector((D["at"][0], D["at"][1], 0)); w = D.get("w", 4.0); z0 = D["z0"]; h = D.get("h", 6.0)
+    o = c - Vector((w / 2, w / 2, 0)); t = Vector((1, 0, 0)); n = Vector((0, -1, 0))
+    box_on(o, t, n, 0, w, z0, z0 + h * 0.5, 0, w, mats.get("cupola", "paint_white"))
+    box_on(o + Vector((w * 0.15, -w * 0.15, 0)), t, n, 0, w * 0.7, z0 + h * 0.5, z0 + h * 0.85, 0, w * 0.7, mats.get("cupola", "paint_white"))
+    rr = w * 0.38; seg = 12; zc = z0 + h * 0.85
+    pts = [[c + Vector((math.cos(2 * math.pi * k / seg) * rr * math.cos(math.pi / 2 * j / 4), math.sin(2 * math.pi * k / seg) * rr * math.cos(math.pi / 2 * j / 4), zc + rr * math.sin(math.pi / 2 * j / 4))) for k in range(seg)] for j in range(5)]
+    for j in range(4):
+        for k in range(seg):
+            face([pts[j][k], pts[j][(k + 1) % seg], pts[j + 1][(k + 1) % seg], pts[j + 1][k]], mats.get("dome", "copper"))
 
 def dome(D, mats):
     c = Vector((D.get("at", [0, 0])[0], D.get("at", [0, 0])[1], 0)); r = D["r"]; z0 = D["z0"]
@@ -524,6 +584,7 @@ if BASE_SPEC.get("parts"):
     tiers = []
 else:
     build_tier(0, tiers[0])
+for pt in BASE_SPEC.get("extras", []): build_part(pt)
 S = dict(BASE_SPEC)
 if BASE_SPEC.get("portico"):
     base_poly = ccw(simplify(orthogonalize(M["tiers"][0]["polys"][0], BASE_SPEC.get("grid", 1.0)) if BASE_SPEC.get("orthogonal") else M["tiers"][0]["polys"][0], BASE_SPEC.get("simplify", 0.35)))
@@ -531,6 +592,8 @@ if BASE_SPEC.get("portico"):
         portico(base_poly, P_, BASE_SPEC["materials"])
 if BASE_SPEC.get("dome"):
     dome(BASE_SPEC["dome"], BASE_SPEC["materials"])
+if BASE_SPEC.get("cupola"):
+    cupola(BASE_SPEC["cupola"], BASE_SPEC["materials"])
 # upper LiDAR tiers: penthouse / mechanical volumes
 for ti, tr in enumerate(tiers[1:], 1):
     if BASE_SPEC.get("tiers") and ti < len(BASE_SPEC["tiers"]) and BASE_SPEC["tiers"][ti]:

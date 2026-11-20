@@ -1,0 +1,12 @@
+{"name": "Huntington National Bank Building (1924, United Savings Building), 519 Madison Ave",
+ "refs": "refs/w429958990/00 (Huntington National Bank Building in Downtown Toledo, Ohio, September 2019, Wikimedia Commons)",
+ "notes": "Tan brick office tower over a two-storey stone base: regular punched windows, two per bay between slightly proud piers, belt over the base, deep bracketed stone cornice; LiDAR rooftop structures.",
+ "materials": {"base": "limestone", "body": "brick_tan", "trim": "limestone", "cornice": "limestone", "pier": "brick_tan", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "penthouse": "brick_tan"},
+ "floors": [{"n": 1, "h": 3.8}],
+ "bay": 3.4, "corner_pier": 1.4,
+ "window": {"w": 0.6, "h": 0.6, "group": 2, "group_gap": 0.4, "depth": 0.22, "mull": "transom", "sill_frac": 0.5},
+ "tiers": [
+  {"floors": [{"n": 1, "h": 6.5, "kind": "storefront", "glass_h": 0.85}, {"n": 1, "h": 5.75, "mat": "base", "group": 2, "ww": 0.62, "wh": 0.62}], "plinth": 0.6, "cornice": {"h": 0.8, "out": 0.4, "profile": "belt"}},
+  {"floors": [{"n": 8, "h": 3.75}], "piers": {"every": 1, "w": 0.5, "d": 0.1}, "cornice": {"h": 1.8, "out": 1.4}}
+ ]
+}

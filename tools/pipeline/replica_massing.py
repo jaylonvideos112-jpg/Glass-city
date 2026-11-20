@@ -15,7 +15,7 @@ EX = pickle.load(open(os.path.join(WORK, "lidar/downtown_exact.pkl"), "rb"))
 CO = pickle.load(open(os.path.join(WORK, "lidar/county.pkl"), "rb"))
 BU = pickle.load(open(os.path.join(WORK, "lidar/buildings.pkl"), "rb"))
 osm = {}
-for f in glob.glob(os.path.join(WORK, "osm/city_all/*.json")):
+for f in glob.glob(os.path.join(WORK, "osm/city_all/*.json")) + [os.path.join(WORK, "osm/county_osm.json")]:
     for e in json.load(open(f)).get("elements", []):
         k = e["type"][0] + str(e["id"])
         if k not in keys or k in osm: continue

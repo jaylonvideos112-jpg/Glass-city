@@ -1,0 +1,109 @@
+{
+ "name": "LaSalle & Koch Department Store / LaSalle Apartments (1917, additions 1927), 513 Adams St",
+ "refs": "refs/w241048902/00 (Lasalle, Koch and Company Department Store, Wikimedia Commons)",
+ "notes": "Ten storeys of red-brown brick with buff stone corner piers and top floors, regular paired windows, a deep green-copper cornice; LiDAR setbacks of the upper floors and penthouses kept.",
+ "materials": {
+  "base": "limestone",
+  "body": "brick_brown",
+  "trim": "limestone",
+  "cornice": "copper",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "penthouse": "brick_brown"
+ },
+ "floors": [
+  {
+   "n": 1,
+   "h": 5.0,
+   "kind": "storefront",
+   "glass_h": 0.85
+  },
+  {
+   "n": 8,
+   "h": 4.3
+  },
+  {
+   "n": 1,
+   "h": 4.0,
+   "mat": "trim"
+  }
+ ],
+ "bay": 4.4,
+ "corner_pier": 2.6,
+ "window": {
+  "w": 0.62,
+  "h": 0.6,
+  "group": 2,
+  "group_gap": 0.4,
+  "depth": 0.2,
+  "mull": "transom",
+  "sill_frac": 0.5
+ },
+ "belts": [
+  {
+   "above_floor": 1,
+   "h": 0.7,
+   "out": 0.3
+  },
+  {
+   "above_floor": 9,
+   "h": 0.5,
+   "out": 0.25
+  }
+ ],
+ "cornice": {
+  "h": 1.6,
+  "out": 1.3
+ },
+ "tiers": [
+  {},
+  {
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.5
+    }
+   ],
+   "belts": [],
+   "cornice": {}
+  },
+  {
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.5
+    }
+   ],
+   "belts": [],
+   "cornice": {}
+  },
+  {
+   "style": "solid",
+   "solid_below": 999,
+   "floors": [
+    {
+     "n": 1,
+     "h": 1.5,
+     "kind": "blank"
+    }
+   ],
+   "belts": [],
+   "cornice": {}
+  },
+  {
+   "style": "solid",
+   "solid_below": 999,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.5,
+     "kind": "blank"
+    }
+   ],
+   "belts": [],
+   "cornice": {}
+  }
+ ]
+}

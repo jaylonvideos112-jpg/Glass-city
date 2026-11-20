@@ -1,0 +1,9 @@
+{"name": "Albert Neukom House (1879, NRHP), Toledo",
+ "refs": "refs/w8000051584/00 (Albert Neukom House, Wikimedia Commons)",
+ "notes": "Two-and-a-half storey Italianate house in sandstone ashlar: tall round-headed windows with hood moulds, small columned entrance porch with balustrade, bracketed cornice, low dark hipped roof with a front gable.",
+ "materials": {"base": "sandstone", "body": "sandstone", "trim": "limestone", "cornice": "metal_dark", "pier": "sandstone", "frame": "paint_red", "glass": "glass_window", "roof": "slate"},
+ "bay": 3.4, "corner_pier": 0.5, "window": {"w": 0.45, "h": 0.62, "group": 1, "depth": 0.15, "mull": "single", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 1.2, "kind": "blank"}, {"n": 2, "h": 4.0, "arched": true}],
+ "parts": [{"rel": [0, 0, 0, 0], "z1": 9.2, "cornice": {"h": 0.6, "out": 0.5}, "roof": {"type": "hip", "h": 3.0, "mat": "slate"}}],
+ "portico": {"facing": [0.75, 0.67], "width": 3.2, "depth": 1.6, "columns": 2, "r": 0.18, "h": 3.2, "z0": 1.2, "podium": 0.1, "pediment": false}
+}

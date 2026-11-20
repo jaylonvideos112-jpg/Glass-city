@@ -1,0 +1,9 @@
+{"name": "Hylant Group Building (Libbey-Owens-Ford, 1960), 811 Madison Ave",
+ "refs": "refs/w189369980/00 (Hylant Group Building in Downtown Toledo, Ohio, July 2019, Wikimedia Commons)",
+ "notes": "15 storeys of dark grey glass curtain wall in a fine mullion grid with a spandrel band at each floor, on a recessed glazed ground floor; mechanical rooftop. Built as the glass maker LOF's headquarters.",
+ "materials": {"base": "granite_dark", "body": "glass_dark", "solid": "metal_dark", "trim": "metal_dark", "frame": "metal_dark", "glass": "glass_dark", "curtain_glass": "glass_curtain", "spandrel": "glass_dark", "mullion": "metal_dark", "shop_glass": "glass_shop", "roof": "roof_flat", "penthouse": "metal_dark"},
+ "style": "curtain", "simplify": 0.6,
+ "curtain": {"mullion": 1.55, "spandrel": 1.1, "fin": 0.1, "mw": 0.05},
+ "floors": [{"n": 1, "h": 5.5, "kind": "lobby"}, {"n": 15, "h": 3.68}],
+ "tiers": [{}, {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 2.5, "kind": "blank"}]}]
+}

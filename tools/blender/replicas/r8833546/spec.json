@@ -1,0 +1,13 @@
+{"name": "University Hall, University of Toledo (1931)",
+ "refs": "refs/r8833546/00 (University of Toledo University Hall, July 2022, Wikimedia Commons)",
+ "notes": "Collegiate Gothic in buff limestone: three- and four-storey wings with grouped mullioned windows, steep slate-coloured gables, and the central bell tower (LiDAR ~54 m) with corner buttresses and a pinnacled parapet. Wings follow the footprint; the tower sits on the front (Centennial Mall) side.",
+ "materials": {"base": "limestone", "body": "limestone", "trim": "limestone", "arch": "limestone", "frame": "frame_dark", "glass": "glass_window", "roof": "roof_flat", "parapet": "limestone"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 1.5, "simplify": 0.2, "z1": 17.5,
+ "floors": [{"n": 1, "h": 4.6}, {"n": 3, "h": 4.0}],
+ "bay": 3.4, "corner_pier": 1.5,
+ "window": {"w": 0.6, "h": 0.6, "group": 3, "group_gap": 0.18, "depth": 0.25, "mull": "transom", "sill_frac": 0.45},
+ "plinth": 0.8, "parapet": 1.4, "battlement": true,
+ "extras": [{"rect": [30.0, 0.0, 10.0, 10.0, -88.4], "z0": 0.0, "z1": 50.0, "corner_pier": 1.4, "bay": 7.0, "orthogonal": false,
+   "floors": [{"n": 4, "h": 4.3}, {"n": 3, "h": 5.0, "kind": "blank"}, {"n": 1, "h": 9.0, "group": 2, "ww": 0.6, "wh": 0.7, "arched": true}, {"n": 1, "h": 9.8, "kind": "blank"}],
+   "parapet": 1.5, "battlement": true, "turrets": [{"r": 0.7, "h": 3.0, "cap": 2.5}], "roof": {"type": "flat"}}]
+}

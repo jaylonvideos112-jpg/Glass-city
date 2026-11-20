@@ -1,0 +1,10 @@
+{"name": "Lucas County Hospital and Nurses' Home (NRHP), Arlington Ave",
+ "refs": "refs/w8000035685/00 (Front of the former Lucas County Hospital, Wikimedia Commons)",
+ "notes": "Georgian Revival hospital: red brick wings with limestone quoins, base and trim, regular 6-over-6 windows, a projecting centre pavilion with stone frontispiece, white cornice and parapet.",
+ "materials": {"base": "limestone", "body": "brick_red", "trim": "limestone", "cornice": "paint_white", "pier": "limestone", "frame": "frame_white", "glass": "glass_window", "roof": "roof_flat", "solid": "brick_red"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "simplify": 0.3, "min_face": 3.0, "bay": 3.0, "corner_pier": 1.0,
+ "window": {"w": 0.45, "h": 0.62, "group": 1, "depth": 0.18, "mull": "cross", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 2.2, "kind": "blank", "mat": "limestone"}, {"n": 5, "h": 3.7}],
+ "plinth": 0.5, "belts": [{"above_floor": 1, "h": 0.5, "out": 0.15}],
+ "cornice": {"h": 1.0, "out": 0.6}, "parapet": 1.2
+}

@@ -1,0 +1,10 @@
+{"name": "Law Center, University of Toledo",
+ "refs": "refs/w313486417/00 (University of Toledo Law Center (Cropped), July 2022, Wikimedia Commons)",
+ "notes": "Low modern building in buff stone with deep sloping dark-metal roofs, glazed clerestories and bands of windows; follows the footprint.",
+ "materials": {"base": "sandstone", "body": "limestone", "trim": "metal_dark", "frame": "metal_dark", "glass": "glass_dark", "shop_glass": "glass_dark", "roof": "roof_flat"},
+ "orthogonal": true, "grid": 1.5, "smooth_m": 2.0, "simplify": 0.3, "z1": 9.0,
+ "floors": [{"n": 2, "h": 4.5, "group": 1, "ww": 0.7, "wh": 0.45}],
+ "bay": 4.0, "corner_pier": 2.5,
+ "window": {"w": 0.7, "h": 0.45, "group": 1, "depth": 0.2, "mull": "vertical"},
+ "cornice": {"h": 0.6, "out": 1.2, "profile": "belt"}
+}

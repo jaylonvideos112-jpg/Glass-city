@@ -1,0 +1,78 @@
+{
+ "name": "Thomas A. DeVilbiss High School (1931), 3301 Upton Ave",
+ "refs": "refs/w8000078801/00 (Thomas A. Devilbiss High School, January 2022, Wikimedia Commons)",
+ "notes": "Georgian Revival in red brick with limestone trim: three storeys of tall 12-light windows, a central portico of four columns with a pediment facing Upton Ave, a white cupola/clock tower with a domed cap.",
+ "materials": {
+  "base": "limestone",
+  "body": "brick_red",
+  "trim": "limestone",
+  "column": "limestone",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "roof": "roof_flat",
+  "cupola": "paint_white",
+  "dome": "copper",
+  "roof_ped": "slate"
+ },
+ "orthogonal": true,
+ "grid": 1.5,
+ "smooth_m": 2.0,
+ "simplify": 0.3,
+ "z1": 15.0,
+ "floors": [
+  {
+   "n": 1,
+   "h": 5.0
+  },
+  {
+   "n": 2,
+   "h": 4.4
+  }
+ ],
+ "bay": 3.4,
+ "corner_pier": 1.6,
+ "window": {
+  "w": 0.55,
+  "h": 0.66,
+  "group": 1,
+  "depth": 0.2,
+  "mull": "cross",
+  "sill_frac": 0.45
+ },
+ "plinth": 0.8,
+ "belts": [
+  {
+   "above_floor": 1,
+   "h": 0.5,
+   "out": 0.2
+  }
+ ],
+ "cornice": {
+  "h": 1.0,
+  "out": 0.7
+ },
+ "parapet": 0.8,
+ "portico": {
+  "facing": [
+   1.0,
+   0.02
+  ],
+  "width": 13.0,
+  "depth": 3.4,
+  "columns": 4,
+  "r": 0.55,
+  "h": 12.0,
+  "podium": 1.0,
+  "ped_h": 3.2
+ },
+ "cupola": {
+  "facing": [
+   1.0,
+   0.02
+  ],
+  "inset": 7.0,
+  "z0": 15.8,
+  "w": 4.2,
+  "h": 7.5
+ }
+}

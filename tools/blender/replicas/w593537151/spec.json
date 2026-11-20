@@ -1,0 +1,121 @@
+{
+ "name": "Toledo Yacht Club (1909), 3900 N Summit St",
+ "refs": "refs/w593537151/00 (Toledo Yacht Club, May 2023, Wikimedia Commons)",
+ "notes": "Spanish Mission Revival in white stucco: two-storey clubhouse with an arcaded ground-floor veranda and a pillared upper porch, shaped gables, a square corner tower with a low red-tile hipped roof, red-tile roofs.",
+ "materials": {
+  "base": "paint_white",
+  "body": "paint_white",
+  "trim": "paint_white",
+  "arch": "paint_white",
+  "column": "paint_white",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "roof": "roof_flat"
+ },
+ "window": {
+  "w": 0.5,
+  "h": 0.6,
+  "group": 1,
+  "depth": 0.2,
+  "mull": "cross",
+  "sill_frac": 0.45
+ },
+ "corner_pier": 1.2,
+ "bay": 3.2,
+ "plinth": 0.6,
+ "floors": [
+  {
+   "n": 2,
+   "h": 4.2
+  }
+ ],
+ "parts": [
+  {
+   "rect": [
+    0.0,
+    0.0,
+    30.0,
+    22.0,
+    27.9
+   ],
+   "z1": 8.6,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.3,
+     "arched": true,
+     "ww": 0.6,
+     "wh": 0.62
+    },
+    {
+     "n": 1,
+     "h": 4.3,
+     "ww": 0.5,
+     "wh": 0.6
+    }
+   ],
+   "cornice": {
+    "h": 0.5,
+    "out": 0.4,
+    "profile": "belt"
+   },
+   "roof": {
+    "type": "hip",
+    "pitch": 22,
+    "mat": "tile_red",
+    "overhang": 0.6
+   }
+  },
+  {
+   "rect": [
+    -12.5,
+    -7.0,
+    6.0,
+    6.0,
+    27.9
+   ],
+   "z1": 15.5,
+   "bay": 3.0,
+   "corner_pier": 1.0,
+   "floors": [
+    {
+     "n": 3,
+     "h": 5.17,
+     "ww": 0.45,
+     "wh": 0.55
+    }
+   ],
+   "roof": {
+    "type": "hip",
+    "pitch": 25,
+    "mat": "tile_red",
+    "overhang": 0.5
+   }
+  },
+  {
+   "rect": [
+    8.0,
+    9.0,
+    12.0,
+    9.0,
+    27.9
+   ],
+   "z1": 6.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 6.0,
+     "arched": true,
+     "ww": 0.7,
+     "wh": 0.7
+    }
+   ],
+   "roof": {
+    "type": "hip",
+    "pitch": 20,
+    "mat": "tile_red",
+    "overhang": 0.5
+   }
+  }
+ ]
+}

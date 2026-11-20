@@ -1,0 +1,12 @@
+{"name": "Dr. John A. Wright House (NRHP), Toledo",
+ "refs": "refs/w8000070999/00 (Dr. John A. Wright House, Wikimedia Commons)",
+ "notes": "Queen Anne red-brick house: steep slate hipped roof with cross gables trimmed in cream bargeboards, a corner tower with a tall pyramidal roof, big multi-pane bay window, wraparound porch and tall corbelled chimney.",
+ "materials": {"base": "sandstone", "body": "brick_red", "trim": "paint_cream", "cornice": "paint_cream", "pier": "brick_red", "frame": "paint_cream", "glass": "glass_window", "roof": "slate"},
+ "bay": 3.4, "corner_pier": 0.5, "window": {"w": 0.45, "h": 0.62, "group": 1, "depth": 0.15, "mull": "single", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 1.0, "kind": "blank", "mat": "sandstone"}, {"n": 2, "h": 3.7}],
+ "parts": [
+  {"rel": [0, 0, 0, 0], "z1": 8.4, "cornice": {"h": 0.4, "out": 0.4}, "roof": {"type": "hip", "h": 5.6, "mat": "slate"}},
+  {"rel": [-3.0, 6.0, 6.0, 5.0], "z1": 8.4, "cornice": {"h": 0.4, "out": 0.4}, "roof": {"type": "gable", "h": 4.8, "mat": "slate"}},
+  {"rel": [5.0, 6.8, 3.8, 3.8], "z1": 9.6, "cornice": {"h": 0.4, "out": 0.4}, "roof": {"type": "pyramid", "h": 5.4, "mat": "slate"}}
+ ]
+}

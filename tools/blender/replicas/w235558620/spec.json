@@ -1,0 +1,10 @@
+{"name": "The Overmyer Building (former Commerce Paper Co.), Ontario St, Warehouse District",
+ "refs": "refs/w235558620/00 (The Commerce Paper Company Building in Downtown Toledo, Ohio, September 2019, Wikimedia Commons)",
+ "notes": "8-storey red-brick warehouse: brick piers between bays of grouped steel-sash windows, plain cornice band, one long flank largely blank where a neighbour was demolished.",
+ "materials": {"base": "brick_red", "body": "brick_red", "trim": "brick_brown", "pier": "brick_red", "frame": "frame_dark", "glass": "glass_window", "roof": "roof_flat", "solid": "brick_red"},
+ "orthogonal": true, "grid": 0.5, "bay": 4.6, "corner_pier": 1.2,
+ "window": {"w": 0.8, "h": 0.62, "group": 3, "depth": 0.2, "mull": "grid", "sill_frac": 0.45},
+ "floors": [{"n": 1, "h": 5.0, "kind": "storefront"}, {"n": 7, "h": 4.3}],
+ "piers": {"every": 1, "w": 0.7, "d": 0.18}, "plinth": 0.5,
+ "cornice": {"h": 0.9, "out": 0.35}, "parapet": 0.6
+}

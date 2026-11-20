@@ -1,0 +1,12 @@
+{"name": "Ohio Theatre (1921), 3112 Lagrange St",
+ "refs": "refs/w203399039/00 (Ohio Theater. Toledo, Ohio, June 2022, Wikimedia Commons)",
+ "notes": "Dark red-brown brick front with white stone pilasters framing tall blind panels and a central window bay, white cornice and parapet; ground-floor storefronts and marquee zone; plain brick auditorium behind.",
+ "materials": {"base": "limestone", "body": "brick_brown", "trim": "limestone", "pier": "limestone", "frame": "frame_white", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 0.8, "z1": 15.0,
+ "floors": [{"n": 1, "h": 5.0, "kind": "storefront", "glass_h": 0.8}, {"n": 2, "h": 4.2, "group": 1, "ww": 0.35, "wh": 0.7}],
+ "bay": 4.2, "corner_pier": 1.4, "pilaster": 1.0,
+ "window": {"w": 0.4, "h": 0.6, "group": 1, "depth": 0.25, "mull": "cross", "sill_frac": 0.4},
+ "piers": {"every": 1, "w": 0.9, "d": 0.25},
+ "belts": [{"above_floor": 1, "h": 0.6, "out": 0.3}],
+ "cornice": {"h": 0.9, "out": 0.6}, "parapet": 1.0
+}

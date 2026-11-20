@@ -1,0 +1,11 @@
+{"name": "Morrison R. Waite High School (1914), 301 Morrison Dr",
+ "refs": "refs/w8000128844/00 (Waite High School Toledo (Cropped), July 2022, Wikimedia Commons)",
+ "notes": "Jacobethan in dark red brick with limestone trim: four storeys of grouped mullioned windows, a tall central gabled pavilion with a great window flanked by turreted stone towers facing Morrison Dr, crenellated stone parapets.",
+ "materials": {"base": "limestone", "body": "brick_red", "trim": "limestone", "frame": "frame_white", "glass": "glass_window", "roof": "roof_flat", "column": "limestone"},
+ "orthogonal": true, "grid": 1.5, "smooth_m": 2.0, "simplify": 0.3, "z1": 18.5,
+ "floors": [{"n": 1, "h": 4.8}, {"n": 3, "h": 4.2}],
+ "bay": 4.2, "corner_pier": 2.0,
+ "window": {"w": 0.75, "h": 0.62, "group": 3, "group_gap": 0.15, "depth": 0.22, "mull": "cross", "sill_frac": 0.45},
+ "plinth": 0.8, "belts": [{"above_floor": 1, "h": 0.6, "out": 0.25}], "parapet": 1.2, "battlement": true,
+ "portico": {"facing": [-0.78, -0.63], "block": true, "width": 16.0, "depth": 2.5, "h": 18.5, "ped_h": 5.0, "tower_w": 3.6, "tower_h": 22.0, "roof_mat": "slate"}
+}

@@ -1,0 +1,11 @@
+{"name": "Huntington Center (2009), 500 Jefferson Ave",
+ "refs": "refs/w182059793/00 (Huntington Center (Toledo, Ohio), April 2022, Wikimedia Commons)",
+ "notes": "Arena: red brick walls with tall glazed lobby corners and entrances, a white precast band and a light upper frieze, few windows on the long brick sides.",
+ "materials": {"base": "precast_white", "body": "brick_red", "trim": "precast_white", "frame": "metal_light", "glass": "glass_curtain", "shop_glass": "glass_shop", "roof": "roof_flat"},
+ "orthogonal": true, "grid": 1.5, "smooth_m": 2.0, "simplify": 0.3,
+ "floors": [{"n": 1, "h": 7.0, "kind": "storefront", "glass_h": 0.9}, {"n": 1, "h": 9.0, "group": 2, "ww": 0.5, "wh": 0.55}, {"n": 1, "h": 6.0, "kind": "blank", "mat": "trim"}],
+ "bay": 12.0, "corner_pier": 4.0, "pilaster": 2.5,
+ "window": {"w": 0.5, "h": 0.55, "group": 2, "depth": 0.2, "mull": "cross"},
+ "belts": [{"above_floor": 1, "h": 0.8, "out": 0.3}],
+ "parapet": 1.2
+}

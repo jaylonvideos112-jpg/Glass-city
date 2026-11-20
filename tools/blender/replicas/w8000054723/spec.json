@@ -1,0 +1,17 @@
+{"name": "James M. Ashley and Thomas W.L. Ashley U.S. Courthouse (1932, James A. Wetmore), 1716 Spielbusch Ave",
+ "refs": "refs/w8000054723/00 (Exterior, U.S. Courthouse, Toledo, Ohio, Carol M. Highsmith / Library of Congress via Wikimedia Commons)",
+ "notes": "Neoclassical in limestone: low basement storey, rusticated ground floor with round-arched windows, two upper storeys behind a giant order of Corinthian columns/pilasters, entablature with a balustraded attic, central pedimented portico facing Spielbusch Ave, green copper hipped roof behind the parapet.",
+ "materials": {"base": "limestone", "body": "limestone", "trim": "limestone", "column": "limestone", "pier": "limestone", "frame": "frame_dark", "glass": "glass_window", "roof": "copper", "roof_ped": "copper", "solid": "limestone"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 1.2, "simplify": 0.2, "min_face": 4.0,
+ "bay": 3.4, "corner_pier": 2.0,
+ "window": {"w": 0.5, "h": 0.6, "group": 1, "depth": 0.3, "mull": "cross", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 4.0}],
+ "tiers": [
+  {"floors": [{"n": 1, "h": 2.4, "ww": 0.4, "wh": 0.45}, {"n": 1, "h": 4.8, "arched": true, "ww": 0.5, "wh": 0.6}, {"n": 2, "h": 4.1}],
+   "piers": {"every": 1, "w": 0.85, "d": 0.32}, "plinth": 0.6,
+   "belts": [{"above_floor": 2, "h": 0.7, "out": 0.3}], "cornice": {"h": 1.3, "out": 0.9}, "parapet": 1.2, "battlement": false},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 3.5, "kind": "blank"}], "mat_over": {"solid": "copper", "body": "copper"}},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 4.4, "kind": "blank"}], "mat_over": {"solid": "metal_light"}}
+ ],
+ "portico": {"facing": [-0.94, 0.35], "width": 21.0, "depth": 1.8, "columns": 6, "r": 0.6, "h": 15.3, "z0": 7.2, "podium": 0.4, "ped_h": 3.0}
+}

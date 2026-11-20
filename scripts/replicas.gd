@@ -68,11 +68,15 @@ const MAT := {
 	"frame_dark": ["", Color(0.07, 0.07, 0.07), 0.5, 0.3, 1.0],
 	"frame_white": ["", Color(0.85, 0.85, 0.82), 0.5, 0.0, 1.0],
 	"roof_flat": ["", Color(0.28, 0.28, 0.29), 0.95, 0.0, 1.0],
+	"paint_cream": ["", Color(0.9, 0.85, 0.68), 0.75, 0.0, 1.0],
+	"paint_green": ["", Color(0.12, 0.38, 0.27), 0.6, 0.0, 1.0],
+	"paint_red": ["", Color(0.55, 0.1, 0.08), 0.6, 0.0, 1.0],
 	"paint_white": ["white_stucco", Color(1.12, 1.1, 1.05), 0.7, 0.0, 3.0],
 	"slate_red": ["box_profile_metal_sheet", Color(0.55, 0.22, 0.16), 0.7, 0.1, 1.5],
 	"slate": ["box_profile_metal_sheet", Color(0.32, 0.33, 0.37), 0.75, 0.1, 1.5],
 	"shingle": ["", Color(0.24, 0.22, 0.21), 0.9, 0.0, 1.0],
 	"copper": ["", Color(0.35, 0.58, 0.5), 0.55, 0.35, 1.0],
+	"tile_red": ["box_profile_metal_sheet", Color(0.62, 0.27, 0.17), 0.8, 0.0, 1.0],
 	"lead": ["box_profile_metal_sheet", Color(0.48, 0.5, 0.52), 0.5, 0.45, 1.2],
 }
 

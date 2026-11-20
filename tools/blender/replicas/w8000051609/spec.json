@@ -1,0 +1,14 @@
+{"name": "Standart-Simmons Hardware Co. Building (Standart Lofts), 34 S Erie St",
+ "refs": "refs/w8000051609/00 (The Standard Lofts Apartment Building in Downtown Toledo, Ohio, September 2019, Wikimedia Commons)",
+ "notes": "c.1906 Romanesque Revival warehouse: 7 storeys of red brick on a rusticated sandstone base, paired segmental windows, round-arched top-floor arcade, corbelled brick cornice, small stair penthouse.",
+ "materials": {"base": "sandstone", "body": "brick_red", "trim": "brick_red", "pier": "brick_red", "frame": "frame_white", "glass": "glass_window", "roof": "roof_flat", "solid": "brick_red"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "bay": 3.2, "corner_pier": 1.4,
+ "window": {"w": 0.62, "h": 0.6, "group": 2, "depth": 0.3, "mull": "single", "sill_frac": 0.5},
+ "tiers": [
+  {"floors": [{"n": 1, "h": 4.8, "kind": "storefront", "mat": "sandstone"}, {"n": 5, "h": 4.2}, {"n": 1, "h": 4.6, "arched": true, "group": 1, "ww": 0.7}],
+   "plinth": 0.8, "belts": [{"above_floor": 1, "h": 0.5, "out": 0.2}, {"above_floor": 6, "h": 0.35, "out": 0.15}],
+   "cornice": {"h": 1.4, "out": 0.6, "profile": "corbel"}, "parapet": 0.9},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 2.0, "kind": "blank"}]},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 3.5, "kind": "blank"}]}
+ ]
+}

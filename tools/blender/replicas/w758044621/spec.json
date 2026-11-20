@@ -1,0 +1,109 @@
+{
+ "name": "Riverview Apartments (NRHP), Toledo",
+ "refs": "refs/w758044621/00 (Toledo Riverview Apartments, Wikimedia Commons)",
+ "notes": "Queen Anne apartment row painted green: 3 storeys of clapboard on a stone foundation, tall narrow 1-over-1 windows, stacked porches, steep hipped roof broken by gables and two conical-roofed corner turrets.",
+ "materials": {
+  "base": "sandstone",
+  "body": "paint_green",
+  "trim": "paint_white",
+  "pier": "paint_green",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "roof": "shingle",
+  "solid": "paint_green"
+ },
+ "orthogonal": true,
+ "grid": 0.5,
+ "bay": 2.6,
+ "corner_pier": 0.4,
+ "window": {
+  "w": 0.42,
+  "h": 0.66,
+  "group": 1,
+  "depth": 0.12,
+  "mull": "single",
+  "sill_frac": 0.5
+ },
+ "floors": [
+  {
+   "n": 1,
+   "h": 1.1,
+   "kind": "blank",
+   "mat": "sandstone"
+  },
+  {
+   "n": 3,
+   "h": 3.3
+  }
+ ],
+ "belts": [
+  {
+   "above_floor": 1,
+   "h": 0.25,
+   "out": 0.08
+  }
+ ],
+ "cornice": {
+  "h": 0.45,
+  "out": 0.5
+ },
+ "parts": [
+  {
+   "rect": [
+    -0.85,
+    1.0,
+    21.92,
+    41.06,
+    143.9
+   ],
+   "z1": 11.0,
+   "roof": {
+    "type": "hip",
+    "h": 5.5,
+    "mat": "shingle"
+   }
+  },
+  {
+   "rect": [
+    -20.55,
+    -8.52,
+    3.6,
+    3.6,
+    143.9
+   ],
+   "z1": 12.2,
+   "bay": 1.8,
+   "corner_pier": 0.2,
+   "roof": {
+    "type": "pyramid",
+    "h": 5.0,
+    "mat": "shingle"
+   },
+   "cornice": {
+    "h": 0.35,
+    "out": 0.3
+   }
+  },
+  {
+   "rect": [
+    2.18,
+    22.66,
+    3.6,
+    3.6,
+    143.9
+   ],
+   "z1": 12.2,
+   "bay": 1.8,
+   "corner_pier": 0.2,
+   "roof": {
+    "type": "pyramid",
+    "h": 5.0,
+    "mat": "shingle"
+   },
+   "cornice": {
+    "h": 0.35,
+    "out": 0.3
+   }
+  }
+ ]
+}

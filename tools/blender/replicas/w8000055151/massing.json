@@ -1,0 +1,49 @@
+{
+ "key": "w8000055151",
+ "src": "lidar_exact",
+ "anchor": [
+  -55.889,
+  132.18
+ ],
+ "ground": 179.6999969482422,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 15.25,
+   "polys": [
+    [
+     [
+      15.078,
+      6.977
+     ],
+     [
+      0.146,
+      -16.822
+     ],
+     [
+      -15.073,
+      -6.851
+     ],
+     [
+      -0.158,
+      16.755
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "building": "commercial",
+  "county": "1",
+  "name": "Two Lake Erie Center",
+  "c:luc": "715",
+  "c:cls": "E",
+  "c:bval": "80100",
+  "c:addr": "622 JEFFERSON AVE",
+  "c:ctype": "22",
+  "c:year": "1932",
+  "c:stories": "3",
+  "c:grade": "14",
+  "c:units": "0"
+ }
+}

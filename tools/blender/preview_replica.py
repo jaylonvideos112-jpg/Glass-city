@@ -7,7 +7,7 @@ az = math.radians(float(sys.argv[3]) if len(sys.argv) > 3 else 35); el = math.ra
 COL = {"limestone": (0.72, 0.68, 0.6), "brick_buff": (0.66, 0.55, 0.42), "brick_tan": (0.62, 0.5, 0.38), "brick_red": (0.45, 0.2, 0.14),
        "brick_brown": (0.35, 0.22, 0.15), "granite_dark": (0.18, 0.17, 0.17), "terracotta": (0.75, 0.6, 0.45), "frame_dark": (0.08, 0.08, 0.08),
        "frame_white": (0.85, 0.85, 0.82), "glass_window": (0.06, 0.08, 0.1), "glass_shop": (0.08, 0.1, 0.12), "roof_flat": (0.3, 0.3, 0.3),
-       "precast": (0.75, 0.73, 0.68), "concrete": (0.6, 0.6, 0.58), "metal_dark": (0.12, 0.13, 0.14), "glass_curtain": (0.12, 0.2, 0.28), "sandstone": (0.6, 0.45, 0.32), "brick_orange": (0.62, 0.36, 0.22), "slate": (0.2, 0.21, 0.24), "paint_white": (0.85, 0.84, 0.8), "slate_red": (0.5, 0.2, 0.15), "lead": (0.45, 0.47, 0.5), "precast_white": (0.85, 0.85, 0.83), "glass_teal": (0.15, 0.32, 0.35), "glass_dark": (0.03, 0.03, 0.04), "metal_light": (0.6, 0.62, 0.64), "marble": (0.88, 0.88, 0.86), "copper": (0.35, 0.58, 0.5)}
+       "precast": (0.75, 0.73, 0.68), "concrete": (0.6, 0.6, 0.58), "metal_dark": (0.12, 0.13, 0.14), "glass_curtain": (0.12, 0.2, 0.28), "sandstone": (0.6, 0.45, 0.32), "brick_orange": (0.62, 0.36, 0.22), "slate": (0.2, 0.21, 0.24), "paint_white": (0.85, 0.84, 0.8), "slate_red": (0.5, 0.2, 0.15), "lead": (0.45, 0.47, 0.5), "precast_white": (0.85, 0.85, 0.83), "glass_teal": (0.15, 0.32, 0.35), "glass_dark": (0.03, 0.03, 0.04), "metal_light": (0.6, 0.62, 0.64), "marble": (0.88, 0.88, 0.86), "copper": (0.35, 0.58, 0.5), "tile_red": (0.6, 0.28, 0.18)}
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=src)
 objs = [o for o in bpy.context.scene.objects if o.type == "MESH"]

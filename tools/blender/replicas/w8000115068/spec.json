@@ -1,0 +1,8 @@
+{"name": "Joseph K. Secor House (NRHP), Toledo",
+ "refs": "refs/w8000115068/00 (Joseph K. Secor House, Wikimedia Commons)",
+ "notes": "Second Empire brick house: two storeys of red brick with tall 2-over-2 windows and limestone sills, slate mansard third storey with segmental dormers, stone foundation, bay window on the flank.",
+ "materials": {"base": "sandstone", "body": "brick_red", "trim": "limestone", "cornice": "paint_white", "pier": "brick_red", "frame": "frame_white", "glass": "glass_window", "roof": "slate"},
+ "bay": 3.4, "corner_pier": 0.6, "window": {"w": 0.45, "h": 0.62, "group": 1, "depth": 0.15, "mull": "single", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 1.0, "kind": "blank", "mat": "sandstone"}, {"n": 2, "h": 3.9}],
+ "parts": [{"rel": [0, 0, 0, 0], "z1": 8.8, "cornice": {"h": 0.5, "out": 0.45}, "roof": {"type": "mansard", "h": 4.0, "mat": "slate"}}]
+}

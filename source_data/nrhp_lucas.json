@@ -1,0 +1,13 @@
+{"_doc": "National Register of Historic Places, Lucas County (individual Toledo buildings; districts and out-of-city entries omitted). Source: Wikipedia 'National Register of Historic Places listings in Lucas County, Ohio'. Used to find replica candidates.",
+ "buildings": [
+  ["B'nai Israel Synagogue", 41.6639, -83.5397], ["Berdan Building", 41.6483, -83.5408], ["R. Brand and Company", 41.6492, -83.5361],
+  ["The Broer-Freeman Building", 41.6514, -83.5386], ["Burt's Theater", 41.6517, -83.5400], ["Central YMCA", 41.6536, -83.5425],
+  ["Commodore Perry Hotel", 41.6506, -83.5375], ["First Church of Christ, Scientist", 41.6619, -83.5653], ["Peter Gendron House", 41.6639, -83.5358],
+  ["Hillcrest Hotel", 41.6564, -83.5461], ["Ira Apartments", 41.6531, -83.5939], ["Landers Brothers Company Building", 41.6564, -83.5386],
+  ["Edward D. Libbey House", 41.6422, -83.5581], ["Edward Drummond Libbey High School", 41.6353, -83.5714], ["Lucas County Hospital and Nurse's Home", 41.6225, -83.5950],
+  ["Albert Neukom House", 41.6411, -83.5414], ["Old Central Post Office", 41.6547, -83.5442], ["Ontario Building", 41.6517, -83.5397],
+  ["The Overmyer Building", 41.6486, -83.5428], ["Riverview Apartments", 41.6658, -83.5111], ["St. Ann Roman Catholic Church Complex", 41.6631, -83.5700],
+  ["Secor Hotel", 41.6503, -83.5369], ["Joseph K. Secor House", 41.6614, -83.5181], ["Standart-Simmons Hardware Company", 41.6478, -83.5425],
+  ["Oliver House Hotel (Successful Sales)", 41.6433, -83.5383], ["Toledo Club", 41.6556, -83.5444], ["Toledo Traction Company Power Station", 41.6506, -83.5325],
+  ["Trinity Episcopal Church", 41.6528, -83.5333], ["United States Courthouse and Custom House", 41.6575, -83.5361], ["Dr. John A. Wright House", 41.6661, -83.5394]
+ ]}

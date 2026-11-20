@@ -1,0 +1,10 @@
+{"name": "Burt's Theater (1898, NRHP), 723 Jefferson Ave",
+ "refs": "refs/w429864814/00 (Burt's Theater, Toledo, Wikimedia Commons)",
+ "notes": "Venetian Gothic front in cream terracotta with a diamond diaper pattern, two storeys of pointed-arch tracery windows over a plain ground floor, plain brick flank with punched windows, bracketed cornice.",
+ "materials": {"base": "terracotta", "body": "brick_buff", "trim": "terracotta", "cornice": "terracotta", "pier": "terracotta", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_buff"},
+ "orthogonal": true, "grid": 0.5, "bay": 2.6, "corner_pier": 1.2,
+ "window": {"w": 0.55, "h": 0.66, "group": 1, "depth": 0.25, "mull": "cross", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 5.0, "kind": "storefront"}, {"n": 2, "h": 4.6, "arched": true, "group": 3, "ww": 0.75}, {"n": 1, "h": 4.2}],
+ "belts": [{"above_floor": 1, "h": 0.6, "out": 0.25}, {"above_floor": 3, "h": 0.45, "out": 0.2}],
+ "cornice": {"h": 1.1, "out": 0.8}, "parapet": 0.6
+}

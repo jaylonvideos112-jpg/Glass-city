@@ -1,0 +1,10 @@
+{"name": "Hillcrest Hotel (1929, NRHP), 241 16th St",
+ "refs": "refs/w233915317/00 (Hillcrest Hotel, Toledo, Wikimedia Commons)",
+ "notes": "Eleven storeys of tan brick on a two-storey limestone base with storefronts, single punched windows in regular bays, arched windows on the top floor, terracotta belt below the attic and a deep cornice; HILLCREST sign on the roof.",
+ "materials": {"base": "limestone", "body": "brick_tan", "trim": "terracotta", "cornice": "terracotta", "pier": "brick_tan", "frame": "frame_white", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_tan"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 0.8, "bay": 2.4, "corner_pier": 1.6,
+ "window": {"w": 0.5, "h": 0.6, "group": 1, "depth": 0.2, "mull": "single", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 4.6, "kind": "storefront", "mat": "limestone"}, {"n": 1, "h": 3.6, "mat": "limestone"}, {"n": 8, "h": 2.95}, {"n": 1, "h": 3.2, "arched": true}],
+ "plinth": 0.6, "belts": [{"above_floor": 2, "h": 0.6, "out": 0.25}, {"above_floor": 10, "h": 0.45, "out": 0.2}],
+ "cornice": {"h": 1.3, "out": 0.9}, "parapet": 0.5
+}

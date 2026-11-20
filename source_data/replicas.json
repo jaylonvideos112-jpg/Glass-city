@@ -257,11 +257,6 @@
    "wikidata": "Q5452715"
   },
   {
-   "key": "w189304605",
-   "name": "United States Courthouse",
-   "wikidata": "Q6138352"
-  },
-  {
    "key": "w25589623",
    "name": "University of Toledo Center for the Visual Arts",
    "wikidata": "Q118636751"
@@ -295,6 +290,155 @@
    "key": "w754352264",
    "name": "(unnamed, Q5160592)",
    "wikidata": "Q5160592"
+  },
+  {
+   "key": "r8833546",
+   "name": "University Hall, University of Toledo",
+   "wikidata": ""
+  },
+  {
+   "key": "w313486417",
+   "name": "UT Law Center",
+   "wikidata": ""
+  },
+  {
+   "key": "w429958990",
+   "name": "Huntington National Bank Building (1924), 519 Madison Ave",
+   "wikidata": ""
+  },
+  {
+   "key": "w241048902",
+   "name": "LaSalle & Koch Department Store / LaSalle Apartments (1917), 513 Adams St",
+   "wikidata": ""
+  },
+  {
+   "key": "w752081067",
+   "name": "Tony Packo's Cafe, 1902 Front St",
+   "wikidata": ""
+  },
+  {
+   "key": "w8000128844",
+   "name": "Waite High School (1914), 301 Morrison Dr",
+   "wikidata": ""
+  },
+  {
+   "key": "w8000078801",
+   "name": "DeVilbiss High School (1931), 3301 Upton Ave",
+   "wikidata": ""
+  },
+  {
+   "key": "w8000055151",
+   "name": "The Broer-Freeman Building",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w429864814",
+   "name": "Burt's Theater",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w241046522",
+   "name": "Central YMCA",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w429963556",
+   "name": "Commodore Perry Hotel",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w754352129",
+   "name": "Peter Gendron House",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w233915317",
+   "name": "Hillcrest Hotel",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000051521",
+   "name": "Landers Brothers Company Building",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000035685",
+   "name": "Lucas County Hospital and Nurse's Home",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000051584",
+   "name": "Albert Neukom House",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000050134",
+   "name": "Ontario Building",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w235558620",
+   "name": "The Overmyer Building",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w758044621",
+   "name": "Riverview Apartments",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000115068",
+   "name": "Joseph K. Secor House",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000051609",
+   "name": "Standart-Simmons Hardware Company",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000145707",
+   "name": "Oliver House Hotel (Successful Sales)",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000113836",
+   "name": "Toledo Club",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000130030",
+   "name": "Toledo Traction Company Power Station",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000054723",
+   "name": "United States Courthouse and Custom House",
+   "wikidata": "",
+   "nrhp": true
+  },
+  {
+   "key": "w8000070999",
+   "name": "Dr. John A. Wright House",
+   "wikidata": "",
+   "nrhp": true
   }
  ]
 }
