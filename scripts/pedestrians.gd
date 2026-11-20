@@ -218,9 +218,36 @@ func goal_point(goal: String, from: Vector3):
 			return best
 	return null
 
+var _use_rig := RigChar.available("m1")
+func _new_rig() -> RigChar:
+	var v: String = RigChar.VARIANTS[rng.randi() % RigChar.VARIANTS.size()]
+	var look := {"skin": _pick("skin"), "hair": _pick("hair"), "top": _pick("tops"), "bottom": _pick("bottoms"),
+		"shoe": _pick("shoes"), "sleeves": [0, 0, 1, 1, 2][rng.randi() % 5], "legs": 1 if rng.randf() < 0.14 else 0}
+	var r := RigChar.create(v, look)
+	r.scale = Vector3.ONE * rng.randf_range(0.95, 1.05)
+	return r
+
+## move/animate a person's visual: skeletal rig (mocap) or the old shader-animated mesh
+func _show(p: Dictionary, xf: Transform3D, speed: float, dt: float, act := 0.0, act_t := 0.0) -> void:
+	var n = p["node"]
+	if not is_instance_valid(n): return
+	n.global_transform = xf
+	if n is RigChar:
+		n.update(dt, speed, p["state"] != "fly", 0.0)
+		n.set_act(act, act_t)
+	else:
+		n.set_instance_shader_parameter("phase", p["phase"])
+		n.set_instance_shader_parameter("swing", clampf(speed / 1.4, 0.0, 1.3))
+		n.set_instance_shader_parameter("umbrella", p["umbrella"])
+		n.set_instance_shader_parameter("act", act); n.set_instance_shader_parameter("act_t", act_t)
+
 func _spawn(eid: int, s: float, side: int) -> Dictionary:
-	var mi := MeshInstance3D.new()
-	mi.mesh = _meshes[rng.randi() % _meshes.size()]
+	var mi: Node3D
+	if _use_rig:
+		mi = _new_rig()
+	else:
+		mi = MeshInstance3D.new()
+		(mi as MeshInstance3D).mesh = _meshes[rng.randi() % _meshes.size()]
 	main.world.add_child(mi)
 	var e: Dictionary = main.traffic.edges[eid]
 	var o: Array = P["sidewalk_offset_from_curb"]
@@ -386,13 +413,12 @@ func _flee(o: Dictionary, from: Vector3) -> void:
 
 var knockdowns := 0
 func _step_special(p: Dictionary, dt: float) -> bool:
-	var mi: MeshInstance3D = p["node"]
+	var mi = p["node"]
 	if p.has("react_t"): p["react_t"] = maxf(0.0, float(p["react_t"]) - dt)
 	var cb = main.get("combat")
+	var pose: Array = [0.0, 0.0]
 	if cb and (p["state"] in ["fight", "surrender"] or float(p.get("react_t", 0.0)) > 0.0 or p.get("posed", false)):
-		var pose: Array = cb.ped_pose(p)
-		if is_instance_valid(mi):
-			mi.set_instance_shader_parameter("act", pose[0]); mi.set_instance_shader_parameter("act_t", pose[1])
+		pose = cb.ped_pose(p)
 		p["posed"] = pose[0] > 0.0
 	match p["state"]:
 		"fight":
@@ -445,15 +471,20 @@ func _step_special(p: Dictionary, dt: float) -> bool:
 	if is_instance_valid(mi):
 		var lying: float = p.get("spin", 0.0)
 		var b := Basis(Vector3.UP, p.get("fall_yaw", p["yaw"]) if not (p["state"] in ["flee", "fight", "surrender"]) else p["yaw"])
-		if lying > 0.0: b = b * Basis(Vector3(1, 0, 0), -lying)
-		var yoff: float = (0.18 if lying > 1.2 else 0.0) + float(p.get("y_off", 0.0))
-		mi.global_transform = Transform3D(b, Vector3(p["pos"].x, p["y"] + yoff, p["pos"].z) - main.world_offset)
-		mi.set_instance_shader_parameter("phase", p["phase"])
-		var mv: float = 1.3 if p["state"] == "flee" else 0.0
+		var rig: bool = mi is RigChar
+		var yoff: float = float(p.get("y_off", 0.0))
+		if rig and p["state"] in ["down", "injured"]:
+			# lying on the ground, then the mocap get-up when 'down' runs out
+			var gt: float = 0.0 if p["state"] == "injured" else clampf(1.0 - float(p["down_t"]) / 2.5, 0.0, 1.0)
+			pose = [21.0, gt * 0.85]
+		elif lying > 0.0:
+			b = b * Basis(Vector3(1, 0, 0), -lying)
+			yoff += 0.18 if (lying > 1.2 and not rig) else 0.0
+		var mv: float = p["speed"] * 2.4 if p["state"] == "flee" else 0.0
 		if p["state"] == "fight":
 			var md: String = p.get("ai", {}).get("mode", "")
-			mv = 0.6 if md in ["approach", "circle", "evade"] else 0.0
-		mi.set_instance_shader_parameter("swing", mv)
+			mv = 1.2 if md in ["approach", "circle", "evade"] else 0.0
+		_show(p, Transform3D(b, Vector3(p["pos"].x, p["y"] + yoff, p["pos"].z) - main.world_offset), mv, dt, pose[0], pose[1])
 	return true
 
 func _step(p: Dictionary, dt: float) -> void:
@@ -491,12 +522,8 @@ func _step(p: Dictionary, dt: float) -> void:
 		p["yaw"] = lerp_angle(p["yaw"], atan2(-to.x, -to.z), clampf(dt * 8.0, 0.0, 1.0))
 	if moving and dist > 0.001: p["phase"] = fmod(p["phase"] + dt * p["speed"] * 5.2, TAU)
 	_ground(p, false)
-	var mi: MeshInstance3D = p["node"]
-	if is_instance_valid(mi):
-		mi.global_transform = Transform3D(Basis(Vector3.UP, p["yaw"]), Vector3(p["pos"].x, p["y"], p["pos"].z) - main.world_offset)
-		mi.set_instance_shader_parameter("phase", p["phase"])
-		mi.set_instance_shader_parameter("swing", 1.0 if moving and dist > 0.001 else 0.0)
-		mi.set_instance_shader_parameter("umbrella", p["umbrella"])
+	var spd: float = (p["speed"] * (1.25 if p["state"] == "cross" else 1.0)) if moving and dist > 0.001 else 0.0
+	_show(p, Transform3D(Basis(Vector3.UP, p["yaw"]), Vector3(p["pos"].x, p["y"], p["pos"].z) - main.world_offset), spd, dt)
 
 func _ground(p: Dictionary, now: bool) -> void:
 	p["ray_t"] -= 1.0 / 60.0

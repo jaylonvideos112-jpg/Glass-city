@@ -21,7 +21,7 @@ var world_offset := Vector3.ZERO   # world-space position of this node's origin 
 
 var materials := {}
 ## Surfaces that take the real aerial photo (ground cover and every roof).
-const AERIAL_LAYERS := {"lot": true, "grass": true, "parking": true, "industrial": true, "forest_floor": true,
+const AERIAL_LAYERS := {"lot": true, "grass": true, "lawn": true, "drive": true, "parking": true, "industrial": true, "forest_floor": true,
 	"roof": true, "shingle": true, "shingle_red": true, "copper_green": true}
 var _aerial_shader: Shader = preload("res://shaders/aerial.gdshader")
 var _detail_tex: Texture2D = preload("res://textures/parking.png")
@@ -29,7 +29,8 @@ var _detail_tex: Texture2D = preload("res://textures/parking.png")
 ## photo_mix -1 = classify mode (photo only picks lawn vs paved), 0 = clean texture only.
 ## [photo_mix, clean set, clean tile metres]; sets are CC0 Poly Haven scans in textures/pbr/
 const PHOTO_MIX := {"lot": [-1.0, "brushed_concrete", 2.5], "parking": [0.0, "asphalt_04", 3.0], "industrial": [0.0, "brushed_concrete", 2.5],
-	"grass": [0.0, "grass_ground", 2.5], "forest_floor": [0.0, "forest_leaves_02", 2.5]}
+	"grass": [0.0, "grass_ground", 2.5], "forest_floor": [0.0, "forest_leaves_02", 2.5],
+	"lawn": [0.0, "grass_ground", 2.2], "drive": [0.0, "brushed_concrete", 2.0]}   # residential yards (build_city yards())
 const LAWN_TINT := Color(0.28, 0.5, 0.16)
 var _pbr_cache := {}
 func pbr(set_name: String) -> Dictionary:
@@ -107,6 +108,9 @@ func _make_materials() -> void:
 		materials["siding%d" % i] = _tex_mat("siding", tints[i])
 	materials["roof"] = _tex_mat("roof")
 	materials["sand"] = ground_mat("coast_sand_01", 2.5)   # island beaches
+	var trim := StandardMaterial3D.new(); trim.albedo_color = Color(0.88, 0.87, 0.83); trim.roughness = 0.7
+	materials["trim_white"] = trim                                  # fascia, soffits, rake boards
+	materials["foundation"] = _tex_mat("concrete", Color(0.72, 0.71, 0.68))
 	# sports courts / ball fields / playgrounds (OSM leisure=pitch, playground)
 	for cm in [["court_green", Color(0.24, 0.42, 0.32), 0.75], ["court_blue", Color(0.20, 0.33, 0.52), 0.75], ["court_red", Color(0.55, 0.24, 0.20), 0.8],
 			["infield", Color(0.56, 0.40, 0.28), 0.95], ["mulch", Color(0.36, 0.25, 0.16), 1.0], ["paint_line", Color(0.93, 0.93, 0.9), 0.7]]:
@@ -330,7 +334,7 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 					gm.set_shader_parameter("use_pbr", 1.0)
 					gm.set_shader_parameter("clean", cs["diff"]); gm.set_shader_parameter("clean_nor", cs["nor"]); gm.set_shader_parameter("clean_rough", cs["rough"])
 					gm.set_shader_parameter("clean_scale", 1.0 / float(pm[2]))
-					if layer["mat"] == "grass":
+					if layer["mat"] == "grass" or layer["mat"] == "lawn":
 						gm.set_shader_parameter("alt_tint", LAWN_TINT); gm.set_shader_parameter("alt_tint_mix", 0.7)
 					if pm[0] < 0.0:
 						var gs := pbr("grass_ground")

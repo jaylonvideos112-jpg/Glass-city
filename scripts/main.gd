@@ -430,6 +430,14 @@ func _seat_driver(c: Node, on: bool) -> void:
 		if d: d.queue_free()
 		return
 	if d or player.get("_body") == null: return
+	if player.get("rig"):
+		var sr: Node3D = player.make_seated()
+		sr.name = "Driver"
+		var Hc: float = float(c.spec["size"][2]) if not c.spec.is_empty() else 1.45
+		var Lc: float = float(c.spec["size"][0]) if not c.spec.is_empty() else 4.5
+		sr.position = Vector3(-0.4, minf(0.15, Hc - 1.45) - 0.12, -Lc * 0.5 + Lc * (0.2 + 0.24))
+		c.add_child(sr)
+		return
 	var mi := MeshInstance3D.new(); mi.name = "Driver"; mi.mesh = player.seated_mesh
 	var H: float = float(c.spec["size"][2]) if not c.spec.is_empty() else 1.45
 	var L: float = float(c.spec["size"][0]) if not c.spec.is_empty() else 4.5
@@ -620,6 +628,27 @@ func _update_camera(dt: float) -> void:
 		camera.fov = lerp(camera.fov, lerpf(base_fov, base_fov * zoom, _aim_k), 0.15)
 
 # ------------------------------------------------------------------ environment
+## 32^3 colour-grading LUT: slight S-curve, warm highlights, faintly teal shadows, protected skin tones.
+func _grade_lut() -> ImageTexture3D:
+	var N := 32
+	var imgs: Array[Image] = []
+	for b in N:
+		var im := Image.create(N, N, false, Image.FORMAT_RGB8)
+		for g in N:
+			for r in N:
+				var c := Color(r / float(N - 1), g / float(N - 1), b / float(N - 1))
+				var l := c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722
+				var s := l * l * (3.0 - 2.0 * l)                       # S-curve on luminance
+				var k := lerpf(1.0, (s + 0.002) / (l + 0.002), 0.35)
+				var o := Color(c.r * k, c.g * k, c.b * k)
+				var hi := clampf((l - 0.45) * 1.8, 0.0, 1.0); var lo := clampf((0.4 - l) * 2.2, 0.0, 1.0)
+				o.r += 0.035 * hi - 0.015 * lo; o.g += 0.012 * hi + 0.004 * lo; o.b += -0.03 * hi + 0.022 * lo
+				im.set_pixel(r, g, Color(clampf(o.r, 0, 1), clampf(o.g, 0, 1), clampf(o.b, 0, 1)))
+		imgs.append(im)
+	var t := ImageTexture3D.new()
+	t.create(Image.FORMAT_RGB8, N, N, N, false, imgs)
+	return t
+
 func _setup_environment() -> void:
 	env = Environment.new()
 	var sky := Sky.new()
@@ -641,15 +670,18 @@ func _setup_environment() -> void:
 	env.fog_density = 0.00022
 	env.fog_sky_affect = 0.15
 	env.ssao_enabled = true
-	env.ssao_radius = 1.2; env.ssao_intensity = 1.6
+	env.ssao_radius = 1.4; env.ssao_intensity = 1.9; env.ssao_detail = 0.7; env.ssao_light_affect = 0.15
+	# screen-space indirect light: sunlit walls and lawns bounce colour into shade (no more flat grey shadows)
+	env.ssil_enabled = true; env.ssil_radius = 6.0; env.ssil_intensity = 1.1; env.ssil_sharpness = 0.98
 	env.glow_enabled = true
 	env.glow_intensity = 0.35
 	env.glow_bloom = 0.05
 	env.glow_hdr_threshold = 1.1
 	# colour grade: a touch more contrast and saturation (the photo-based ground reads flat otherwise)
 	env.adjustment_enabled = true
-	env.adjustment_contrast = 1.06
-	env.adjustment_saturation = 1.08
+	env.adjustment_contrast = 1.04
+	env.adjustment_saturation = 1.05
+	env.adjustment_color_correction = _grade_lut()        # filmic warm-highlights / cool-shadows grade (GTA-style)
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
@@ -657,5 +689,10 @@ func _setup_environment() -> void:
 	sun.light_energy = 1.25
 	sun.light_color = Color(1.0, 0.95, 0.86)
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 220.0
+	sun.directional_shadow_max_distance = 420.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.directional_shadow_split_1 = 0.06; sun.directional_shadow_split_2 = 0.16; sun.directional_shadow_split_3 = 0.4
+	sun.directional_shadow_blend_splits = true
+	sun.light_angular_distance = 0.6        # the sun's real size: shadows soften with distance from the caster
+	sun.shadow_bias = 0.03; sun.shadow_normal_bias = 1.2
 	add_child(sun)

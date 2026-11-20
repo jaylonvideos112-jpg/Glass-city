@@ -48,12 +48,21 @@ func _box(s: Vector3) -> BoxMesh:
 const Humans := preload("res://scripts/humans.gd")
 var _body: MeshInstance3D
 var seated_mesh: ArrayMesh      # same person without legs, for the driver's seat
+var rig: RigChar                # skeletal mocap character (rig_char.gd); null -> the old shader-animated mesh
+const RIG_VARIANT := "m2"
+var look_dict := {}
 
 ## the protagonist: dark bomber jacket over a grey tee, dark jeans, white sneakers, short hair and a beard
 func _build_model() -> void:
 	var look := {"h": 1.04, "w": 1.08, "skin": Color(0.42, 0.29, 0.21), "hair": Color(0.08, 0.06, 0.05),
 		"top": Color(0.55, 0.56, 0.58), "top2": Color(0.12, 0.15, 0.22), "bottom": Color(0.14, 0.18, 0.28),
 		"shoe": Color(0.93, 0.93, 0.92), "sleeves": 2, "legs": 0, "hair_style": 0, "beard": true}
+	look_dict = look
+	if RigChar.available(RIG_VARIANT):
+		rig = RigChar.create(RIG_VARIANT, look)
+		model.add_child(rig)
+		_body = rig.body
+		return
 	var mesh := Humans.build(look)
 	var mat := ShaderMaterial.new(); mat.shader = load("res://shaders/pedestrian.gdshader")
 	mesh.surface_set_material(0, mat)
@@ -98,5 +107,21 @@ func _physics_process(dt: float) -> void:
 		anim_t += dt * hv.length() * 1.6
 	else:
 		anim_t = lerp(anim_t, round(anim_t / PI) * PI, 0.2)
+	if rig:
+		rig.update(dt, hv.length(), is_on_floor(), velocity.y)
+		return
 	_body.set_instance_shader_parameter("phase", anim_t)
 	_body.set_instance_shader_parameter("swing", clampf(hv.length() / 4.0, 0.0, 1.3))
+
+## combat / weapons poses (codes documented in rig_char.gd / shaders/pedestrian.gdshader)
+func set_act(a: float, t: float) -> void:
+	if rig: rig.set_act(a, t)
+	elif _body:
+		_body.set_instance_shader_parameter("act", a); _body.set_instance_shader_parameter("act_t", t)
+
+## a copy of the player sitting, for the driver's seat
+func make_seated() -> Node3D:
+	if rig == null: return null
+	var r := RigChar.create(RIG_VARIANT, look_dict)
+	r.pose_hold(20.0)
+	return r

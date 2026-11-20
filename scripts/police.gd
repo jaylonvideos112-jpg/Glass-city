@@ -209,12 +209,15 @@ func _deploy_officers() -> void:
 			p["pos"] = u["pos"] + Vector3(-sin(float(u["yaw"])), 0, -cos(float(u["yaw"]))).cross(Vector3.UP) * (1.6 if k == 0 else -1.6)
 			p["cop"] = true; p["gun"] = "rifle" if stars >= 5 else "pistol"; p["style"] = "boxer"
 			p["hp"] = 120.0; p["hp_max"] = 120.0
-			if _cop_look == null:
+			if p["node"] is RigChar:
+				(p["node"] as RigChar).dress({"skin": Color(0.62, 0.47, 0.36), "hair": Color(0.12, 0.1, 0.08), "top": Color(0.12, 0.16, 0.3),
+					"bottom": Color(0.1, 0.12, 0.2), "shoe": Color(0.05, 0.05, 0.05), "sleeves": 1, "legs": 0})
+			elif _cop_look == null:
 				var look := {"h": 1.02, "w": 1.05, "skin": Color(0.62, 0.47, 0.36), "hair": Color(0.12, 0.1, 0.08), "top": Color(0.12, 0.16, 0.3),
 					"top2": Color(0.1, 0.13, 0.25), "bottom": Color(0.1, 0.12, 0.2), "shoe": Color(0.05, 0.05, 0.05), "sleeves": 1, "legs": 0, "hair_style": 4, "beard": false}
 				_cop_look = preload("res://scripts/humans.gd").build(look)
 				_cop_look.surface_set_material(0, main.peds._mat)
-			(p["node"] as MeshInstance3D).mesh = _cop_look
+			if p["node"] is MeshInstance3D: (p["node"] as MeshInstance3D).mesh = _cop_look
 			main.combat.start_fight(p)
 			on_foot += 1
 

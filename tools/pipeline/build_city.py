@@ -1025,42 +1025,73 @@ def dome(c, cx, cy, r, z0, hgt, mat):
             L = math.sqrt(mx * mx + my * my + mz * mz) or 1
             quad(c, mat, to3(c, *p0), to3(c, *p1), to3(c, *p2), to3(c, *p3), (mx / L, mz / L, -my / L), [(0, 0), (1, 0), (1, 1), (0, 1)], True)
 
-def pitched_roof(c, g, h, mat_wall, ridge, kind="gable", roof_mat="shingle"):
-    """Gable / cross-gable / hip roof on a near-rectangular footprint, walls already up to h."""
+def pitched_roof(c, g, h, mat_wall, ridge, kind="gable", roof_mat="shingle", ov=0.45):
+    """Gable / cross-gable / hip roof on a near-rectangular footprint, walls already up to h.
+    The roof planes overhang the walls by `ov` (eaves + rakes) with a soffit underneath and a fascia board."""
     fr = rect_frame(g)
     if fr is None: return False
     cs, e0, e1, rect = fr
     if kind == "gable_cross":          # ridge runs across the short axis
         cs = cs[1:] + cs[:1]; e0, e1 = e1, e0
-    a, b, cc, d = cs                   # a-b and c-d are the eave edges parallel to the ridge
     if e1 > 22: return False
+    a, b, cc, d = cs                   # a-b and c-d are the eave edges parallel to the ridge
+    cx_, cy_ = rect.centroid.x, rect.centroid.y
+    ux, uy = (b[0] - a[0]) / e0, (b[1] - a[1]) / e0          # along the ridge
+    vx, vy = (d[0] - a[0]) / e1, (d[1] - a[1]) / e1          # across it
+    slope = ridge / max(e1 / 2, 0.5)
+    def grow(p, su, sv):  # push a corner out along u (rake) and v (eave)
+        return (p[0] + ux * su + vx * sv, p[1] + uy * su + vy * sv)
+    rake = ov if kind != "hip" else ov
+    A, B, CC, D = grow(a, -rake, -ov), grow(b, rake, -ov), grow(cc, rake, ov), grow(d, -rake, ov)
+    he = h - ov * slope                                     # eave line drops as the slope continues out
     m0 = ((a[0] + d[0]) / 2, (a[1] + d[1]) / 2); m1 = ((b[0] + cc[0]) / 2, (b[1] + cc[1]) / 2)
+    M0, M1 = grow(m0, -rake, 0), grow(m1, rake, 0)
     if kind == "hip":                  # pull ridge ends inward by half the width -> four sloped faces
         inset = min(e1 / 2, e0 / 2 - 0.3)
-        ux, uy = (m1[0] - m0[0]) / e0, (m1[1] - m0[1]) / e0
         m0 = (m0[0] + ux * inset, m0[1] + uy * inset); m1 = (m1[0] - ux * inset, m1[1] - uy * inset)
+        M0, M1 = m0, m1
     top = h + ridge
-    cx_, cy_ = rect.centroid.x, rect.centroid.y
     P3 = lambda p, z: to3(c, p[0], p[1], z)
     def face_n(p, q, rise, run):
         ex, ey = q[0] - p[0], q[1] - p[1]; L = math.hypot(ex, ey)
         nx, ny = ey / L, -ex / L
         if ((p[0] + q[0]) / 2 - cx_) * nx + ((p[1] + q[1]) / 2 - cy_) * ny < 0: nx, ny = -nx, -ny
         n = np.array([nx * rise, run, -ny * rise]); return tuple(float(v) for v in n / np.linalg.norm(n)), L, (nx, ny)
-    for (p, q) in ((a, b), (cc, d)):   # long slopes
+    for (p, q) in ((A, B), (CC, D)):   # long slopes
         n, L, _ = face_n(p, q, ridge, e1 / 2)
-        rp = m0 if math.dist(m0, p) < math.dist(m1, p) else m1
-        rq = m1 if rp is m0 else m0
-        quad(c, roof_mat, P3(p, h), P3(q, h), P3(rq, top), P3(rp, top), n, [(0, 0), (L / 4, 0), (L / 4, 1.5), (0, 1.5)], True)
-    for (p, q, m) in ((d, a, m0), (b, cc, m1)):
+        rp = M0 if math.dist(M0, p) < math.dist(M1, p) else M1
+        rq = M1 if rp is M0 else M0
+        quad(c, roof_mat, P3(p, he), P3(q, he), P3(rq, top), P3(rp, top), n, [(0, 0), (L / 4, 0), (L / 4, 1.5), (0, 1.5)], True)
+        # soffit: underside of the overhang, back to the wall line
+        wp = grow(p, 0, ov if p in (A, B) else -ov); wq = grow(q, 0, ov if q in (A, B) else -ov)
+        quad(c, "trim_white", P3(wp, he), P3(wq, he), P3(q, he), P3(p, he), (0.0, -1.0, 0.0), [(0, 0), (1, 0), (1, 1), (0, 1)])
+        # fascia board on the eave edge
+        _, _, (nx, ny) = face_n(p, q, 1, 1)
+        quad(c, "trim_white", P3(p, he - 0.22), P3(q, he - 0.22), P3(q, he), P3(p, he), (nx, 0.0, -ny), [(0, 0), (1, 0), (1, 1), (0, 1)])
+    for (p, q, m, wp, wq) in ((D, A, M0, d, a), (B, CC, M1, b, cc)):
         if kind == "hip":
             n, L, _ = face_n(p, q, ridge, max(math.dist(m, ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)), 0.5))
-            tri(c, roof_mat, P3(p, h), P3(q, h), P3(m, top), n, [(0, 0), (L / 4, 0), (L / 8, 1.5)], True)
+            tri(c, roof_mat, P3(p, he), P3(q, he), P3(m, top), n, [(0, 0), (L / 4, 0), (L / 8, 1.5)], True)
         else:
-            _, L, (nx, ny) = face_n(p, q, 1, 1)
+            _, L, (nx, ny) = face_n(wp, wq, 1, 1)
             tw, th = TILE.get(mat_wall, (5, 5))
-            tri(c, mat_wall, P3(p, h), P3(q, h), P3(m, top), (nx, 0.0, -ny), [(0, -h / th), (L / tw, -h / th), (L / 2 / tw, -top / th)], True)
+            tri(c, mat_wall, P3(wp, h), P3(wq, h), P3(((wp[0] + wq[0]) / 2, (wp[1] + wq[1]) / 2), top), (nx, 0.0, -ny), [(0, -h / th), (L / tw, -h / th), (L / 2 / tw, -top / th)], True)
+            # rake board along the gable edge
+            for (e_, f_) in ((p, m), (m, q)):
+                z0_, z1_ = (he, top) if e_ is p else (top, he)
+                quad(c, "trim_white", P3(e_, z0_ - 0.2), P3(f_, z1_ - 0.2), P3(f_, z1_), P3(e_, z0_), (nx, 0.0, -ny), [(0, 0), (1, 0), (1, 1), (0, 1)])
     return True
+
+def chimney(c, g, h, ridge, rnd, mat="brick_red"):
+    """brick chimney on an older house: on the ridge line near one gable end, rising ~1 m above the ridge."""
+    fr = rect_frame(g)
+    if fr is None: return
+    cs, e0, e1, rect = fr
+    a, b, cc, d = cs
+    t = 0.2 if rnd < 0.5 else 0.8
+    x = a[0] + (b[0] - a[0]) * t + (d[0] - a[0]) * 0.5; y = a[1] + (b[1] - a[1]) * t + (d[1] - a[1]) * 0.5
+    u = ((b[0] - a[0]) / e0, (b[1] - a[1]) / e0); v = (-u[1], u[0])
+    cbox(c, x, y, u, v, 0.45, 0.35, h - 0.5, h + ridge + 1.0, mat)
 
 def _max_rect(M):
     """largest all-True axis-aligned rectangle in a bool matrix (histogram method) -> (area, i0, j0, i1, j1)."""
@@ -1326,6 +1357,10 @@ def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=No
                 pitched_roof(c, q, wall_top, mat, max(0.6, min(7.0, slope * fq[2] / 2)), "gable" if kind == "gable_cross" else kind, roof_mat)
         elif not (pitched and pitched_roof(c, p, wall_top, mat, ridge, kind, roof_mat)):
             flat_poly(c, "roof", p, wall_top, 6.0, True)
+        elif cls == "house" and ((rnd * 5.71) % 1.0) < 0.55 and ridge > 1.5:
+            chimney(c, p, wall_top, ridge, (rnd * 9.13) % 1.0)
+        if cls in ("house", "garage") and not lm:
+            walls(c, p.buffer(0.08, join_style=2) if p.area > 20 else p, -0.3, 0.55, "foundation")   # exposed concrete foundation
         if mn > 0:
             for t3 in triangulate(p):
                 pts = [to3(c, x, y, mn) for x, y in t3]
@@ -1543,6 +1578,59 @@ def bar_door(c, p, theme, h):
     dx_, dy_ = mx + nx * 0.25, my + ny * 0.25
     yaw = math.atan2(-nx, ny)   # Godot yaw so that local -Z points out of the building
     c.bars.append([theme, dx_ - c.ox, -(dy_ - c.oy), float(yaw), float(min(h, 12.0)), float(L)])
+# ---------------------------------------------------------------- yards: lawns, driveways, front walks, shrubs
+def _is_small_res(e, g):
+    t = e.get("tags", {})
+    if t.get("shop") or t.get("amenity") or t.get("building") in ("commercial", "retail", "industrial", "warehouse", "office", "church", "school"): return False
+    return 25 < g.area < 420
+_SMALL = [g for e, g in buildings if _is_small_res(e, g)]
+_BIG = [g for e, g in buildings if g.area > 1200]
+HOUSE_TREE = STRtree(_SMALL) if _SMALL else None
+BIG_TREE = STRtree(_BIG) if _BIG else None
+log("yard houses", len(_SMALL))
+
+def yards(Rg, rb, generic, roads_r, side_r, rng_):
+    """split the leftover ground into lawns (around houses) and paved lots; add driveways, walks and shrubs."""
+    if HOUSE_TREE is None or generic.is_empty: return generic, Polygon(), []
+    hs = [_SMALL[i] for i in HOUSE_TREE.query(rb)]
+    if not hs: return generic, Polygon(), []
+    zone = unary_union([h.buffer(22, quad_segs=2) for h in hs])
+    if BIG_TREE is not None:
+        bg = [_BIG[i] for i in BIG_TREE.query(rb)]
+        if bg: zone = safe(lambda a, b: a.difference(b), zone, unary_union([b.buffer(10, join_style=2) for b in bg]))
+    lawn = safe(lambda a, b: a.intersection(b), generic, zone)
+    lot = safe(lambda a, b: a.difference(b), generic, zone)
+    paved, shrubs = [], []
+    rp = shapely.prepared.prep(Rg)
+    hard_ = unary_union([roads_r, side_r])
+    for h in hs:
+        if h.geom_type != "Polygon":
+            h = max(polys_of(h), key=lambda a: a.area) if not h.is_empty else None
+            if h is None: continue
+        c_ = h.centroid
+        if not rp.contains(c_) or STREET_TREE is None: continue
+        road = street_lines[STREET_TREE.nearest(c_)]
+        q = road.interpolate(road.project(c_))
+        d = c_.distance(q)
+        if d < 4 or d > 45: continue
+        ux, uy = (q.x - c_.x) / d, (q.y - c_.y) / d
+        if h.area < 75:          # detached garage: a driveway from its door to the street
+            paved.append(LineString([(c_.x, c_.y), (q.x, q.y)]).buffer(1.5, cap_style="flat"))
+            continue
+        # front walk: from the wall facing the street to the sidewalk
+        edge = h.exterior.interpolate(h.exterior.project(Point(c_.x + ux * 60, c_.y + uy * 60)))
+        paved.append(LineString([(edge.x, edge.y), (q.x, q.y)]).buffer(0.6, cap_style="flat"))
+        # foundation shrubs along the front wall
+        vx, vy = -uy, ux
+        for k in range(-2, 3):
+            if rng_.random() < 0.35: continue
+            sx, sy = edge.x + ux * 1.1 + vx * (k * 2.2 + rng_.uniform(-0.4, 0.4)), edge.y + uy * 1.1 + vy * (k * 2.2)
+            if abs(k) == 0: continue                      # keep the walk clear
+            shrubs.append((sx, sy, rng_.uniform(0.9, 1.6)))
+    pv = safe(lambda a, b: a.difference(b), unary_union(paved), hard_) if paved else Polygon()
+    pv = safe(lambda a, b: a.intersection(b), pv, Rg) if not pv.is_empty else pv
+    return lot, lawn, [pv, shrubs]
+
 _coast_dropped = 0
 for e, g in buildings:
     cp = g.representative_point()
@@ -1741,7 +1829,14 @@ for ri in range(rx0, rx1 + 1):
         taken = unary_union([taken, ind_r])
         generic = safe(lambda a, b: a.difference(b), Rg, taken)
         add_area(beach_r, "sand", 0.0, 6.0, True, GROUND_COL_Y)
-        add_area(generic, "lot", 0.0, 8.0, True, GROUND_COL_Y)
+        lot_r, lawn_r, yard_extra = yards(Rg, rb, generic, roads_r, side_r, random.Random(ri * 7919 + rj))
+        add_area(lot_r, "lot", 0.0, 8.0, True, GROUND_COL_Y)
+        add_area(lawn_r, "lawn", 0.0, 8.0, True, GROUND_COL_Y)
+        if yard_extra:
+            add_area(yard_extra[0], "drive", 0.03, 3.0)
+            for shx, shy, shh in yard_extra[1]:          # (not sx/sy: those hold the spawn point)
+                if rkey(shx, shy) != (ri, rj): continue
+                c = chunk_at(shx, shy); c.props.append(["tree", round(shx - c.ox, 2), round(-(shy - c.oy), 2), 0.0, round(shh / 8.0, 2), round(shh * 0.9 / 6.0, 2)])
         add_area(park_r, "grass", 0.0, 8.0, True, GROUND_COL_Y)
         add_area(forest_r, "forest_floor", 0.0, 8.0, True, GROUND_COL_Y)
         for fi, fr in enumerate(field_rs): add_area(fr, "field%d" % fi, 0.0, 12.0, True, GROUND_COL_Y)
@@ -1758,7 +1853,7 @@ for ri in range(rx0, rx1 + 1):
         lamp_bad = shapely.prepared.prep(unary_union([roads_r.buffer(0.2), water_r]))   # lamps stand ON the sidewalk
         # real trees from LiDAR; the random scatter below only fills regions the LiDAR didn't cover
         lt = LTREES.get((ri, rj), [])
-        for tx, ty, th, tr in lt:
+        for tx, ty, th, trd in lt:
             pt = Point(tx, ty)
             if not BBOX_P.contains(pt) or water_p.contains(pt): continue
             if hard.contains(pt):         # crown centre over a street/sidewalk: put the trunk just off it
@@ -1767,7 +1862,7 @@ for ri in range(rx0, rx1 + 1):
                 else: continue
             c = chunk_at(tx, ty)
             # [kind, x, z, y, height scale, crown scale]: billboards are ~8 m tall and ~6 m wide at scale 1
-            c.props.append(["tree", round(tx - c.ox, 2), round(-(ty - c.oy), 2), 0.0, round(min(th, 26.0) / 8.0, 2), round(2.0 * min(tr, 0.45 * min(th, 26.0), 9.0) / 6.0, 2)])
+            c.props.append(["tree", round(tx - c.ox, 2), round(-(ty - c.oy), 2), 0.0, round(min(th, 26.0) / 8.0, 2), round(2.0 * min(trd, 0.45 * min(th, 26.0), 9.0) / 6.0, 2)])
         for g, dens in (() if lt else ((park_r, 220.0), (forest_r, 55.0))):
             for pg in polys_of(g):
                 n = int(pg.area / dens); x0, y0, x1, y1 = pg.bounds; tries = 0

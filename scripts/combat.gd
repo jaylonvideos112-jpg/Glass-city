@@ -219,6 +219,8 @@ func _physics_process(dt: float) -> void:
 	_pose_player(shown, shown_t)
 
 func _pose_player(a: float, t: float) -> void:
+	if main.player and main.player.has_method("set_act"):
+		main.player.set_act(a, t); return
 	var body: MeshInstance3D = main.player.get("_body")
 	if body:
 		body.set_instance_shader_parameter("act", a)

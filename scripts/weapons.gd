@@ -170,7 +170,8 @@ func _can_use() -> bool:
 
 func set_crouch(on: bool) -> void:
 	crouch = on
-	main.player.model.scale = Vector3(1, 0.68 if on else 1.0, 1)
+	if main.player.get("rig"): main.player.rig.locomotion_set("crouch" if on else "normal")
+	else: main.player.model.scale = Vector3(1, 0.68 if on else 1.0, 1)
 	main.player.crouch_mult = 0.45 if on else 1.0
 
 # ------------------------------------------------------------------ firing
@@ -376,7 +377,9 @@ func _physics_process(dt: float) -> void:
 	elif main.player:
 		main.player.aim_mult = 1.0
 	_pose()
-	if _gun_node and is_instance_valid(_gun_node):
+	if _gun_node and is_instance_valid(_gun_node) and _gun_node.get_parent() is BoneAttachment3D:
+		pass
+	elif _gun_node and is_instance_valid(_gun_node):
 		# carried low in the right hand; up at the shoulder / out at arm's length when aiming or firing
 		var up: bool = aiming or _cool > 0.0
 		var want: Vector3 = Vector3(0.27, 0.86, -0.12)
@@ -404,16 +407,28 @@ func _pose() -> void:
 	var body: MeshInstance3D = main.player.get("_body") if main.player else null
 	if body == null or main.combat == null or main.combat.busy(): return
 	if armed_gun() and (aiming or _cool > 0.0):
-		body.set_instance_shader_parameter("act", 14.0 if current != "pistol" else 15.0)
-		body.set_instance_shader_parameter("act_t", 0.5)
+		main.player.set_act(14.0 if current != "pistol" else 15.0, 0.5)
 	elif not main.combat.guard:
-		body.set_instance_shader_parameter("act", 0.0)
+		main.player.set_act(0.0, 0.0)
 
 # ------------------------------------------------------------------ visuals and sound
 func _update_gun_mesh() -> void:
-	if _gun_node: _gun_node.queue_free(); _gun_node = null
+	if _gun_node:
+		var gp := _gun_node.get_parent()
+		if gp is BoneAttachment3D: gp.queue_free()
+		else: _gun_node.queue_free()
+		_gun_node = null
 	if current == "fists" or main.player == null: return
 	_gun_node = build_gun_mesh(current)
+	var rig: RigChar = main.player.get("rig")
+	if rig and rig.skel:
+		# held in the right hand: follows the mocap arm (aim pose raises it)
+		var ba := BoneAttachment3D.new(); ba.name = "GunHand"; ba.bone_name = "hand_r"
+		rig.skel.add_child(ba)
+		_gun_node.rotation_degrees = Vector3(90, 0, 0)          # barrel (-Z) along the fingers (+Y)
+		_gun_node.position = Vector3(0.0, 0.07, 0.03)
+		ba.add_child(_gun_node)
+		return
 	_gun_node.position = Vector3(0.27, 0.86, -0.12)      # right hand, held low
 	main.player.model.add_child(_gun_node)
 
