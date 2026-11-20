@@ -1,0 +1,16 @@
+{"name": "Toledo Traction Co. Power Station / Toledo Edison Water St Station (1895, NRHP) — now ProMedica HQ steam plant",
+ "refs": "refs/w8000130030/00 (Toledo Traction Company Power Station, Wikimedia Commons)",
+ "notes": "Long red-brick generating hall: tall round-arched windows in recessed bays between brick piers, a corbelled brick cornice, a dark clerestory monitor roof along the ridge, and two tall brick smokestacks.",
+ "materials": {"base": "brick_brown", "body": "brick_red", "trim": "brick_brown", "cornice": "brick_brown", "pier": "brick_red", "frame": "frame_dark", "glass": "glass_window", "roof": "roof_flat", "solid": "brick_red"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.5, "simplify": 0.4, "min_face": 4.0, "min_poly_area": 30, "bay": 4.8, "corner_pier": 1.6,
+ "window": {"w": 0.6, "h": 0.8, "group": 1, "depth": 0.35, "mull": "grid", "sill_frac": 0.3},
+ "tiers": [
+  {"floors": [{"n": 1, "h": 2.0, "kind": "blank"}, {"n": 1, "h": 11.25, "arched": true}], "piers": {"every": 1, "w": 1.0, "d": 0.3}, "cornice": {"h": 1.0, "out": 0.5, "profile": "corbel"}},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 4.0, "kind": "blank"}], "mat_over": {"solid": "metal_dark", "body": "metal_dark"}},
+  {"floors": [{"n": 1, "h": 4.5, "ww": 0.8, "wh": 0.6}], "mat_over": {"body": "metal_dark", "pier": "metal_dark"}}
+ ],
+ "extras": [
+  {"stack": {"rel": [30, 8], "r0": 2.6, "r1": 1.9, "z1": 58, "mat": "brick_tan"}},
+  {"stack": {"rel": [42, 8], "r0": 2.6, "r1": 1.9, "z1": 70, "mat": "brick_tan"}}
+ ]
+}

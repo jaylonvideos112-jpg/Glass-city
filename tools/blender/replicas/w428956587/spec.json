@@ -1,0 +1,8 @@
+{"name": "IUOE Local 18 District 2 Union Hall",
+ "refs": "refs/w428956587/00 (IUOE Local 18 District 2 Union Hall, January 2023, Wikimedia Commons)",
+ "notes": "Single-storey office in orange-red brick with a white metal fascia band, glazed corner entrance block clad in dark panels.",
+ "materials": {"base": "concrete", "body": "brick_orange", "trim": "frame_white", "cornice": "frame_white", "pier": "brick_orange", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_orange"},
+ "orthogonal": true, "grid": 0.5, "bay": 4.0, "corner_pier": 0.6,
+ "window": {"w": 0.4, "h": 0.5, "group": 1, "depth": 0.1, "mull": "single"},
+ "floors": [{"n": 1, "h": 6.5}], "cornice": {"h": 1.2, "out": 0.3}, "parapet": 0.4
+}

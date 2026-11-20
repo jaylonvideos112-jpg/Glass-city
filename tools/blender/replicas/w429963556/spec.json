@@ -1,0 +1,10 @@
+{"name": "Commodore Perry Hotel / Apartments (1927), Jefferson Ave at Superior St",
+ "refs": "refs/w429963556/00 (Commodore Perry Hotel from south, Wikimedia Commons)",
+ "notes": "Renaissance-revival hotel tower in tan brick: a limestone base with storefronts, a long shaft of single and paired windows with terracotta sill bands, a top belt and deep bracketed cornice, two-storey penthouse block above.",
+ "materials": {"base": "limestone", "body": "brick_tan", "trim": "terracotta", "cornice": "terracotta", "pier": "brick_tan", "frame": "frame_white", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_tan"},
+ "orthogonal": true, "grid": 0.5, "bay": 2.6, "corner_pier": 1.6,
+ "window": {"w": 0.5, "h": 0.6, "group": 1, "depth": 0.2, "mull": "single", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 5.5, "kind": "storefront", "mat": "limestone"}, {"n": 1, "h": 4.0, "mat": "limestone"}, {"n": 16, "h": 3.05}, {"n": 1, "h": 3.4, "arched": true}, {"n": 2, "h": 3.4, "kind": "blank"}],
+ "plinth": 0.6, "belts": [{"above_floor": 2, "h": 0.7, "out": 0.25}, {"above_floor": 18, "h": 0.5, "out": 0.2}],
+ "cornice": {"h": 1.6, "out": 1.1}, "parapet": 0.6
+}

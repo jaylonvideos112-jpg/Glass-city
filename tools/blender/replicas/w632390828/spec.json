@@ -1,0 +1,13 @@
+{"name": "United Missionary Baptist Church, Monroe St at Lawrence Ave",
+ "refs": "refs/w632390828/00 (United Missionary Baptist Church of Toledo, Wikimedia Commons)",
+ "notes": "Romanesque Revival in buff rock-faced sandstone: crenellated square corner tower with a pointed belfry window, steep grey slate cross-gabled roofs with a tall pyramidal central roof, round-arched entrance porch.",
+ "materials": {"base": "sandstone", "body": "sandstone", "trim": "sandstone", "arch": "sandstone", "cornice": "sandstone", "frame": "frame_dark", "glass": "glass_window", "roof": "slate"},
+ "window": {"w": 0.4, "h": 0.6, "group": 1, "depth": 0.3, "mull": "vertical", "sill_frac": 0.4},
+ "corner_pier": 0.8, "bay": 4.0, "arched": true, "plinth": 0.8,
+ "floors": [{"n": 1, "h": 8.0}],
+ "parts": [
+  {"rel": [2, 0, 26, 26], "z1": 8.0, "floors": [{"n": 1, "h": 8.0, "ww": 0.45, "wh": 0.65}], "roof": {"type": "pyramid", "h": 11.0, "mat": "slate"}},
+  {"rel": [2, 0, 34, 12], "z1": 8.0, "floors": [{"n": 1, "h": 8.0, "ww": 0.45, "wh": 0.65}], "roof": {"type": "gable", "pitch": 50, "mat": "slate", "ridge": "long"}},
+  {"rel": [-15, -10, 6.5, 6.5], "z1": 17.5, "bay": 4.5, "floors": [{"n": 1, "h": 9.0, "ww": 0.4, "wh": 0.6}, {"n": 1, "h": 8.5, "ww": 0.5, "wh": 0.7}], "parapet": 1.2, "battlement": true, "roof": {"type": "flat"}}
+ ]
+}

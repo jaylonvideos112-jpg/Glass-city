@@ -1,0 +1,9 @@
+{"name": "Peter Gendron House (NRHP), Toledo",
+ "refs": "refs/w754352129/00 (Peter Gendron House vertical, Wikimedia Commons)",
+ "notes": "Two-storey cream-brick Italianate house with tall segmental-arched windows under brick hoods and a deep bracketed cornice painted in red trim; flat roof behind the cornice.",
+ "materials": {"base": "sandstone", "body": "brick_buff", "trim": "paint_red", "cornice": "paint_red", "pier": "brick_buff", "frame": "frame_white", "glass": "glass_window", "roof": "roof_flat"},
+ "orthogonal": true, "grid": 0.5, "bay": 2.8, "corner_pier": 0.6,
+ "window": {"w": 0.42, "h": 0.66, "group": 1, "depth": 0.15, "mull": "single", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 0.6, "kind": "blank", "mat": "sandstone"}, {"n": 1, "h": 3.6, "arched": true}, {"n": 1, "h": 3.2, "arched": true}],
+ "cornice": {"h": 0.8, "out": 0.6, "profile": "corbel"}
+}

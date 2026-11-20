@@ -1,0 +1,11 @@
+{"name": "Jefferson Center — Old Central Post Office (1911, NRHP), 1301 Jefferson Ave",
+ "refs": "refs/w192168897/00 (Jefferson Center (Toledo, Ohio), August 2021, Wikimedia Commons)",
+ "notes": "Beaux-Arts limestone federal building: rusticated base, tall round-arched and square windows between giant Ionic pilasters, full entablature with balustraded attic, copper hipped roof behind.",
+ "materials": {"base": "limestone", "body": "limestone", "trim": "limestone", "cornice": "limestone", "pier": "limestone", "column": "limestone", "frame": "frame_dark", "glass": "glass_window", "roof": "copper", "solid": "limestone"},
+ "orthogonal": true, "grid": 0.5, "bay": 4.4, "corner_pier": 2.4,
+ "window": {"w": 0.45, "h": 0.6, "group": 1, "depth": 0.3, "mull": "cross", "sill_frac": 0.45},
+ "parts": [{"rel": [0, 0, 0, 0], "z1": 15.5, "floors": [{"n": 1, "h": 1.5, "kind": "blank"}, {"n": 1, "h": 8.0, "arched": true, "ww": 0.5, "wh": 0.75}, {"n": 1, "h": 6.0}],
+   "piers": {"every": 1, "w": 0.9, "d": 0.35}, "plinth": 0.7, "belts": [{"above_floor": 2, "h": 0.6, "out": 0.25}],
+   "cornice": {"h": 1.5, "out": 1.0}, "parapet": 1.1, "roof": {"type": "flat"}},
+  {"rel": [0, 0, -14, -10], "z0": 15.5, "z1": 15.6, "floors": [{"n": 1, "h": 0.1, "kind": "blank"}], "roof": {"type": "hip", "h": 3.0, "mat": "copper", "overhang": 0.0}}]
+}

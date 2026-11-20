@@ -1,0 +1,9 @@
+{"name": "Emmanuel Christian School, 4607 W Laskey Rd",
+ "refs": "refs/w196493775/00 (Emmanuel Christian School, Front Entrance, February 2021, Wikimedia Commons)",
+ "notes": "Low school and gym complex in green ribbed metal panels over a split-face block base, cream metal on the gym, glazed entrance canopy.",
+ "materials": {"base": "granite_dark", "body": "paint_green", "trim": "metal_light", "cornice": "metal_light", "pier": "paint_green", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "paint_green"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 1.5, "simplify": 0.4, "min_face": 4.0, "bay": 6.0, "corner_pier": 0.6,
+ "window": {"w": 0.5, "h": 0.4, "group": 1, "depth": 0.1, "mull": "single"},
+ "floors": [{"n": 1, "h": 1.4, "kind": "blank", "mat": "granite_dark"}, {"n": 1, "h": 7.29, "kind": "blank"}],
+ "cornice": {"h": 0.3, "out": 0.1}
+}

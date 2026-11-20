@@ -1,0 +1,10 @@
+{"name": "Ontario Building (NRHP), N Ontario St at Jefferson Ave",
+ "refs": "refs/w8000050134/00 (Ontario Building (Toledo, Ohio), August 2023, Wikimedia Commons)",
+ "notes": "Chicago-school commercial block in grey-painted brick and terracotta: storefront base, upper floors in vertical bays of grouped tall windows between piers, arched top-floor windows, heavy dentilled cornice.",
+ "materials": {"base": "granite_dark", "body": "precast", "trim": "precast_white", "cornice": "precast_white", "pier": "precast", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "precast"},
+ "orthogonal": true, "grid": 0.5, "bay": 3.6, "corner_pier": 1.4,
+ "window": {"w": 0.72, "h": 0.7, "group": 3, "depth": 0.25, "mull": "single", "sill_frac": 0.45},
+ "floors": [{"n": 1, "h": 5.2, "kind": "storefront"}, {"n": 3, "h": 4.1}, {"n": 1, "h": 4.3, "arched": true}],
+ "piers": {"every": 1, "w": 0.8, "d": 0.25}, "belts": [{"above_floor": 1, "h": 0.6, "out": 0.25}],
+ "cornice": {"h": 1.5, "out": 1.0}, "parapet": 0.6
+}

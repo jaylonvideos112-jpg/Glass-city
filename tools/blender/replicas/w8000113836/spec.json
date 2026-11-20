@@ -1,0 +1,10 @@
+{"name": "The Toledo Club (1915, NRHP), 235 14th St",
+ "refs": "refs/w8000113836/00 (Toledo Club front and western side, Wikimedia Commons)",
+ "notes": "Georgian Revival clubhouse: rusticated limestone ground floor, red-brick upper storeys with limestone quoins, tall round-arched piano-nobile windows with balconettes, a bowed bay on the front, limestone balustraded cornice.",
+ "materials": {"base": "limestone", "body": "brick_red", "trim": "limestone", "cornice": "limestone", "pier": "limestone", "frame": "frame_white", "glass": "glass_window", "roof": "roof_flat", "solid": "brick_red"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "simplify": 0.3, "min_face": 3.0, "bay": 3.6, "corner_pier": 1.6,
+ "window": {"w": 0.5, "h": 0.62, "group": 1, "depth": 0.25, "mull": "cross", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 4.8, "mat": "limestone"}, {"n": 1, "h": 5.6, "arched": true, "ww": 0.55, "wh": 0.72}, {"n": 2, "h": 3.9}],
+ "plinth": 0.6, "belts": [{"above_floor": 1, "h": 0.7, "out": 0.3}],
+ "cornice": {"h": 1.3, "out": 0.9}, "parapet": 0.9
+}

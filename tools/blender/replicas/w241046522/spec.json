@@ -1,0 +1,10 @@
+{"name": "Central YMCA (1914, NRHP), 1110 Jefferson Ave",
+ "refs": "refs/w241046522/00 (Toledo Central YMCA, Wikimedia Commons)",
+ "notes": "Italian Renaissance revival in tapestry red brick: arcaded round-arched windows on the ground floor, punched paired windows above, brick quoins, a corbel-table cornice and taller stair/water towers.",
+ "materials": {"base": "brick_brown", "body": "brick_red", "trim": "brick_orange", "cornice": "brick_orange", "pier": "brick_red", "frame": "frame_white", "glass": "glass_window", "roof": "roof_flat", "solid": "brick_red"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "simplify": 0.3, "min_face": 3.0, "bay": 3.2, "corner_pier": 1.4,
+ "window": {"w": 0.55, "h": 0.6, "group": 2, "depth": 0.22, "mull": "single", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 5.4, "arched": true, "group": 1, "ww": 0.6, "wh": 0.62}, {"n": 5, "h": 3.6}, {"n": 1, "h": 3.0, "arched": true}],
+ "plinth": 0.7, "belts": [{"above_floor": 1, "h": 0.5, "out": 0.2}],
+ "cornice": {"h": 1.2, "out": 0.6, "profile": "corbel"}, "parapet": 0.6
+}

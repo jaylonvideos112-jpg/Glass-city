@@ -1,0 +1,15 @@
+{"name": "Riverfront Apartments — former Toledo Trust / Ohio Savings Building (1930), 405 Madison Ave",
+ "refs": "refs/w429962019/00 (Riverfront Apartments, July 2022, Wikimedia Commons)",
+ "notes": "Art Deco skyscraper in buff limestone: a 6-storey base block, then a 24-storey slab in plain vertical piers with recessed spandrels and paired windows, setback crown with stepped penthouses.",
+ "materials": {"base": "granite_dark", "body": "limestone", "trim": "limestone", "cornice": "limestone", "pier": "limestone", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "limestone"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 0.8, "min_poly_area": 15, "bay": 2.9, "corner_pier": 1.4,
+ "window": {"w": 0.62, "h": 0.6, "group": 2, "depth": 0.2, "mull": "single", "sill_frac": 0.5},
+ "tiers": [
+  {"floors": [{"n": 1, "h": 5.75, "kind": "storefront"}], "cornice": {"h": 0.5, "out": 0.2}},
+  {"floors": [{"n": 4, "h": 4.375}], "piers": {"every": 1, "w": 0.6, "d": 0.15}, "cornice": {"h": 0.6, "out": 0.25}},
+  {"floors": [{"n": 1, "h": 3.0}]},
+  {"floors": [{"n": 16, "h": 3.25}], "piers": {"every": 1, "w": 0.6, "d": 0.2}, "spandrel_wall": true, "cornice": {"h": 0.6, "out": 0.2, "profile": "deco"}},
+  {"floors": [{"n": 1, "h": 4.5}], "cornice": {"h": 0.4, "out": 0.1}},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 4.0, "kind": "blank"}]}
+ ]
+}

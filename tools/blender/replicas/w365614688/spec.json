@@ -1,0 +1,9 @@
+{"name": "Rogers High School (2009), 222 McTigue Dr",
+ "refs": "refs/w365614688/00 (Rogers High School, Front Entrance, February 2021, Wikimedia Commons)",
+ "notes": "Contemporary TPS school: orange-red brick wings with buff banding, ribbon windows, glazed curtain-wall entrance and stair towers, gently curved metal roofs.",
+ "materials": {"base": "brick_brown", "body": "brick_orange", "trim": "brick_buff", "cornice": "metal_light", "pier": "brick_orange", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_orange"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 2.0, "simplify": 0.5, "min_face": 5.0, "min_poly_area": 50, "bay": 4.0, "corner_pier": 1.0,
+ "window": {"w": 0.85, "h": 0.5, "group": 1, "depth": 0.15, "mull": "grid", "sill_frac": 0.4},
+ "floors": [{"n": 1, "h": 4.6, "kind": "storefront"}, {"n": 2, "h": 4.2}],
+ "belts": [{"above_floor": 1, "h": 0.4, "out": 0.1}], "cornice": {"h": 0.6, "out": 0.6}
+}

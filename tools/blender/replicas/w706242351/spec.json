@@ -1,0 +1,9 @@
+{"name": "University of Toledo Medical Center, 3000 Arlington Ave",
+ "refs": "refs/w706242351/00 (The University of Toledo Medical Center, May 2020, Wikimedia Commons)",
+ "notes": "1970s hospital in tan precast concrete with long horizontal ribbon windows, a dark glazed mechanical crown on the tower block, lower wings.",
+ "materials": {"base": "precast", "body": "precast", "trim": "precast", "cornice": "precast", "pier": "precast", "frame": "frame_dark", "glass": "glass_curtain", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "precast"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 2.0, "simplify": 0.5, "min_face": 5.0, "min_poly_area": 60, "bay": 6.0, "corner_pier": 1.0,
+ "window": {"w": 0.97, "h": 0.42, "group": 1, "depth": 0.15, "mull": "grid", "sill_frac": 0.45},
+ "floors": [{"n": 1, "h": 5.0, "kind": "storefront"}, {"n": 7, "h": 4.0}],
+ "cornice": {"h": 0.5, "out": 0.1}, "parapet": 1.0
+}

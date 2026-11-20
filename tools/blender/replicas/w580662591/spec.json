@@ -1,0 +1,14 @@
+{"name": "Edison Plaza (1971, Toledo Edison HQ, now ProMedica/KeyBank), 300 Madison Ave",
+ "refs": "refs/w580662591/00 (Edison Plaza, Madison Avenue and Summit Street, Toledo, OH, Wikimedia Commons)",
+ "notes": "Late-modern office tower: reflective blue-grey glass curtain wall on a tight mullion grid, framed at each end by tall blank limestone-clad service cores that rise above the roofline, dark band at the crown; low glass-and-stone podium/garage.",
+ "materials": {"base": "granite_dark", "body": "limestone", "trim": "limestone", "cornice": "limestone", "pier": "limestone", "frame": "frame_dark", "glass": "glass_curtain", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "limestone", "spandrel": "glass_dark"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "min_poly_area": 20, "bay": 3.0, "corner_pier": 0.5,
+ "window": {"w": 0.8, "h": 0.6, "group": 1, "depth": 0.15, "mull": "grid"},
+ "tiers": [
+  {"floors": [{"n": 1, "h": 6.25, "kind": "storefront"}], "cornice": {"h": 0.3, "out": 0.1}},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 1.5, "kind": "blank"}]},
+  {"floors": [{"n": 7, "h": 3.0}], "cornice": {"h": 0.3, "out": 0.1}},
+  {"style": "curtain", "solid_below": 0, "floors": [{"n": 13, "h": 3.0}], "curtain": {"mullion": 1.5, "spandrel": 0.25, "fin": 0.05}, "corner_pier": 3.5, "parapet": 1.5},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 2.5, "kind": "blank"}]}
+ ]
+}

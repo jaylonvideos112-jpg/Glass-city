@@ -53,7 +53,7 @@
   },
   {
    "key": "w429962019",
-   "name": "Toledo Trust Building",
+   "name": "Riverfront Apartments (former Toledo Trust Building)",
    "wikidata": ""
   },
   {
@@ -128,7 +128,7 @@
   },
   {
    "key": "w429964820",
-   "name": "King Warehouse Number 1",
+   "name": "Berdan Building (King Warehouse No. 1)",
    "wikidata": "Q117066094"
   },
   {
@@ -170,11 +170,6 @@
    "key": "r4726969",
    "name": "Owens Corning Fiberglass World Headquarters",
    "wikidata": "Q7114736"
-  },
-  {
-   "key": "w189302806",
-   "name": "ProMedica Headquarters",
-   "wikidata": "Q125320666"
   },
   {
    "key": "w708650218",
@@ -439,6 +434,16 @@
    "name": "Dr. John A. Wright House",
    "wikidata": "",
    "nrhp": true
+  },
+  {
+   "key": "w8000119852",
+   "name": "Park Inn Hotel (101 N Summit)",
+   "wikidata": ""
+  },
+  {
+   "key": "w599481318",
+   "name": "Glass City Center (convention centre)",
+   "wikidata": ""
   }
  ]
 }

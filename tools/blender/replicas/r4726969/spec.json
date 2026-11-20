@@ -1,0 +1,9 @@
+{"name": "Owens Corning World Headquarters (1996, Cesar Pelli), 1 Owens Corning Pkwy",
+ "refs": "refs/r4726969/00 (WHQ photo for Wiki, Wikimedia Commons)",
+ "notes": "Low riverfront campus by Pelli: three storeys of white precast and long horizontal ribbon windows on a curving plan, rooftop mechanical pavilions, a purple glass cylinder stair tower and the pink/red cone.",
+ "materials": {"base": "precast_white", "body": "precast_white", "trim": "precast_white", "cornice": "metal_light", "pier": "precast_white", "frame": "frame_white", "glass": "glass_curtain", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "precast_white"},
+ "smooth_m": 2.0, "simplify": 0.6, "min_face": 5.0, "min_poly_area": 40, "bay": 5.0, "corner_pier": 0.6,
+ "window": {"w": 0.97, "h": 0.42, "group": 1, "depth": 0.15, "mull": "grid", "sill_frac": 0.45},
+ "floors": [{"n": 1, "h": 5.0, "kind": "storefront"}, {"n": 2, "h": 4.2}, {"n": 1, "h": 3.8, "kind": "blank"}],
+ "cornice": {"h": 0.4, "out": 0.3}
+}

@@ -15,6 +15,12 @@ from mathutils import Vector
 DIR, OUT = sys.argv[1], sys.argv[2]
 M = json.load(open(os.path.join(DIR, "massing.json")))
 S = json.load(open(os.path.join(DIR, "spec.json")))
+if S.get("drop_above"):   # LiDAR predates a demolition (e.g. Hotel SeaGate): drop tiers that rise above this height
+    M["tiers"] = [t for t in M["tiers"] if t["z1"] <= S["drop_above"]]
+if S.get("min_poly_area"):   # drop LiDAR slivers (rooftop units, railings)
+    def _a(q): return abs(sum(q[i][0] * q[(i + 1) % len(q)][1] - q[(i + 1) % len(q)][0] * q[i][1] for i in range(len(q)))) / 2
+    for t in M["tiers"]: t["polys"] = [q for q in t["polys"] if _a(q) >= S["min_poly_area"]]
+    M["tiers"] = [t for t in M["tiers"] if t["polys"]]
 rng = random.Random(M["key"])
 bm = bmesh.new()
 uvl = bm.loops.layers.uv.new("UVMap")
@@ -415,8 +421,19 @@ def rose(center, normal, r, mat_glass, mat_ring):
         a2 = center + n * 0.06 + (a - center - n * 0.02) * 1.18; b2 = center + n * 0.06 + (b - center - n * 0.02) * 1.18
         face([a, b, b2, a2][::-1], mat_ring)
 
+def stack(c, r0, r1, z0, z1, mat, seg=16):
+    """tapered round smokestack / chimney with a cap band."""
+    for k in range(seg):
+        a0 = 2 * math.pi * k / seg; a1 = 2 * math.pi * (k + 1) / seg
+        P0 = lambda a, r, z: Vector((c[0] + math.cos(a) * r, c[1] + math.sin(a) * r, z))
+        face([P0(a0, r0, z0), P0(a1, r0, z0), P0(a1, r1, z1), P0(a0, r1, z1)], mat, [(a0 * r0, z0), (a1 * r0, z0), (a1 * r0, z1), (a0 * r0, z1)])
+        face([P0(a0, r1 * 1.12, z1 - 1.2), P0(a1, r1 * 1.12, z1 - 1.2), P0(a1, r1 * 1.12, z1), P0(a0, r1 * 1.12, z1)], mat)
+
 def build_part(pt):
     global S
+    if "stack" in pt:   # {"stack": {"rel": [ox, oy] | "at": [x, y], "r0", "r1", "z0", "z1", "mat"}}
+        st = pt["stack"]; at = st.get("at") or rel_rect(st["rel"] + [1, 1])[:2]
+        stack(at, st.get("r0", 2.0), st.get("r1", 1.5), st.get("z0", 0.0), st["z1"], st.get("mat", "brick_tan")); return
     S = dict(BASE_SPEC); S.update(pt)
     S["materials"] = dict(BASE_SPEC["materials"]); S["materials"].update(pt.get("mat_over", {}))
     if "rel" in pt: pt["rect"] = rel_rect(pt["rel"])

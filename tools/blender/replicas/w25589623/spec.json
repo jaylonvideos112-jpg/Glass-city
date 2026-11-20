@@ -1,0 +1,9 @@
+{"name": "University of Toledo Center for the Visual Arts (1992, Frank Gehry)",
+ "refs": "refs/w25589623/00 (University of Toledo Center for the Visual Arts, Wikimedia Commons)",
+ "notes": "Gehry's lead-coated copper volumes interlocking with walls of green-tinted glass on aluminium grids; tilted and stepped boxes beside the Museum of Art.",
+ "materials": {"base": "concrete", "body": "lead", "trim": "metal_light", "cornice": "metal_light", "pier": "lead", "frame": "metal_light", "glass": "glass_teal", "shop_glass": "glass_teal", "roof": "lead", "solid": "lead", "spandrel": "glass_teal"},
+ "smooth_m": 1.0, "simplify": 0.3, "min_face": 3.0, "min_poly_area": 20, "bay": 3.0, "corner_pier": 0.3,
+ "style": "curtain", "solid_below": 0,
+ "floors": [{"n": 1, "h": 5.0, "kind": "storefront"}, {"n": 2, "h": 5.37}],
+ "cornice": {"h": 0.3, "out": 0.05}
+}

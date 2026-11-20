@@ -1,0 +1,9 @@
+{"name": "Landers Brothers Company Building (NRHP), 443 10th St",
+ "refs": "refs/w8000051521/00 (Landers Brothers Company Building at 443 10th Street, Toledo, Ohio, Wikimedia Commons)",
+ "notes": "Four-storey commercial block with a grey-painted brick front: storefront base, two floors of tall segmental-arched windows, a top arcade of round-arched windows, plain red-brick sides. LiDAR here is wrong (3 m), height taken from the photo.",
+ "materials": {"base": "granite_dark", "body": "precast", "trim": "precast_white", "cornice": "precast_white", "pier": "precast", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_red"},
+ "bay": 2.6, "corner_pier": 1.0,
+ "window": {"w": 0.55, "h": 0.66, "group": 1, "depth": 0.25, "mull": "single", "sill_frac": 0.45},
+ "floors": [{"n": 1, "h": 4.6, "kind": "storefront"}, {"n": 2, "h": 4.0}, {"n": 1, "h": 3.8, "arched": true}],
+ "parts": [{"rel": [0, 0, 0, 0], "z1": 16.4, "belts": [{"above_floor": 1, "h": 0.5, "out": 0.2}], "cornice": {"h": 1.0, "out": 0.5, "profile": "corbel"}, "parapet": 0.4, "roof": {"type": "flat"}}]
+}

@@ -1,0 +1,13 @@
+{"name": "Pythian Castle (1890, Bacon & Huber, NRHP), 801 Jefferson Ave",
+ "refs": "refs/w708650218/00 (Pythian Castle, Toledo, Wikimedia Commons)",
+ "notes": "Richardsonian Romanesque: rough sandstone ground floor with big arches, red-brick upper floors, a steep slate roof with gabled wall dormers flanked by small conical pinnacles, and a tall corner tower with conical turrets rising to 37 m.",
+ "materials": {"base": "sandstone", "body": "brick_red", "trim": "sandstone", "cornice": "sandstone", "pier": "brick_red", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "slate"},
+ "bay": 3.0, "corner_pier": 1.0,
+ "window": {"w": 0.45, "h": 0.62, "group": 2, "depth": 0.25, "mull": "single", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 5.2, "kind": "storefront", "arched": true, "mat": "sandstone"}, {"n": 3, "h": 4.0}],
+ "parts": [
+  {"rel": [0, 0, 0, 0], "z1": 17.2, "belts": [{"above_floor": 1, "h": 0.5, "out": 0.2}], "cornice": {"h": 0.6, "out": 0.3, "profile": "corbel"}, "roof": {"type": "gable", "h": 6.0, "mat": "slate"}, "turrets": [{"r": 0.7, "h": 3.0, "cap": 3.5}]},
+  {"rel": [-14.5, -4.5, 6.5, 6.5], "z1": 26.5, "floors": [{"n": 1, "h": 5.2, "kind": "storefront", "arched": true, "mat": "sandstone"}, {"n": 5, "h": 4.26}],
+   "cornice": {"h": 0.6, "out": 0.3, "profile": "corbel"}, "roof": {"type": "pyramid", "h": 10.5, "mat": "slate"}, "turrets": [{"r": 0.8, "h": 3.0, "cap": 4.5}]}
+ ]
+}

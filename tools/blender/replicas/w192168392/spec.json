@@ -1,0 +1,9 @@
+{"name": "Toledo School for the Arts (former industrial loft), 333 14th St",
+ "refs": "refs/w192168392/00 (Toledo School for the Arts, Front Entrance, July 2021, Wikimedia Commons)",
+ "notes": "Converted daylight factory: four storeys of brown brick piers with wide bands of steel-sash windows between them, a painted concrete ground floor with glass block, red entrance canopy.",
+ "materials": {"base": "concrete", "body": "brick_brown", "trim": "concrete", "cornice": "brick_brown", "pier": "brick_brown", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_brown"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "bay": 5.6, "corner_pier": 1.0,
+ "window": {"w": 0.85, "h": 0.55, "group": 1, "depth": 0.15, "mull": "grid", "sill_frac": 0.4},
+ "floors": [{"n": 1, "h": 4.6, "mat": "concrete"}, {"n": 3, "h": 4.4}],
+ "piers": {"every": 1, "w": 0.8, "d": 0.12}, "cornice": {"h": 0.5, "out": 0.15}, "parapet": 1.1
+}

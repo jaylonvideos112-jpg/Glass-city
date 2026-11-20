@@ -1,0 +1,10 @@
+{"name": "Berdan Building / King Warehouse No. 1 (1902, NRHP), 601 Washington St",
+ "refs": "refs/w429964820/00 (Berdan Building, Wikimedia Commons)",
+ "notes": "Richardsonian Romanesque grocery warehouse: five storeys of dark red brick, a ground-floor arcade of big round arches, three middle floors of segmental windows in bays between piers, a top-floor arcade of small arched windows and a corbelled brick cornice.",
+ "materials": {"base": "sandstone", "body": "brick_red", "trim": "brick_brown", "cornice": "brick_brown", "pier": "brick_red", "frame": "frame_dark", "glass": "glass_window", "roof": "roof_flat", "solid": "brick_red"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "simplify": 0.3, "bay": 4.2, "corner_pier": 1.8,
+ "window": {"w": 0.55, "h": 0.62, "group": 2, "depth": 0.3, "mull": "single", "sill_frac": 0.45},
+ "floors": [{"n": 1, "h": 4.6, "arched": true, "group": 1, "ww": 0.72, "wh": 0.72}, {"n": 3, "h": 3.6}, {"n": 1, "h": 3.6, "arched": true, "group": 3, "ww": 0.7}],
+ "piers": {"every": 1, "w": 0.9, "d": 0.25}, "plinth": 0.6,
+ "cornice": {"h": 1.3, "out": 0.6, "profile": "corbel"}, "parapet": 0.3
+}

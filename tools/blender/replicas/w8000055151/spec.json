@@ -1,0 +1,9 @@
+{"name": "Broer-Freeman Building (1929, NRHP), N Erie St at Jefferson Ave",
+ "refs": "refs/w8000055151/00 (The Broer-Freeman Building (Toledo, Ohio), August 2023, Wikimedia Commons)",
+ "notes": "Three-storey Art Deco jewellery store: smooth limestone street front with fluted pilaster strips between big single windows, stepped parapet, plain brick side walls.",
+ "materials": {"base": "granite_dark", "body": "limestone", "trim": "limestone", "cornice": "limestone", "pier": "limestone", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_brown"},
+ "orthogonal": true, "grid": 0.5, "bay": 4.4, "corner_pier": 1.6,
+ "window": {"w": 0.55, "h": 0.62, "group": 1, "depth": 0.25, "mull": "grid", "sill_frac": 0.45},
+ "floors": [{"n": 1, "h": 5.0, "kind": "storefront"}, {"n": 2, "h": 4.4}],
+ "piers": {"every": 1, "w": 0.7, "d": 0.12}, "cornice": {"h": 0.6, "out": 0.15, "profile": "deco"}, "parapet": 0.8
+}

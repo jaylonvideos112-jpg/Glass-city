@@ -1,0 +1,13 @@
+{"name": "Glass City Center (former SeaGate Convention Centre), 401 Jefferson Ave",
+ "refs": "refs/w599481318/00 (Glass City Center Exterior, August 2022), 01 (Summit Street Side, December 2022), Wikimedia Commons",
+ "notes": "Big tan precast box with scored panel joints, a glazed ground-floor band with loading doors and entrances, and glass-walled pre-function bridges cantilevered from the upper level. LiDAR predates the Hotel SeaGate demolition, so the old hotel tier is dropped.",
+ "materials": {"base": "granite_dark", "body": "precast", "trim": "precast", "cornice": "precast", "pier": "precast", "frame": "frame_dark", "glass": "glass_curtain", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "precast"},
+ "drop_above": 30, "min_poly_area": 40,
+ "orthogonal": true, "grid": 1.0, "smooth_m": 1.5, "simplify": 0.4, "min_face": 5.0, "bay": 6.0, "corner_pier": 1.0,
+ "window": {"w": 0.85, "h": 0.8, "group": 1, "depth": 0.2, "mull": "grid"},
+ "tiers": [
+  {"floors": [{"n": 1, "h": 7.25, "kind": "storefront"}], "cornice": {"h": 0.4, "out": 0.15}},
+  {"floors": [{"n": 1, "h": 7.5, "ww": 0.9, "wh": 0.75}], "cornice": {"h": 0.4, "out": 0.15}},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 3.0, "kind": "blank"}]}
+ ]
+}

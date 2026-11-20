@@ -1,0 +1,9 @@
+{"name": "Imagination Station science center, 1 Discovery Way",
+ "refs": "refs/w189303388/00 (Imagination Station in 2022, Wikimedia Commons)",
+ "notes": "Former COSI building re-skinned in 2022: perforated silver metal screen panels in a diagonal pattern over the upper level, dark-grey brick and floor-to-ceiling glass at street level.",
+ "materials": {"base": "granite_dark", "body": "metal_light", "trim": "metal_light", "cornice": "metal_light", "pier": "metal_light", "frame": "frame_dark", "glass": "glass_curtain", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "metal_light", "spandrel": "metal_light"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 1.5, "simplify": 0.4, "min_face": 4.0, "min_poly_area": 40, "bay": 3.5, "corner_pier": 0.6,
+ "style": "curtain", "solid_below": 0,
+ "floors": [{"n": 1, "h": 4.0, "kind": "storefront"}, {"n": 1, "h": 3.75}],
+ "cornice": {"h": 0.3, "out": 0.05}
+}

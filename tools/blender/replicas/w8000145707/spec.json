@@ -1,0 +1,12 @@
+{"name": "Oliver House (1859, NRHP), 27 Broadway",
+ "refs": "refs/w8000145707/00 (OliverHouseToledo, Wikimedia Commons); Successful Sales, Oliver House",
+ "notes": "Greek Revival hotel by Isaiah Rogers: three to four storeys of red brick with tall 6-over-6 windows and stone sills, a white entablature cornice running round the curved corner, low flat roof; brewpub at grade.",
+ "materials": {"base": "limestone", "body": "brick_red", "trim": "limestone", "cornice": "paint_white", "pier": "brick_red", "frame": "frame_white", "glass": "glass_window", "roof": "roof_flat", "solid": "brick_red"},
+ "smooth_m": 1.5, "simplify": 0.3, "min_face": 3.0, "bay": 3.1, "corner_pier": 0.8,
+ "window": {"w": 0.4, "h": 0.66, "group": 1, "depth": 0.18, "mull": "cross", "sill_frac": 0.5},
+ "tiers": [
+  {"floors": [{"n": 1, "h": 4.3}, {"n": 1, "h": 4.95}], "plinth": 0.5, "cornice": {"h": 0.4, "out": 0.15}, "parapet": 0},
+  {"floors": [{"n": 2, "h": 3.25}], "cornice": {"h": 1.2, "out": 0.7}, "parapet": 0.4},
+  {"floors": [{"n": 2, "h": 3.25}], "cornice": {"h": 1.2, "out": 0.7}, "parapet": 0.4}
+ ]
+}

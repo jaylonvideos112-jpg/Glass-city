@@ -27,7 +27,7 @@ for f in glob.glob(os.path.join(WORK, "osm/city_all/*.json")) + [os.path.join(WO
 for k in sorted(keys):
     tiers = []; ground = None; src = ""
     if k in EX and EX[k].get("tiers"):
-        tiers = [(float(a), float(b), wkt.loads(w)) for a, b, w in EX[k]["tiers"]]; ground = EX[k].get("ground"); src = "lidar_exact"
+        tiers = [(float(t[0]), float(t[1]), wkt.loads(t[2])) for t in EX[k]["tiers"]]; ground = EX[k].get("ground"); src = "lidar_exact"
     elif k in osm:
         m = CO.get(k) or BU.get(k) or {}
         h = float(m.get("h") or osm[k][1].get("height", "0").split()[0] or 0) or 3.2 * float(osm[k][1].get("building:levels", 3))

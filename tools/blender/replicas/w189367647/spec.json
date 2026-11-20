@@ -1,0 +1,10 @@
+{"name": "Toledo-Lucas County Public Library, Main Library (1940, Hahn & Hayes), 325 Michigan St",
+ "refs": "refs/w189367647/00 (Main Library, Toledo Lucas County Public Library, Michigan St and Madison Ave, Wikimedia Commons)",
+ "notes": "WPA-era Art Deco in smooth buff limestone: tall vertical window bays with Vitrolite spandrels between flat piers, a taller central entrance pavilion with a stepped frame, carved LIBRARY frieze and flat parapet.",
+ "materials": {"base": "granite_dark", "body": "limestone", "trim": "limestone", "cornice": "limestone", "pier": "limestone", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "limestone", "spandrel": "metal_dark"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.5, "simplify": 0.4, "min_face": 4.0, "min_poly_area": 30, "bay": 3.6, "corner_pier": 2.0,
+ "window": {"w": 0.5, "h": 0.72, "group": 1, "depth": 0.3, "mull": "grid", "sill_frac": 0.35},
+ "floors": [{"n": 1, "h": 1.0, "kind": "blank"}, {"n": 2, "h": 4.25}],
+ "spandrel_wall": true, "piers": {"every": 1, "w": 0.9, "d": 0.3}, "plinth": 1.0,
+ "cornice": {"h": 0.9, "out": 0.2, "profile": "deco"}, "parapet": 0.6
+}

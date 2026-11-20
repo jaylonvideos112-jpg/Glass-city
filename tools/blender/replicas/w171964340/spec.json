@@ -1,0 +1,9 @@
+{"name": "Renaissance Toledo Downtown Hotel (1984 Hotel SeaGate tower replacement / former Radisson), 444 N Summit St",
+ "refs": "refs/w171964340/00 (Renaissance Hotel in Downtown Toledo, Ohio, September 2019, Wikimedia Commons)",
+ "notes": "Brutalist precast-concrete slab: largely windowless scored-panel end walls, long sides of narrow punched windows, a recessed dark glazed band and set-back crown at the top.",
+ "materials": {"base": "concrete", "body": "precast", "trim": "precast", "cornice": "precast", "pier": "precast", "frame": "frame_dark", "glass": "glass_dark", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "precast"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "min_poly_area": 20, "bay": 2.3, "corner_pier": 3.0,
+ "window": {"w": 0.45, "h": 0.55, "group": 1, "depth": 0.3, "mull": "single", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 5.5, "kind": "storefront"}, {"n": 1, "h": 4.5, "kind": "blank"}, {"n": 11, "h": 2.9}, {"n": 1, "h": 3.2, "ww": 0.95, "wh": 0.8}, {"n": 1, "h": 3.0, "kind": "blank"}],
+ "cornice": {"h": 0.4, "out": 0.05}, "parapet": 1.0
+}

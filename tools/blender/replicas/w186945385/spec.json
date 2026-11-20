@@ -1,0 +1,10 @@
+{"name": "Hollywood Casino Toledo (2012), 1968 Miami St",
+ "refs": "refs/w186945385/00 (Hollywood Casino Toledo (Cropped), October 2019, Wikimedia Commons)",
+ "notes": "Art-Deco-themed casino box: cream EIFS walls with tan stripes, stepped Deco pylons with vertical fins at the corners and entrance, glazed entry pavilion under a big canopy; mostly windowless.",
+ "materials": {"base": "precast", "body": "paint_cream", "trim": "precast", "cornice": "precast", "pier": "precast", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "paint_cream"},
+ "orthogonal": true, "grid": 1.0, "smooth_m": 2.0, "simplify": 0.5, "min_face": 6.0, "min_poly_area": 60, "bay": 9.0, "corner_pier": 2.5,
+ "window": {"w": 0.4, "h": 0.5, "group": 1, "depth": 0.2, "mull": "grid"},
+ "floors": [{"n": 1, "h": 6.0, "kind": "storefront", "ww": 0.35}, {"n": 1, "h": 11.2, "kind": "blank"}],
+ "piers": {"every": 2, "w": 1.6, "d": 0.6}, "belts": [{"above_floor": 1, "h": 0.8, "out": 0.4}],
+ "cornice": {"h": 1.2, "out": 0.4, "profile": "deco"}, "parapet": 1.0
+}

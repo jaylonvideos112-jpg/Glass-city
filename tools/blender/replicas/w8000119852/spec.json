@@ -1,0 +1,14 @@
+{"name": "Park Inn Hotel / former Toledo Hilton tower, 101 N Summit St",
+ "refs": "refs/w8000119852/00 (Park Inn Hotel in Downtown Toledo, Ohio, July 2019, Wikimedia Commons)",
+ "notes": "1980s tan precast-concrete hotel slab on a low podium: punched single windows in a tight grid, flush plain corners, mechanical penthouse levels on top.",
+ "materials": {"base": "precast", "body": "precast", "trim": "precast", "cornice": "precast", "pier": "precast", "frame": "frame_dark", "glass": "glass_dark", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "precast"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "min_poly_area": 12, "bay": 2.0, "corner_pier": 1.4,
+ "window": {"w": 0.55, "h": 0.55, "group": 1, "depth": 0.15, "mull": "single", "sill_frac": 0.5},
+ "tiers": [
+  {"floors": [{"n": 1, "h": 5.0, "kind": "storefront"}, {"n": 2, "h": 4.85, "kind": "blank"}], "cornice": {"h": 0.6, "out": 0.2}},
+  {"floors": [{"n": 12, "h": 2.87}], "cornice": {"h": 0.5, "out": 0.1}},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 2.5, "kind": "blank"}]},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 2.5, "kind": "blank"}]},
+  {"style": "solid", "solid_below": 999, "floors": [{"n": 1, "h": 3.5, "kind": "blank"}]}
+ ]
+}

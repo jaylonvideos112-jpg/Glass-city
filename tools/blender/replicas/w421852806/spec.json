@@ -1,0 +1,13 @@
+{"name": "National Museum of the Great Lakes, 1701 Front St",
+ "refs": "refs/w421852806/00 (Front Entrance of The National Museum of the Great Lakes in Toledo, Ohio, October 2019, Wikimedia Commons)",
+ "notes": "Former International Park pavilion: tan split-face block walls on a dark stone base, a square entrance tower with a full-height glazed arch and a glass lantern under a dark hipped metal roof, ribbon windows and a railed roof terrace.",
+ "materials": {"base": "granite_dark", "body": "brick_tan", "trim": "precast_white", "cornice": "precast_white", "pier": "brick_tan", "frame": "frame_dark", "glass": "glass_teal", "shop_glass": "glass_teal", "roof": "roof_flat", "solid": "brick_tan"},
+ "orthogonal": true, "grid": 0.5, "smooth_m": 1.0, "bay": 4.0, "corner_pier": 1.0,
+ "window": {"w": 0.8, "h": 0.55, "group": 1, "depth": 0.2, "mull": "grid", "sill_frac": 0.35},
+ "floors": [{"n": 1, "h": 5.0, "kind": "storefront"}, {"n": 1, "h": 4.6}],
+ "plinth": 0.8, "cornice": {"h": 0.5, "out": 0.15}, "parapet": 1.0,
+ "extras": [
+  {"rel": [-20, -15, 7.5, 7.5], "z1": 12.0, "style": "curtain", "mat_over": {"body": "brick_tan"}, "cornice": {"h": 0.4, "out": 0.2}},
+  {"rel": [-20, -15, 5.5, 5.5], "z0": 12.4, "z1": 15.2, "style": "curtain", "floors": [{"n": 1, "h": 2.8}], "roof": {"type": "hip", "h": 2.6, "mat": "metal_dark", "overhang": 0.7}}
+ ]
+}

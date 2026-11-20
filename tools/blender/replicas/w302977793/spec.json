@@ -1,0 +1,13 @@
+{"name": "Trinity Episcopal Church (1866), 316 Adams St at St. Clair",
+ "refs": "refs/w302977793/00 (Trinity Episcopal Church, Adams Street and Superior Street, Toledo, OH, Wikimedia Commons)",
+ "notes": "Gothic Revival in grey rough-faced limestone: steep slate nave roof, tall lancet windows with buttresses, a square corner tower with paired belfry lancets and corner pinnacles, lower parish wings.",
+ "materials": {"base": "limestone", "body": "limestone", "trim": "limestone", "arch": "limestone", "cornice": "limestone", "frame": "frame_dark", "glass": "glass_window", "roof": "slate"},
+ "window": {"w": 0.4, "h": 0.65, "group": 1, "depth": 0.3, "mull": "vertical", "sill_frac": 0.4},
+ "corner_pier": 1.0, "bay": 4.0, "arched": true, "plinth": 0.8,
+ "floors": [{"n": 1, "h": 8.0}],
+ "parts": [
+  {"rel": [4, 0, 34, 16], "z1": 9.0, "floors": [{"n": 1, "h": 9.0, "ww": 0.4, "wh": 0.7}], "roof": {"type": "gable", "pitch": 55, "mat": "slate", "ridge": "long"}, "rose": {"r": 2.2, "end": 1}},
+  {"rel": [4, 12, 30, 9], "z1": 7.0, "floors": [{"n": 2, "h": 3.5}], "roof": {"type": "hip", "h": 2.0, "mat": "slate"}},
+  {"rel": [-16, -5, 7.0, 7.0], "z1": 24.0, "bay": 5.0, "floors": [{"n": 1, "h": 9.0, "ww": 0.35, "wh": 0.6}, {"n": 1, "h": 7.0, "kind": "blank"}, {"n": 1, "h": 8.0, "group": 2, "ww": 0.55, "wh": 0.7}], "parapet": 0.8, "battlement": true, "turrets": [{"r": 0.5, "h": 2.0, "cap": 3.0, "mat": "limestone"}], "roof": {"type": "flat"}}
+ ]
+}

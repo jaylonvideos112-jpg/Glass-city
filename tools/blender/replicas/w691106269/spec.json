@@ -1,0 +1,8 @@
+{"name": "GM Toledo Transmission (Powertrain Toledo Plant), 1455 W Alexis Rd",
+ "refs": "refs/w691106269/00 (GM Powertrain Toledo Transmission Operations, August 2021, Wikimedia Commons)",
+ "notes": "Huge single-storey factory shed in pale insulated metal panels with clerestory bands, a two-storey limestone-and-glass office front.",
+ "materials": {"base": "concrete", "body": "metal_light", "trim": "metal_light", "cornice": "metal_light", "pier": "metal_light", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "metal_light"},
+ "orthogonal": true, "grid": 2.0, "smooth_m": 4.0, "simplify": 1.0, "min_face": 10.0, "min_poly_area": 200, "bay": 12.0, "corner_pier": 1.0,
+ "window": {"w": 0.8, "h": 0.25, "group": 1, "depth": 0.1, "mull": "grid", "sill_frac": 0.8},
+ "floors": [{"n": 1, "h": 2.0, "kind": "blank", "mat": "concrete"}, {"n": 1, "h": 15.1}], "cornice": {"h": 0.4, "out": 0.1}
+}
