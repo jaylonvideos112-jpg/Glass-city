@@ -76,13 +76,13 @@ func _ready() -> void:
 		w.position = p
 		w.wheel_radius = wr
 		w.wheel_rest_length = 0.22
-		w.suspension_travel = 0.2
-		w.suspension_stiffness = 55.0
+		w.suspension_travel = 0.24
+		w.suspension_stiffness = 42.0          # a little softer: visible weight transfer (squat, dive, lean)
 		w.suspension_max_force = 30000.0 * mass / 1350.0
 		w.damping_compression = 2.2
 		w.damping_relaxation = 3.0
 		w.wheel_friction_slip = 2.6
-		w.wheel_roll_influence = 0.15
+		w.wheel_roll_influence = 0.32
 		var front: bool = p.z < 0
 		w.use_as_steering = front
 		w.use_as_traction = not front
@@ -215,6 +215,25 @@ func _physics_process(_dt: float) -> void:
 	_update_lights()
 	if handbrake:
 		brake = max(brake, 30.0)
+	_assists(s, fwd_speed)
+
+## arcade driving assists (the GTA feel): downforce keeps fast cars planted, yaw damping stops twitchy spins,
+## a counter-steer nudge helps catch slides, and an anti-roll torque keeps hard corners from flipping the car.
+func _assists(s: float, fwd_speed: float) -> void:
+	var up := global_transform.basis.y
+	var on_ground := false
+	for w in wheels:
+		if w.is_in_contact(): on_ground = true; break
+	if not on_ground: return
+	apply_central_force(-up * mass * 0.0025 * s * s)                                  # downforce ~ v^2
+	var yaw_rate: float = angular_velocity.dot(up)
+	var lat := linear_velocity.dot(global_transform.basis.x)                         # sideways slide speed
+	if not handbrake:
+		apply_torque(-up * yaw_rate * mass * 0.9 * clampf(s / 25.0, 0.0, 1.0))      # yaw damping at speed
+		if absf(lat) > 2.0 and fwd_speed > 5.0:
+			steering = move_toward(steering, clampf(-lat * 0.03, -0.2, 0.2) + steering * 0.8, 0.02)   # counter-steer help
+	var roll := global_transform.basis.x.dot(Vector3.UP)
+	apply_torque(-global_transform.basis.z * roll * mass * 9.0)                       # anti-roll
 
 func _update_lights() -> void:
 	var braking := brake > 2.0 and driven

@@ -2,7 +2,7 @@ extends CharacterBody3D
 ## On-foot third-person character. Camera is handled by main.gd's camera rig.
 
 const WALK := 4.2
-const SPRINT := 8.5
+const SPRINT := 7.2
 const JUMP := 5.2
 const GRAVITY := 18.0
 
@@ -85,7 +85,7 @@ func _physics_process(dt: float) -> void:
 	var can_run: bool = needs == null or needs.can_sprint()
 	var spd: float = (SPRINT * (needs.sprint_mult() if needs else 1.0)) if (sprint and can_run) else WALK
 	var target := move * spd * move_mult * crouch_mult * aim_mult
-	var accel := 12.0 if is_on_floor() else 3.0
+	var accel := 7.0 if is_on_floor() else 2.5
 	velocity.x = move_toward(velocity.x, target.x, accel * spd * dt)
 	velocity.z = move_toward(velocity.z, target.z, accel * spd * dt)
 	if is_on_floor():

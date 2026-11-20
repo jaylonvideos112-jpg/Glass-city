@@ -210,8 +210,7 @@ func _deploy_officers() -> void:
 			p["cop"] = true; p["gun"] = "rifle" if stars >= 5 else "pistol"; p["style"] = "boxer"
 			p["hp"] = 120.0; p["hp_max"] = 120.0
 			if p["node"] is RigChar:
-				(p["node"] as RigChar).dress({"skin": Color(0.62, 0.47, 0.36), "hair": Color(0.12, 0.1, 0.08), "top": Color(0.12, 0.16, 0.3),
-					"bottom": Color(0.1, 0.12, 0.2), "shoe": Color(0.05, 0.05, 0.05), "sleeves": 1, "legs": 0})
+				(p["node"] as RigChar).dress({"uniform": Color(0.32, 0.38, 0.62)})     # navy over the clothes' weave
 			elif _cop_look == null:
 				var look := {"h": 1.02, "w": 1.05, "skin": Color(0.62, 0.47, 0.36), "hair": Color(0.12, 0.1, 0.08), "top": Color(0.12, 0.16, 0.3),
 					"top2": Color(0.1, 0.13, 0.25), "bottom": Color(0.1, 0.12, 0.2), "shoe": Color(0.05, 0.05, 0.05), "sleeves": 1, "legs": 0, "hair_style": 4, "beard": false}

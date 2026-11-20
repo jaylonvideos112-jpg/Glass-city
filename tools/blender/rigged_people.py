@@ -16,17 +16,31 @@ import numpy as np
 import bpy, bmesh
 from mathutils import Vector, Matrix, Quaternion
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import bvh_fk
+import bvh_fk, mhclo
 
 OUT, BVH, RIGF, WF = sys.argv[1:5]; ONLY = sys.argv[5:]
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mh")
+SYS = os.environ.get("MHSYS", "/home/claude/dl/mhpack/sys")     # MakeHuman system assets (CC0)
+# body targets, skin, outfit, hair, shoes, eyebrows, eyes, height (m)
 VARIANTS = {
-    "m1": {"caucasian-male-young": 1.0}, "m2": {"african-male-young": 1.0}, "m3": {"asian-male-young": 1.0},
-    "m4": {"caucasian-male-young": 0.5, "african-male-young": 0.5, "universal-male-young-averagemuscle-maxweight": 0.55},
-    "f1": {"caucasian-female-young": 1.0}, "f2": {"african-female-young": 1.0}, "f3": {"asian-female-young": 1.0},
-    "f4": {"caucasian-female-young": 0.5, "asian-female-young": 0.5, "universal-female-young-averagemuscle-maxweight": 0.45},
+    "m1": ({"caucasian-male-young": 1.0}, "young_caucasian_male", "male_casualsuit03", "short02", "shoes02", "eyebrow001", "brown", 1.78),
+    "m2": ({"african-male-young": 1.0}, "young_african_male", "male_casualsuit05", "short04", "shoes05", "eyebrow003", "brown", 1.82),
+    "m3": ({"asian-male-young": 1.0}, "young_asian_male", "male_casualsuit01", "short01", "shoes04", "eyebrow002", "brown", 1.72),
+    "m4": ({"caucasian-male-young": 0.5, "african-male-young": 0.5, "universal-male-young-averagemuscle-maxweight": 0.55},
+           "middleage_caucasian_male", "male_worksuit01", "short03", "shoes03", "eyebrow004", "bluegreen", 1.76),
+    "m5": ({"caucasian-male-young": 1.0}, "young_caucasian_male2", "male_elegantsuit01", "short02", "shoes04", "eyebrow005", "blue", 1.8),
+    "m6": ({"african-male-young": 0.8, "universal-male-young-averagemuscle-maxweight": 0.4}, "middleage_african_male",
+           "male_casualsuit06", "short04", "shoes06", "eyebrow006", "brown", 1.77),
+    "f1": ({"caucasian-female-young": 1.0}, "young_caucasian_female", "female_casualsuit01", "ponytail01", "shoes05", "eyebrow008", "blue", 1.66),
+    "f2": ({"african-female-young": 1.0}, "young_african_female", "female_elegantsuit01", "bob02", "shoes04", "eyebrow009", "brown", 1.68),
+    "f3": ({"asian-female-young": 1.0}, "young_asian_female", "female_sportsuit01", "bob01", "shoes06", "eyebrow010", "brown", 1.6),
+    "f4": ({"caucasian-female-young": 0.5, "asian-female-young": 0.5, "universal-female-young-averagemuscle-maxweight": 0.45},
+           "middleage_caucasian_female", "female_casualsuit02", "long01", "shoes05", "eyebrow011", "green", 1.63),
+    "f5": ({"caucasian-female-young": 1.0}, "young_caucasian_female2", "female_casualsuit01", "braid01", "shoes02", "eyebrow008", "brownlight", 1.69),
+    "f6": ({"african-female-young": 0.8, "universal-female-young-averagemuscle-maxweight": 0.35}, "middleage_african_female",
+           "female_elegantsuit01", "afro01", "shoes01", "eyebrow012", "brown", 1.65),
 }
-HEIGHT = {"m1": 1.77, "m2": 1.8, "m3": 1.72, "m4": 1.76, "f1": 1.65, "f2": 1.67, "f3": 1.6, "f4": 1.63}
+LOGO_TEES = ("female_casualsuit01", "female_casualsuit02", "male_casualsuit02", "male_casualsuit04", "male_casualsuit06")
 FPS = 30
 
 # name, bvh, mode, window (seconds or None), extra
@@ -85,96 +99,155 @@ def to_blender(V):
     """MakeHuman OBJ (Y up, decimetres, facing +Z) -> metres, Z up, facing +Y (= Godot -Z)."""
     return np.stack([-V[:, 0], V[:, 2], V[:, 1]], axis=1) * 0.1
 
-COLS = {"skin": (0.78, 0.58, 0.47), "hair": (0.2, 0.14, 0.09), "shirt": (0.25, 0.35, 0.6), "sleeve": (0.25, 0.35, 0.6),
-        "pants": (0.15, 0.17, 0.25), "shin": (0.15, 0.17, 0.25), "shoes": (0.08, 0.08, 0.08), "eye_white": (0.9, 0.9, 0.88),
-        "iris": (0.25, 0.17, 0.1), "lips": (0.6, 0.35, 0.33)}
+import tempfile
+TMP = tempfile.mkdtemp()
 
-def mat(name):
-    m = bpy.data.materials.get(name)
-    if m is None:
-        m = bpy.data.materials.new(name); m.use_nodes = True
-        b = m.node_tree.nodes["Principled BSDF"]
-        b.inputs["Base Color"].default_value = (*COLS[name], 1); b.inputs["Roughness"].default_value = 0.6 if name != "eye_white" else 0.15
+def tex(path, size=1024, alpha=False, delogo=False):
+    """downscale a MakeHuman texture (jpeg for opaque, png for alpha) and return the temp path"""
+    import cv2
+    im = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+    if im is None: return None
+    if im.shape[0] > size: im = cv2.resize(im, (size, size), interpolation=cv2.INTER_AREA)
+    if delogo:     # the MakeHuman logo printed on the system tees: paint it out from the surrounding fabric
+        bgr = im[:, :, :3]
+        hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
+        m = (((hsv[:, :, 0] < 28) | (hsv[:, :, 0] > 170)) & (hsv[:, :, 1] > 90) & (hsv[:, :, 2] > 90)).astype(np.uint8) * 255
+        m = cv2.morphologyEx(m, cv2.MORPH_CLOSE, np.ones((9, 9), np.uint8))
+        n, lab, stats, _ = cv2.connectedComponentsWithStats(m)
+        keep = np.zeros_like(m)
+        for k in range(1, n):
+            x, y, w, h, a = stats[k]
+            if a > 60 and max(w, h) < size * 0.3: keep[lab == k] = 255
+        keep = cv2.dilate(keep, np.ones((15, 15), np.uint8))
+        im[:, :, :3] = cv2.inpaint(bgr, keep, 9, cv2.INPAINT_TELEA)
+    out = os.path.join(TMP, os.path.basename(path).rsplit(".", 1)[0] + ("_a.png" if alpha else ".jpg"))
+    if alpha: cv2.imwrite(out, im)
+    else: cv2.imwrite(out, im[:, :, :3] if im.ndim == 3 else im, [cv2.IMWRITE_JPEG_QUALITY, 88])
+    return out
+
+def tex_mat(name, diffuse, normal=None, alpha=False, rough=0.7, delogo=False):
+    m = bpy.data.materials.new(name)
+    nt = m.node_tree if m.node_tree else None
+    if nt is None:
+        m.use_nodes = True; nt = m.node_tree
+    b = nt.nodes["Principled BSDF"]
+    b.inputs["Roughness"].default_value = rough
+    if diffuse and os.path.exists(diffuse):
+        t = nt.nodes.new("ShaderNodeTexImage"); t.image = bpy.data.images.load(tex(diffuse, alpha=alpha, delogo=delogo))
+        nt.links.new(t.outputs["Color"], b.inputs["Base Color"])
+        if alpha:
+            nt.links.new(t.outputs["Alpha"], b.inputs["Alpha"])
+            try: m.surface_render_method = "DITHERED"
+            except Exception: pass
+    if normal and os.path.exists(normal):
+        t2 = nt.nodes.new("ShaderNodeTexImage"); t2.image = bpy.data.images.load(tex(normal, size=1024))
+        t2.image.colorspace_settings.name = "Non-Color"
+        nm = nt.nodes.new("ShaderNodeNormalMap")
+        nt.links.new(t2.outputs["Color"], nm.inputs["Color"]); nt.links.new(nm.outputs["Normal"], b.inputs["Normal"])
     return m
 
-REGION_OF = [("head", "skin"), ("neck_01", "skin"), ("spine", "shirt"), ("clavicle", "shirt"), ("pelvis", "pants"),
-             ("upperarm", "shirt"), ("lowerarm", "sleeve"), ("hand", "skin"), ("thumb", "skin"), ("index", "skin"),
-             ("middle", "skin"), ("ring", "skin"), ("pinky", "skin"), ("thigh", "pants"), ("calf", "shin"),
-             ("foot", "shoes"), ("ball", "shoes"), ("Root", "pants")]
+def load_base():
+    V, T, F, G = [], [], [], []
+    cur = None
+    for line in open(os.path.join(D, "base.obj")):
+        if line.startswith("v "): V.append([float(x) for x in line.split()[1:4]])
+        elif line.startswith("vt "): T.append([float(x) for x in line.split()[1:3]])
+        elif line.startswith("g "): cur = line.split()[1]
+        elif line.startswith("f "):
+            vs, ts = [], []
+            for tok in line.split()[1:]:
+                p_ = tok.split("/"); vs.append(int(p_[0]) - 1); ts.append(int(p_[1]) - 1)
+            F.append((vs, ts)); G.append(cur)
+    return np.array(V), np.array(T), F, G
+
+def mesh_obj(name, verts, faces, uvs, mats):
+    me = bpy.data.meshes.new(name)
+    me.from_pydata([tuple(v) for v in verts], [], [tuple(f[0]) for f in faces])
+    uvl = me.uv_layers.new(name="UVMap")
+    li = 0
+    for poly, f in zip(me.polygons, faces):
+        for k, l in enumerate(poly.loop_indices):
+            ti = f[1][k]
+            if 0 <= ti < len(uvs): uvl.data[l].uv = tuple(uvs[ti])
+    for m in mats: me.materials.append(m)
+    o = bpy.data.objects.new(name, me); bpy.context.collection.objects.link(o)
+    return o
 
 def build_body(var, rig, W):
-    V0, F = load_obj()
-    V = apply_targets(V0, VARIANTS[var])
+    targets, skin, suit, hair, shoes, brows, eyes, H = VARIANTS[var]
+    V0, UV, F, G = load_base()
+    V = apply_targets(V0, targets)
     groups = {}
-    for g, f in F: groups.setdefault(g, set()).update(f)
-    P = to_blender(V)
+    for g, f in zip(G, F): groups.setdefault(g, set()).update(f[0])
     body_ids = np.array(sorted(groups["body"])); N = int(body_ids.max()) + 1
-    P[:, 2] -= P[body_ids, 2].min()
-    P *= HEIGHT[var] / P[body_ids, 2].max()
+    P0 = to_blender(V)
+    floor = P0[body_ids, 2].min(); P0[:, 2] -= floor
+    sc = H / P0[body_ids, 2].max()
+    conv = lambda X: (to_blender(X) - np.array([0, 0, floor])) * sc
+    P = conv(V)
     J = {g: P[list(groups[g])].mean(axis=0) for g in groups if g.startswith("joint-")}
-    # ---- per-vertex dominant bone -> material region
-    wsum = {}
+    # per-vertex base weights
+    bones = list(W.keys()); BW = {}
+    for bi, bone in enumerate(bones):
+        for vi, w in W[bone]: BW.setdefault(vi, []).append((bi, w))
+    # proxies
+    def clo_path(kind, name):
+        for f in os.listdir(os.path.join(SYS, kind, name)):
+            if f.endswith(".mhclo"): return os.path.join(SYS, kind, name, f)
+    proxies = [("suit", "clothes", suit), ("shoes", "clothes", shoes), ("hair", "hair", hair), ("brows", "eyebrows", brows),
+               ("lashes", "eyelashes", "eyelashes01"), ("eyes", "eyes", "high-poly")]
+    clos = []
+    delete = set()
+    for role, kind, name in proxies:
+        c = mhclo.load(clo_path(kind, name)); clos.append((role, name, c)); delete |= c["delete"]
+    # ---- body (skin texture; faces hidden under clothes/shoes removed)
+    sk = os.path.join(SYS, "skins", skin); dif = next((os.path.join(sk, f) for f in os.listdir(sk) if f.endswith(".png") and "thumb" not in f), None)
+    skin_m = tex_mat("skin", dif, rough=0.55)
+    faces = [f for g, f in zip(G, F) if g == "body" and not any(v in delete for v in f[0])]
+    used = sorted({v for f in faces for v in f[0]}); remap = {v: k for k, v in enumerate(used)}
+    body = mesh_obj("body", P[used], [([remap[v] for v in f[0]], f[1]) for f in faces], UV, [skin_m])
     for bone, lst in W.items():
+        g = body.vertex_groups.new(name=bone)
         for vi, w in lst:
-            if vi < N and w > wsum.get(vi, (None, 0))[1]: wsum[vi] = (bone, w)
-    def region(vi):
-        b = wsum.get(vi, ("spine_01", 1))[0]
-        for pre, r in REGION_OF:
-            if b.startswith(pre): return r
-        return "shirt"
-    reg = [region(i) for i in range(N)]
-    eyez = J["joint-l-eye"][2]; headj = J["joint-head"]
-    for i in range(N):
-        if reg[i] == "skin" and wsum.get(i, ("", 0))[0] == "head":
-            p = P[i]
-            if p[2] > eyez + 0.045 or (p[2] > eyez - 0.02 and p[1] < headj[1] - 0.035): reg[i] = "hair"
-        if reg[i] == "shirt" and P[i][2] < J["joint-pelvis"][2] + 0.1: reg[i] = "pants"
-    # clothes sit a few mm proud of the skin
-    nrm = np.zeros_like(P[:N])
-    faces = [f for g, f in F if g == "body"]
-    for f in faces:
-        a, b, c = P[f[0]], P[f[1]], P[f[2]]; n = np.cross(b - a, c - a)
-        for v in f: nrm[v] += n
-    nrm /= np.linalg.norm(nrm, axis=1, keepdims=True) + 1e-9
-    for i in range(N):
-        if reg[i] in ("shirt", "sleeve", "pants", "shin"): P[i] += nrm[i] * 0.006
-        elif reg[i] == "shoes": P[i] += nrm[i] * 0.009
-    mats = ["skin", "hair", "shirt", "sleeve", "pants", "shin", "shoes", "eye_white", "iris"]
-    me = bpy.data.meshes.new("body")
-    eye_faces = [f for g, f in F if g in ("helper-l-eye", "helper-r-eye")]
-    allf = faces + eye_faces
-    used = sorted({v for f in allf for v in f})
-    remap = {v: k for k, v in enumerate(used)}
-    me.from_pydata([tuple(P[v]) for v in used], [], [tuple(remap[v] for v in f) for f in allf])
-    for m in mats: me.materials.append(mat(m))
-    fwd = np.array([0, 1, 0])
-    for k, poly in enumerate(me.polygons):
-        if k < len(faces):
-            rs = [reg[v] for v in allf[k]]; poly.material_index = mats.index(max(set(rs), key=rs.count))
-        else:
-            c = np.array(poly.center); side = J["joint-l-eye"] if c[0] < 0 else J["joint-r-eye"]
-            d = c - side; d /= np.linalg.norm(d) + 1e-9
-            poly.material_index = mats.index("iris" if d[1] > 0.88 else "eye_white")
-    body = bpy.data.objects.new("body", me); bpy.context.collection.objects.link(body)
-    # ---- skin weights
-    vg = {}
-    for bone, lst in W.items():
-        g = body.vertex_groups.new(name=bone); vg[bone] = g
-        for vi, w in lst:
-            if vi in remap and vi < N: g.add([remap[vi]], w, "REPLACE")
-    hg = vg.get("head") or body.vertex_groups.new(name="head")
-    for v in used:
-        if v >= N: hg.add([remap[v]], 1.0, "REPLACE")     # eyeballs ride the head
-    # ---- decimate (face stays dense)
+            if vi in remap: g.add([remap[vi]], w, "REPLACE")
     dvg = body.vertex_groups.new(name="_dec")
+    head_bones = {bones.index(b) for b in ("head", "neck_01") if b in bones}
     for v in used:
-        dvg.add([remap[v]], 0.1 if (v >= N or wsum.get(v, ("", 0))[0] in ("head", "neck_01")) else 1.0, "REPLACE")
+        dense = any(bi in head_bones and w > 0.3 for bi, w in BW.get(v, []))
+        dvg.add([remap[v]], 0.1 if dense else 1.0, "REPLACE")
     bpy.context.view_layer.objects.active = body; body.select_set(True)
-    dm = body.modifiers.new("dec", "DECIMATE"); dm.ratio = 0.35; dm.vertex_group = "_dec"; dm.vertex_group_factor = 1.0
+    dm = body.modifiers.new("dec", "DECIMATE"); dm.ratio = 0.45; dm.vertex_group = "_dec"; dm.vertex_group_factor = 1.0
     bpy.ops.object.modifier_apply(modifier="dec")
     if "_dec" in body.vertex_groups: body.vertex_groups.remove(body.vertex_groups["_dec"])
     bpy.ops.object.shade_smooth()
-    return body, P, J
+    objs = [body]
+    # ---- proxies: fitted, textured, skinned with the base weights blended from their 3 anchor vertices
+    for role, name, c in clos:
+        Vp = conv(mhclo.fit(c, V))
+        _, UVp, Fp = mhclo.load_obj(c["obj"])
+        mm = mhclo.material(c["material"])
+        alpha = role in ("hair", "brows", "lashes")
+        m = tex_mat(("a_" if alpha else ("eyes" if role == "eyes" else "cloth_")) + (role if alpha or role == "eyes" else name),
+                    mm["diffuse"], mm["normal"], alpha=alpha, rough=0.45 if role == "hair" else 0.8, delogo=(name in LOGO_TEES))
+        o = mesh_obj(role, Vp, Fp, UVp, [m])
+        acc = [dict() for _ in range(len(Vp))]
+        for i in range(len(Vp)):
+            for k in range(3):
+                wk = c["w"][i, k]
+                if wk <= 0: continue
+                for bi, w in BW.get(int(c["refs"][i, k]), []):
+                    acc[i][bi] = acc[i].get(bi, 0.0) + wk * w
+        vgs = {}
+        for i, dct in enumerate(acc):
+            top = sorted(dct.items(), key=lambda kv: -kv[1])[:4]; tot = sum(w for _, w in top) or 1.0
+            for bi, w in top:
+                if bi not in vgs: vgs[bi] = o.vertex_groups.new(name=bones[bi])
+                vgs[bi].add([i], w / tot, "REPLACE")
+        bpy.context.view_layer.objects.active = o
+        if role in ("suit", "shoes"):
+            bpy.ops.object.select_all(action="DESELECT"); o.select_set(True); bpy.ops.object.shade_smooth()
+        objs.append(o)
+    return body, P, J, objs
 
 def joint_pos(spec, P, J):
     s = spec.get("strategy")
@@ -224,8 +297,13 @@ def load_clip(code):
     pos, rot = bvh_fk.fk(joints, vals)
     I = bvh_fk.index(joints)
     pos = pos @ C.T; rot = C @ rot @ C.T                        # to Z up (global rotations conjugated)
-    # rest facing: BVH rest pose faces +Z(bvh) -> -Y here; turn the whole thing so rest faces +Y
-    A = yaw(math.pi)
+    # rest facing differs between CMU subjects: measure it from the rest skeleton and turn it to +Y,
+    # so every joint's rotation 'from rest' means the same thing for every clip
+    rp, _ = bvh_fk.fk(joints, np.zeros((1, vals.shape[1])))
+    rp = rp[0] @ C.T
+    l = rp[I["LeftUpLeg"]] - rp[I["RightUpLeg"]]
+    hr = math.atan2(-l[0], l[1])          # forward = left x up = (l_y, -l_x)
+    A = yaw(math.pi / 2 - hr)
     pos = pos @ A.T; rot = A @ rot @ A.T
     # resample to 30 fps
     n = len(pos); T = (n - 1) * ft; m = int(T * FPS) + 1
@@ -277,8 +355,13 @@ def pick(pos, rot, I, mode, win, extra):
         return lo_, min(n - 1, up + 10), False
     return a0, a1, False
 
+PEL0 = np.eye(3)
+def frame3(right, up):
+    r = right / np.linalg.norm(right); u = up - r * np.dot(up, r); u /= np.linalg.norm(u)
+    return np.stack([r, np.cross(u, r), u], axis=1)      # columns: right, forward, up
+
 CALIB = {}      # bone -> 3x3 right-multiplied correction so the 'stand still' frame of 82_08 maps to the rest pose
-CAL_BONES = ("pelvis", "spine_01", "spine_02", "spine_03", "neck_01", "head", "clavicle_l", "clavicle_r")
+CAL_BONES = ("spine_01", "spine_02", "spine_03", "neck_01", "head", "clavicle_l", "clavicle_r")
 
 def calibrate(ob, order):
     """average, over a whole normal walk (07_01), of each upper-body bone's offset to its rest pose -> correction.
@@ -299,8 +382,35 @@ def calibrate(ob, order):
         qm = np.mean(qs, axis=0); qm /= np.linalg.norm(qm)
         CALIB[bn] = np.array(Quaternion(qm).to_matrix())
 
+def clip_calib(pos, rot, I, ob):
+    """per-clip (per-subject) correction for rotation-driven upper-body bones: over the clip's upright frames the
+    bone, relative to the pelvis frame, should sit at its rest pose. CMU subjects' joint axes differ, so a single
+    global calibration turned some heads backwards."""
+    arm = ob.data
+    pel0 = frame3(np.array(arm.bones["thigh_r"].head_local - arm.bones["thigh_l"].head_local),
+                  np.array(arm.bones["spine_02"].head_local - arm.bones["pelvis"].head_local))
+    hz = pos[:, I["Head"], 2] - np.minimum(pos[:, I["LeftToeBase"], 2], pos[:, I["RightToeBase"], 2])
+    up = np.where(hz > 0.9 * hz.max())[0]
+    if len(up) < 5: up = np.arange(len(pos))
+    up = up[:: max(1, len(up) // 120)]
+    K = {}
+    for bn in CAL_BONES:
+        R0 = np.array(arm.bones[bn].matrix_local)[:3, :3]; j = I[MAP[bn][0]]
+        qs = []
+        for f in up:
+            Fp = frame3(pos[f, I["RightUpLeg"]] - pos[f, I["LeftUpLeg"]], pos[f, I["Spine"]] - pos[f, I["Hips"]])
+            Kf = rot[f, j].T @ Fp @ pel0.T @ R0
+            q = Matrix(Kf.tolist()).to_quaternion()
+            if qs and q.dot(Quaternion(qs[0])) < 0: q.negate()
+            qs.append(np.array(q))
+        qm = np.mean(qs, axis=0); qm /= np.linalg.norm(qm)
+        K[bn] = np.array(Quaternion(qm).to_matrix())
+    return K
+
+KB = {}
 def retarget(ob, order, code, mode, win, extra, name):
     pos, rot, I = load_clip(code)
+    KB.clear(); KB.update(clip_calib(pos, rot, I, ob))
     a, b, loop = pick(pos, rot, I, mode, win, extra)
     pos, rot = pos[a:b + 1], rot[a:b + 1]
     n = len(pos)
@@ -308,7 +418,7 @@ def retarget(ob, order, code, mode, win, extra, name):
     hs = [heading(pos, I, f) for f in range(n)]
     h0 = math.atan2(np.mean(np.sin(hs)), np.mean(np.cos(hs)))
     H = yaw(math.pi / 2 - h0)
-    pos = pos @ H.T; rot = H @ rot @ H.T
+    pos = pos @ H.T; rot = H[None, None] @ rot          # turning the world: left-multiply (A above re-bases rest)
     # ground speed (in-place playback)
     hip = pos[:, I["Hips"]]
     travel = np.linalg.norm(hip[-1, :2] - hip[0, :2])
@@ -324,14 +434,20 @@ def retarget(ob, order, code, mode, win, extra, name):
     ob.animation_data_create(); ob.animation_data.action = act
     pb = ob.pose.bones
     rest = {bn: np.array(arm.bones[bn].matrix_local) for bn in order}
+    global PEL0
+    PEL0 = frame3(np.array(arm.bones["thigh_r"].head_local - arm.bones["thigh_l"].head_local),
+                  np.array(arm.bones["spine_02"].head_local - arm.bones["pelvis"].head_local))
     for f in range(n):
         world = {}
         for bn in order:
             R0 = rest[bn][:3, :3]
-            if bn in MAP:
+            if bn == "pelvis":      # pelvis from the hip joints + lower back positions (robust to odd root Euler data)
+                r_ = pos[f, I["RightUpLeg"]] - pos[f, I["LeftUpLeg"]]; u_ = pos[f, I["Spine"]] - pos[f, I["Hips"]]
+                Ft = frame3(r_, u_)
+                Rw = Ft @ PEL0.T @ R0
+            elif bn in MAP:
                 sj, dj = MAP[bn]
-                Rw = rot[f, I[sj]] @ R0
-                if bn in CALIB: Rw = Rw @ CALIB[bn]
+                Rw = rot[f, I[sj]] @ (KB[bn] if bn in KB else R0)
                 if dj and dj in I:
                     d = pos[f, I[dj]] - pos[f, I[sj]]
                     if np.linalg.norm(d) > 1e-6: Rw = swing(Rw[:, 1], d) @ Rw
@@ -370,11 +486,11 @@ def retarget(ob, order, code, mode, win, extra, name):
 def build(var):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     rig = json.load(open(RIGF)); W = json.load(open(WF))["weights"]
-    body, P, J = build_body(var, rig, W)
+    body, P, J, objs = build_body(var, rig, W)
     ob, order = build_armature(rig, P, J)
-    body.parent = ob
-    md = body.modifiers.new("Armature", "ARMATURE"); md.object = ob
-    calibrate(ob, order)
+    for o in objs:
+        o.parent = ob
+        md = o.modifiers.new("Armature", "ARMATURE"); md.object = ob
     for name, code, mode, win, extra in CLIPS:
         try: retarget(ob, order, code, mode, win, extra, name)
         except Exception as ex: print("  clip", name, "FAILED", ex)
@@ -382,7 +498,7 @@ def build(var):
     bpy.ops.export_scene.gltf(filepath="%s/char_%s.glb" % (OUT, var), export_format="GLB", export_animations=True,
                               export_animation_mode="ACTIONS", export_extras=True, export_skins=True,
                               export_force_sampling=True, export_frame_range=False, export_anim_slide_to_zero=True)
-    tri = sum(len(p.vertices) - 2 for p in body.data.polygons)
+    tri = sum(len(p.vertices) - 2 for o in objs for p in o.data.polygons)
     print("built char_%s: %d tris, %d bones" % (var, tri, len(order)))
 
 for v in (ONLY or VARIANTS.keys()):

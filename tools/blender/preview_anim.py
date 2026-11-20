@@ -8,10 +8,14 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 bpy.ops.import_scene.gltf(filepath=IN)
 arm = next(o for o in bpy.context.scene.objects if o.type == "ARMATURE")
 sc = bpy.context.scene
-sc.render.engine = "BLENDER_WORKBENCH"; sc.display.shading.light = "STUDIO"; sc.display.shading.color_type = "MATERIAL"
+sc.render.engine = "BLENDER_WORKBENCH"; sc.display.shading.light = "STUDIO"; sc.display.shading.color_type = "TEXTURE"
 sc.render.resolution_x = 220; sc.render.resolution_y = 300
 cam = bpy.data.objects.new("cam", bpy.data.cameras.new("cam")); sc.collection.objects.link(cam); sc.camera = cam
-cam.location = (3.6, 0.6, 1.0); cam.rotation_euler = (math.radians(90), 0, math.radians(97))
+import os as _os
+if _os.environ.get("FRONT"):
+    cam.location = (1.6, 2.6, 1.15); cam.rotation_euler = (math.radians(88), 0, math.radians(148)); sc.render.resolution_x = 360; sc.render.resolution_y = 480
+else:
+    cam.location = (3.6, 0.6, 1.0); cam.rotation_euler = (math.radians(90), 0, math.radians(97))
 cam.data.lens = 50
 bpy.ops.mesh.primitive_plane_add(size=10)
 import os, tempfile

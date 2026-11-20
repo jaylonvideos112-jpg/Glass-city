@@ -13,7 +13,7 @@ const SPEEDS := {"idle": 0.0, "walk": 1.47, "walk_fast": 2.12, "jog": 2.79, "run
 const LOOPS := ["idle", "walk", "walk_fast", "jog", "run", "sprint", "crouch_walk", "limp", "carry_walk", "aim", "sit"]
 const UPPER := ["spine_01", "spine_02", "spine_03", "neck_01", "head", "clavicle_l", "clavicle_r", "upperarm_l", "upperarm_r",
 	"lowerarm_l", "lowerarm_r", "hand_l", "hand_r"]
-const VARIANTS := ["m1", "m2", "m3", "m4", "f1", "f2", "f3", "f4"]
+const VARIANTS := ["m1", "m2", "m3", "m4", "m5", "m6", "f1", "f2", "f3", "f4", "f5", "f6"]
 
 var skel: Skeleton3D
 var player: AnimationPlayer
@@ -59,29 +59,34 @@ func _setup(inst: Node, look: Dictionary) -> void:
 	dress(look)
 	_build_tree()
 
-## tint the material slots: skin, hair, shirt, sleeve, pants, shin, shoes, eye_white, iris
+## Bodies wear real CC0 MakeHuman textures (skin with face detail, clothes, hair). Here: hair/brows/lashes get
+## alpha-tested, skin gets a little subsurface, and a 'look' can tint the clothes (e.g. a police uniform).
 func dress(look: Dictionary) -> void:
-	if body == null or body.mesh == null: return
-	var skin: Color = look.get("skin", Color(0.72, 0.53, 0.42))
-	var top: Color = look.get("top", Color(0.3, 0.35, 0.5))
-	var bottom: Color = look.get("bottom", Color(0.16, 0.18, 0.25))
-	var cols := {"skin": skin, "hair": look.get("hair", Color(0.1, 0.07, 0.05)), "shirt": top,
-		"sleeve": top if int(look.get("sleeves", 1)) > 0 else skin, "pants": bottom,
-		"shin": bottom if int(look.get("legs", 0)) == 0 else skin, "shoes": look.get("shoe", Color(0.1, 0.1, 0.1)),
-		"eye_white": Color(0.9, 0.9, 0.87), "iris": look.get("eyes", Color(0.25, 0.16, 0.08))}
-	for i in body.mesh.get_surface_count():
-		var src := body.mesh.surface_get_material(i)
-		var key: String = src.resource_name if src else ""
-		if not cols.has(key): continue
-		var m := StandardMaterial3D.new()
-		m.albedo_color = cols[key]
-		m.roughness = 0.55 if key == "skin" else (0.15 if key in ["eye_white", "iris"] else 0.85)
-		if key == "skin":
-			m.subsurf_scatter_enabled = true; m.subsurf_scatter_strength = 0.25    # light through ears/fingers
-		if key in ["shirt", "sleeve", "pants", "shin"]:
-			m.albedo_texture = _cloth_tex()                                          # woven fabric grain
-			m.uv1_triplanar = true; m.uv1_scale = Vector3(18, 18, 18)
-		body.set_surface_override_material(i, m)
+	if body == null: return
+	for mi in _meshes(self):
+		if mi.mesh == null: continue
+		for i in mi.mesh.get_surface_count():
+			var src := mi.mesh.surface_get_material(i) as BaseMaterial3D
+			if src == null: continue
+			var key: String = src.resource_name
+			var m := src.duplicate() as BaseMaterial3D
+			if key.begins_with("a_"):
+				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR; m.alpha_scissor_threshold = 0.4
+				m.cull_mode = BaseMaterial3D.CULL_DISABLED
+				m.alpha_antialiasing_mode = BaseMaterial3D.ALPHA_ANTIALIASING_ALPHA_TO_COVERAGE
+				if look.has("hair") and key == "a_hair": m.albedo_color = (look["hair"] as Color).lightened(0.4)
+			elif key == "skin":
+				m.roughness = 0.55
+				m.subsurf_scatter_enabled = true; m.subsurf_scatter_strength = 0.15
+			elif key.begins_with("cloth_") and look.has("uniform") and not key.contains("shoes"):
+				m.albedo_color = look["uniform"]
+			mi.set_surface_override_material(i, m)
+
+func _meshes(n: Node) -> Array:
+	var out := []
+	if n is MeshInstance3D: out.append(n)
+	for c in n.get_children(): out += _meshes(c)
+	return out
 
 static var _ctex: Texture2D
 static func _cloth_tex() -> Texture2D:

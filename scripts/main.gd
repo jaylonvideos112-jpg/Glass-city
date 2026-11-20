@@ -251,6 +251,7 @@ func _unhandled_input(e: InputEvent) -> void:
 		if e.button_index == MOUSE_BUTTON_WHEEL_DOWN: cam_dist = min(14.0, cam_dist + 0.5)
 	if e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		cam_yaw -= e.relative.x * mouse_sens
+		_cam_input_t = 0.0
 		cam_pitch = clamp(cam_pitch - e.relative.y * mouse_sens, -1.2, 0.5)
 	if e.is_action_pressed("vehicle"):
 		if not bars.inside and not dying: toggle_vehicle()
@@ -282,6 +283,12 @@ func nearest_car(max_d := 5.0) -> VehicleBody3D:
 # ------------------------------------------------------------------ injury, death and the hospital
 var dying := false
 var _aim_k := 0.0
+# GTA-style on-foot camera state: smoothed pivot, collision distance, idle time since the last mouse move
+var _cam_t := Vector3.ZERO
+var _cam_d := 5.0
+var _cam_input_t := 10.0
+var _sprint_k := 0.0
+var _cam_shake_t := 0.0
 var combat: Node
 var weapons: Node
 var gunstore: Node
@@ -609,23 +616,39 @@ func _update_camera(dt: float) -> void:
 		camera.look_at(target, Vector3.UP)
 		camera.fov = lerp(camera.fov, base_fov + clamp(spd * 0.35, 0.0, 14.0), 0.05)
 	else:
-		var target := player.global_position + Vector3(0, 1.6, 0)
+		# pivot follows the player with a little lag (smooth over steps and kerbs, no jitter)
+		var raw := player.global_position + Vector3(0, 1.55, 0)
+		if _cam_t == Vector3.ZERO or _cam_t.distance_to(raw) > 6.0: _cam_t = raw
+		_cam_t.x = lerpf(_cam_t.x, raw.x, 1.0 - exp(-14.0 * dt)); _cam_t.z = lerpf(_cam_t.z, raw.z, 1.0 - exp(-14.0 * dt))
+		_cam_t.y = lerpf(_cam_t.y, raw.y, 1.0 - exp(-7.0 * dt))
+		var hv := Vector2(player.velocity.x, player.velocity.z).length()
+		_cam_input_t += dt
+		# auto-swing behind the player while running and not steering the camera with the mouse
+		if hv > 2.0 and _cam_input_t > 1.2 and not (weapons != null and weapons.aiming):
+			cam_yaw = lerp_angle(cam_yaw, player.model.rotation.y, 1.0 - exp(-1.2 * dt))
+		_sprint_k = move_toward(_sprint_k, 1.0 if hv > 6.0 else 0.0, dt * 2.0)
 		var dir := Vector3(sin(cam_yaw) * cos(cam_pitch), -sin(cam_pitch), cos(cam_yaw) * cos(cam_pitch))
 		var aim: bool = weapons != null and weapons.aiming
 		_aim_k = move_toward(_aim_k, 1.0 if aim else 0.0, dt * 6.0)
 		var crouch_drop: float = 0.45 if weapons != null and weapons.crouch else 0.0
-		target += Vector3(cos(cam_yaw), 0, -sin(cam_yaw)) * 0.75 * _aim_k - Vector3(0, crouch_drop, 0)   # over the right shoulder
-		var desired := target + dir * lerpf(cam_dist, 2.1, _aim_k)
-		# keep the camera out of walls
-		var q := PhysicsRayQueryParameters3D.create(target, desired)
+		var target := _cam_t
+		# always a little over the right shoulder (more when aiming), like GTA V
+		target += Vector3(cos(cam_yaw), 0, -sin(cam_yaw)) * lerpf(0.38, 0.75, _aim_k) - Vector3(0, crouch_drop, 0)
+		var want_d: float = lerpf(cam_dist + _sprint_k * 0.6, 2.1, _aim_k)
+		# keep the camera out of walls: snap in fast, ease back out slowly
+		var q := PhysicsRayQueryParameters3D.create(target, target + dir * (want_d + 0.3))
 		q.exclude = [player.get_rid()]; q.collision_mask = 1
 		var hit := get_world_3d().direct_space_state.intersect_ray(q)
-		if not hit.is_empty():
-			desired = hit["position"] - dir * 0.3
+		var free_d: float = want_d if hit.is_empty() else maxf(0.6, target.distance_to(hit["position"]) - 0.35)
+		_cam_d = free_d if free_d < _cam_d else lerpf(_cam_d, free_d, 1.0 - exp(-3.0 * dt))
+		var desired := target + dir * _cam_d
+		# a faint handheld sway when sprinting
+		_cam_shake_t += dt * (1.0 + _sprint_k * 7.0)
+		desired += Vector3(sin(_cam_shake_t * 1.7), sin(_cam_shake_t * 2.3) * 0.6, 0) * 0.025 * _sprint_k
 		camera.global_position = desired
 		camera.look_at(target, Vector3.UP)
 		var zoom: float = 0.72 * (float(weapons._mods().get("zoom", 1.0)) if weapons else 1.0)
-		camera.fov = lerp(camera.fov, lerpf(base_fov, base_fov * zoom, _aim_k), 0.15)
+		camera.fov = lerp(camera.fov, lerpf(base_fov + _sprint_k * 6.0, base_fov * zoom, _aim_k), 0.15)
 
 # ------------------------------------------------------------------ environment
 ## 32^3 colour-grading LUT: slight S-curve, warm highlights, faintly teal shadows, protected skin tones.
