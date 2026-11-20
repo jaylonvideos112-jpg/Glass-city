@@ -23,6 +23,9 @@ uniform sampler2D clean_rough : hint_default_white, filter_linear_mipmap, repeat
 uniform sampler2D alt_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D alt_rough : hint_default_white, filter_linear_mipmap, repeat_enable;
 uniform float use_pbr = 0.0;
+// roof_uv = 1: pitched roofs. Colour comes from the (softened) photo, relief from a shingle scan laid out along the
+// roof's own UVs (rows parallel to the eave) so it reads as asphalt shingles up close.
+uniform float roof_uv = 0.0;
 uniform vec3 alt_tint : source_color = vec3(1.0);
 uniform float alt_tint_mix = 0.0;
 global uniform float wetness;
@@ -77,6 +80,18 @@ void fragment() {
 		vec3 tint = mix(vec3(1.0), a / max(l, 0.02), 0.35);          // keep a little of the photo's hue
 		vec3 cc = c * clamp(l / cl, 0.7, 1.25) * tint;
 		col = mix(cc, col, photo_mix);
+	}
+	if (roof_uv > 0.5) {
+		vec3 rb = textureLod(aerial, clamp(auv, vec2(0.001), vec2(0.999)), 1.5).rgb;
+		rb = pow(rb, vec3(1.18)) * 0.82;
+		float rl = dot(rb, vec3(0.299, 0.587, 0.114));
+		rb = mix(vec3(rl), rb, 0.9);
+		vec3 sh = texture(clean, UV).rgb;
+		float sl = dot(sh, vec3(0.299, 0.587, 0.114));
+		col = rb * clamp(sl / 0.42, 0.45, 1.6);
+		NORMAL_MAP = texture(clean_nor, UV).rgb;
+		NORMAL_MAP_DEPTH = 1.4;
+		pbr_rough = texture(clean_rough, UV).r;
 	}
 	float rough = pbr_rough >= 0.0 ? pbr_rough : 0.92;
 	// snow settles on flat surfaces first; patchy while thin

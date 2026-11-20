@@ -6,7 +6,7 @@ usage: build_city.py <osm json file or dir of tiles> <outdir> [S W N E]
 * Processes the map in 1 km regions so the whole city fits in memory; each region's chunks are
   written to disk and freed before the next region.
 """
-import pickle, zlib, json, math, struct, sys, os, hashlib, random, glob, heapq, time
+import re, pickle, zlib, json, math, struct, sys, os, hashlib, random, glob, heapq, time
 from collections import defaultdict
 import numpy as np
 import shapely
@@ -448,6 +448,12 @@ _smp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "sou
 STREET_MAP = {k: v for k, v in json.load(open(_smp)).items() if not k.startswith("_")} if os.path.exists(_smp) else {}
 road_polys, side_polys, bridge_ways = [], [], []
 street_lines = []
+street_keys = []           # parallel to street_lines: the real street name reduced to its core words (address matching)
+_SFX = {"AVE", "AVENUE", "ST", "STREET", "RD", "ROAD", "DR", "DRIVE", "BLVD", "BOULEVARD", "LN", "LANE", "CT", "COURT", "PL",
+        "PLACE", "WAY", "PKWY", "PARKWAY", "CIR", "CIRCLE", "TER", "TERRACE", "HWY", "N", "S", "E", "W", "NORTH", "SOUTH",
+        "EAST", "WEST", "TRL", "TRAIL", "SQ", "PIKE"}
+def street_key(name):
+    return frozenset(w for w in re.sub(r"[^A-Z0-9 ]", " ", (name or "").upper()).split() if w not in _SFX and not w.isdigit())
 seg_jobs = defaultdict(list)       # region -> centerline / street / lamp / streettree jobs
 node_degree = defaultdict(int)
 
@@ -470,7 +476,7 @@ for e in els:
         bridge_ways.append((e, pts, w, drivable)); continue
     if drivable:
         road_polys.append(line.buffer(w / 2, cap_style="flat" if hw.startswith("motor") else "round", quad_segs=3))
-        if hw not in ("service", "track", "motorway", "motorway_link"): street_lines.append(line)
+        if hw not in ("service", "track", "motorway", "motorway_link"): street_lines.append(line); street_keys.append(street_key(t.get("name")))
         if hw in SIDEWALK_ON and t.get("sidewalk") != "no":
             side_polys.append(line.buffer(w / 2 + 2.8, quad_segs=3))
     else:
@@ -965,7 +971,7 @@ for i in range(6): TILE[f"siding{i}"] = (5, 5)
 for _m in HOUSE_MATS:
     TILE[_m] = (3.4 if "_old" in _m else 5.0, 2.95) if not _m.startswith("h_lap") else (4.0, 2.95)
 TILE["h_block"] = (4.0, 2.95)
-TILE.update({"hsid": (2.4, 2.4), "hbrk": (1.45, 1.45)})
+TILE.update({"hsid": (2.4, 2.4), "hbrk": (1.45, 1.45), "hstu": (3.0, 3.0), "hstn": (2.2, 2.2), "hblk": (2.2, 2.2)})
 def tile_of(mat):
     if mat in TILE: return TILE[mat]
     b = mat.split("@")[0].split("#")[0]
@@ -1067,7 +1073,8 @@ def pitched_roof(c, g, h, mat_wall, ridge, kind="gable", roof_mat="shingle", ov=
         n, L, _ = face_n(p, q, ridge, e1 / 2)
         rp = M0 if math.dist(M0, p) < math.dist(M1, p) else M1
         rq = M1 if rp is M0 else M0
-        quad(c, roof_mat, P3(p, he), P3(q, he), P3(rq, top), P3(rp, top), n, [(0, 0), (L / 4, 0), (L / 4, 1.5), (0, 1.5)], True)
+        S_ = math.hypot(ridge, e1 / 2 + ov) / 2.0
+        quad(c, roof_mat, P3(p, he), P3(q, he), P3(rq, top), P3(rp, top), n, [(0, S_), (L / 2.0, S_), (L / 2.0, 0), (0, 0)], True)
         # soffit: underside of the overhang, back to the wall line
         wp = grow(p, 0, ov if p in (A, B) else -ov); wq = grow(q, 0, ov if q in (A, B) else -ov)
         quad(c, TRIM_MAT[0], P3(wp, he), P3(wq, he), P3(q, he), P3(p, he), (0.0, -1.0, 0.0), [(0, 0), (1, 0), (1, 1), (0, 1)])
@@ -1077,7 +1084,8 @@ def pitched_roof(c, g, h, mat_wall, ridge, kind="gable", roof_mat="shingle", ov=
     for (p, q, m, wp, wq) in ((D, A, M0, d, a), (B, CC, M1, b, cc)):
         if kind == "hip":
             n, L, _ = face_n(p, q, ridge, max(math.dist(m, ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)), 0.5))
-            tri(c, roof_mat, P3(p, he), P3(q, he), P3(m, top), n, [(0, 0), (L / 4, 0), (L / 8, 1.5)], True)
+            S_ = math.hypot(ridge, max(math.dist(m, ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)), 0.5)) / 2.0
+            tri(c, roof_mat, P3(p, he), P3(q, he), P3(m, top), n, [(0, S_), (L / 2.0, S_), (L / 4.0, 0)], True)
         else:
             _, L, (nx, ny) = face_n(wp, wq, 1, 1)
             tw, th = tile_of(mat_wall)
@@ -1265,10 +1273,16 @@ def _modelz(name, x, y, z, fx, fy):
     if rkey(x, y) != CUR_REGION: return
     c = chunk_at(x, y); c.props.append(["m:" + name, round(x - c.ox, 2), round(-(y - c.oy), 2), round(z, 2), round(_yaw(fx, fy), 3)])
 
-def front_edge(p):
-    """The house wall facing its street: (x0, y0, ux, uy, nx, ny, L) or None."""
+def front_edge(p, addr=None):
+    """The house wall facing its street: (x0, y0, ux, uy, nx, ny, L) or None. With the county address, the street
+    is the one the house is numbered on (corner houses face their address street, not just the nearest one)."""
     if STREET_TREE is None: return None
     road = street_lines[STREET_TREE.nearest(p.centroid)]
+    if addr:
+        ak = street_key(addr)
+        if ak:
+            near = [i for i in STREET_TREE.query(p.centroid.buffer(55)) if street_keys[i] & ak]
+            if near: road = street_lines[min(near, key=lambda i: street_lines[i].distance(p))]
     if road.distance(p) > 45: return None
     rp = road.interpolate(road.project(p.centroid))
     best = None
@@ -1284,23 +1298,76 @@ def front_edge(p):
     return best[1:] if best and best[0] > 0.45 else None
 
 FLOOR = 2.85; DECK = 0.55
-def house_detail(c, p, wl, rnd, want_porch, mat):
+def house_style(wl, rnd, want_porch, look):
+    """Toledo house features, from the hand-labelled photo when there is one, otherwise from what the photos show is
+    typical for the house's measured shape (186 labelled houses): hipped two-storeys are Foursquares (front dormer,
+    full porch, often on brick piers); front-gables mostly have a full porch; a share have enclosed sun porches."""
+    lab = (look or {}).get("lab")
+    if lab:
+        return {"porch": lab[0], "dormer": lab[1] == "1", "shutters": lab[2] == "1", "awning": lab[4] == "1", "piers": lab[5] == "1"}
+    main = max(wl, key=lambda w: w[0].area)
+    hip = main[3] == "hip"; two = main[1] > 4.6
+    r = lambda k: (rnd * (7.13 + k * 3.71)) % 1.0
+    if not want_porch: porch = "N" if r(1) < 0.6 else "P"
+    elif hip and two: porch = "F" if r(1) < 0.8 else ("E" if r(1) < 0.9 else "P")
+    else: porch = "F" if r(1) < 0.55 else ("E" if r(1) < 0.75 else "P")
+    return {"porch": porch,
+            "dormer": (hip and two and r(2) < 0.7) or (main[3] in ("gable", "gable_cross") and r(2) < 0.12),
+            "shutters": r(3) < 0.09, "awning": r(4) < 0.07,
+            "piers": porch in ("F", "E") and r(5) < (0.6 if hip and two else 0.25)}
+
+def dormer(c, p, wl, fe, mat):
+    """A front dormer on the main roof slope that faces the street: box with a little hipped roof and two windows."""
+    q, eave, top, shape = max(wl, key=lambda w: w[0].area)
+    if shape == "flat" or top - eave < 2.4: return
+    fx, fy = fe[4], fe[5]
+    qc = list(orient(q, 1.0).exterior.coords)
+    short = min(math.dist(*e_) for e_ in zip(qc, qc[1:]))
+    slope = (top - eave) / max(short / 2, 0.5)
+    for a_, b_ in zip(qc, qc[1:]):
+        L = math.dist(a_, b_)
+        ux, uy = (b_[0] - a_[0]) / L, (b_[1] - a_[1]) / L; nx, ny = uy, -ux
+        if nx * fx + ny * fy < 0.85 or L < 5.0: continue
+        if shape != "hip" and L < short + 0.5: continue          # gable end: no slope there
+        mx, my = (a_[0] + b_[0]) / 2, (a_[1] + b_[1]) / 2
+        dw = min(3.0, L * 0.4); s0 = 0.7
+        zb = eave + s0 * slope; zt = zb + 1.45
+        s1 = (zt - eave) / slope
+        if s1 > short / 2 - 0.3: return
+        P = lambda t, sdist, z: to3(c, mx + ux * t - nx * sdist, my + uy * t - ny * sdist, z)
+        quad(c, mat, P(-dw / 2, s0, zb - 0.1), P(dw / 2, s0, zb - 0.1), P(dw / 2, s0, zt), P(-dw / 2, s0, zt), (nx, 0.0, -ny), [(0, 0), (dw / 2.4, 0), (dw / 2.4, 0.6), (0, 0.6)])
+        for sg in (-1, 1):
+            tri(c, mat, P(sg * dw / 2, s0, zb - 0.1), P(sg * dw / 2, s0, zt), P(sg * dw / 2, s1, zt), (sg * ux, 0.0, -sg * uy), [(0, 0), (0, 0.6), (0.6, 0.6)])
+        # dormer roof: three slopes down from a short ridge, overhanging the face
+        o_ = 0.3; zr = zt + 0.55; zr_e = zt - 0.05
+        quad(c, "shingle", P(-dw / 2 - o_, s0 - o_, zr_e), P(dw / 2 + o_, s0 - o_, zr_e), P(dw / 4, s0 + 0.6, zr), P(-dw / 4, s0 + 0.6, zr), (nx * 0.6, 0.8, -ny * 0.6), [(0, 0.7), (dw / 2, 0.7), (dw / 2, 0), (0, 0)])
+        for sg in (-1, 1):
+            quad(c, "shingle", P(sg * (dw / 2 + o_), s0 - o_, zr_e), P(sg * (dw / 2 + o_), s1 + 0.4, zr_e + 0.1), P(sg * dw / 4, s1 + 0.4, zr), P(sg * dw / 4, s0 + 0.6, zr), (sg * ux * 0.6, 0.8, -sg * uy * 0.6), [(0, 0), (1, 0), (1, 0.6), (0, 0.6)])
+        quad(c, TRIM_MAT[0], P(-dw / 2 - o_, s0 - o_, zr_e - 0.16), P(dw / 2 + o_, s0 - o_, zr_e - 0.16), P(dw / 2 + o_, s0 - o_, zr_e), P(-dw / 2 - o_, s0 - o_, zr_e), (nx, 0.0, -ny), [(0, 0), (1, 0), (1, 1), (0, 1)])
+        for t in ((-0.38, 0.38) if dw >= 2.2 else (0.0,)):
+            _modelz("hp_attic", mx + ux * t - nx * (s0 - 0.01), my + uy * t - ny * (s0 - 0.01), zb + 0.12, nx, ny)
+        return
+
+REGION_WALKS = []
+def house_detail(c, p, wl, rnd, want_porch, mat, addr=None, look=None):
     """Real-looking house skin: 3D double-hung windows on every wall and floor, attic windows in the gables, a panel
     front door facing the street, corner boards, and a front porch (posts, railings, steps, shed roof)."""
     p = orient(p, 1.0)
     low = min(w[1] for w in wl)
-    fe = front_edge(p)
+    fe = front_edge(p, addr)
     hsh = lambda *a: (math.sin(sum(v * k for v, k in zip(a, (12.9898, 78.233, 37.719)))) * 43758.5453) % 1.0
     door_m = ("hp_door_r", "hp_door_k", "hp_door_w")[int(rnd * 31) % 3]
     porch_span = None
+    st = house_style(wl, rnd, want_porch, look)
     if fe is not None:
         x0, y0, ux, uy, nx, ny, L = fe
-        if want_porch and L >= 4.5:
-            wide = rnd < 0.6
-            pw = min(L - 0.4, 7.6) if wide else min(L * 0.5, 3.6)
-            t0 = (L - pw) / 2 if wide else max(0.2, L - pw - 0.3)
+        if st["porch"] != "N" and L >= 4.0:
+            if st["porch"] == "P": pw = min(2.8, L - 0.6)
+            else: pw = min(L - 0.4, 9.0) if rnd < 0.75 else min(L * 0.6, 5.0)
+            t0 = (L - pw) / 2 if (st["porch"] != "P" and rnd < 0.75) else max(0.2, min(L - pw - 0.2, L * 0.62 - pw / 2))
             porch_span = (t0, t0 + pw)
-            porch3d(c, x0 + ux * t0, y0 + uy * t0, ux, uy, nx, ny, pw, rnd)
+            porch3d(c, x0 + ux * t0, y0 + uy * t0, ux, uy, nx, ny, pw, rnd, st, mat)
+        if st["dormer"]: dormer(c, p, wl, fe, mat)
     cs = list(p.exterior.coords)
     for ei, ((ax, ay), (bx, by)) in enumerate(zip(cs, cs[1:])):
         L = math.hypot(bx - ax, by - ay)
@@ -1316,10 +1383,21 @@ def house_detail(c, p, wl, rnd, want_porch, mat):
         is_front = fe is not None and abs(fe[0] - ax) < 1e-6 and abs(fe[1] - ay) < 1e-6
         n = max(1, int((L - 0.6) / 2.6))
         slots = [(i + 0.5) * L / n for i in range(n)]
+        fw = (look or {}).get("fw") if is_front else None          # window columns counted in the house's photo
         door_t = None
         if is_front:
             door_t = (porch_span[0] + porch_span[1]) / 2 if porch_span else (slots[n // 2] if n > 1 else L / 2)
             if porch_span and n >= 2: door_t = min(slots, key=lambda t: abs(t - (porch_span[0] + 1.0)))
+            if porch_span and st["porch"] == "P": door_t = (porch_span[0] + porch_span[1]) / 2
+            if look and look.get("dx") is not None:                 # door position read off the photo
+                door_t = min(max(look["dx"] * L, 0.8), L - 0.8)
+            # walk from the door (or the porch steps) straight out to the street
+            dep_ = (1.6 if st["porch"] == "P" else 2.4 if rnd < 0.7 else 2.0) + 0.9 if porch_span and porch_span[0] - 0.1 <= door_t <= porch_span[1] + 0.1 else 0.9
+            sx_, sy_ = ax + ux * door_t + nx * dep_, ay + uy * door_t + ny * dep_
+            rd = street_lines[STREET_TREE.nearest(Point(sx_, sy_))] if STREET_TREE is not None else None
+            if rd is not None:
+                k_ = rd.distance(Point(sx_, sy_))
+                if 1.0 < k_ < 40: REGION_WALKS.append(LineString([(sx_ - nx * 0.3, sy_ - ny * 0.3), (sx_ + nx * k_, sy_ + ny * k_)]).buffer(0.6, cap_style="flat"))
             _modelz(door_m, ax + ux * door_t + nx * 0.01, ay + uy * door_t + ny * 0.01, DECK, nx, ny)
             if not porch_span: _modelz("hp_steps", ax + ux * door_t, ay + uy * door_t, 0.0, nx, ny)
         floors = max(1, int(round((eave - DECK) / FLOOR)))
@@ -1328,12 +1406,19 @@ def house_detail(c, p, wl, rnd, want_porch, mat):
         for f in range(floors):
             zs = DECK + f * fh + min(0.82, max(0.45, fh - 1.55 - 0.3))
             if zs + 1.55 > eave - 0.08: break
-            for t in slots:
+            sl_ = slots
+            if fw and fw[min(f, 1)] > 0:
+                nf = min(fw[min(f, 1)], max(1, int((L - 0.6) / 1.1)))
+                sl_ = [(i + 0.5) * L / nf for i in range(nf)]
+            for t in sl_:
                 if f == 0 and door_t is not None and abs(t - door_t) < 1.3: continue
                 if t < 0.65 or t > L - 0.65: continue
                 h_ = hsh(ax, ay, t * 3 + f)
                 name = "hp_win_b" if h_ < 0.3 else "hp_win"
-                if is_front and f == 0 and L / n >= 2.4 and h_ > 0.45: name = "hp_win2"
+                if is_front and f == 0 and L / len(sl_) >= 2.4 and h_ > 0.45 and not fw: name = "hp_win2"
+                if st["shutters"] and is_front and name != "hp_win2": name = "hp_win_sh" if rnd < 0.6 else "hp_win_shr"
+                if st["awning"] and (is_front or h_ < 0.4) and not (f == 0 and porch_span and is_front):
+                    _modelz("hp_awning", ax + ux * t + nx * 0.02, ay + uy * t + ny * 0.02, zs + 1.72, nx, ny)
                 _modelz(name, ax + ux * t + nx * 0.01, ay + uy * t + ny * 0.01, zs, nx, ny)
     # gable-end attic windows: the short sides of each gable wing, where they are outside walls
     for q, eave, top, shape in wl:
@@ -1347,40 +1432,95 @@ def house_detail(c, p, wl, rnd, want_porch, mat):
             if p.exterior.distance(Point(mx, my)) > 0.5: continue
             nx, ny = (b_[1] - a_[1]) / L, -(b_[0] - a_[0]) / L
             _modelz("hp_attic", mx + nx * 0.01, my + ny * 0.01, eave + 0.3, nx, ny)
+    # gutters along every eave edge and a downspout at each end
+    for q, eave, top, shape in wl:
+        if shape == "flat": continue
+        qc = list(orient(q, 1.0).exterior.coords)
+        es = list(zip(qc, qc[1:]))
+        short = min(math.dist(*e_) for e_ in es)
+        ov = 0.45; he = eave - (top - eave) * ov / max(short / 2, 0.5)
+        eaves = es if shape == "hip" else sorted(es, key=lambda e_: -math.dist(*e_))[:2]
+        for (a_, b_) in eaves:
+            L = math.dist(a_, b_)
+            if L < 2.0: continue
+            ux, uy = (b_[0] - a_[0]) / L, (b_[1] - a_[1]) / L; nx, ny = uy, -ux
+            mx, my = (a_[0] + b_[0]) / 2, (a_[1] + b_[1]) / 2
+            if p.exterior.distance(Point(mx, my)) > 0.6: continue
+            cbox(c, mx + nx * (ov + 0.07), my + ny * (ov + 0.07), (ux, uy), (nx, ny), L / 2 + ov, 0.065, he - 0.3, he - 0.12, TRIM_MAT[0])
+            for sgn in (-1, 1):
+                ex, ey = mx + ux * sgn * (L / 2 - 0.15) + nx * 0.06, my + uy * sgn * (L / 2 - 0.15) + ny * 0.06
+                cbox(c, ex, ey, (ux, uy), (nx, ny), 0.045, 0.035, 0.0, he - 0.3, TRIM_MAT[0])
 
-def porch3d(c, sx, sy, ux, uy, nx, ny, pw, rnd):
-    """Front porch along a wall from (sx, sy) for pw metres: deck, posts, railings with a gap for the steps, a
-    shed roof sloping away from the house with fascia and a painted ceiling."""
-    dep = 2.4 if rnd < 0.7 else 2.0
+def porch3d(c, sx, sy, ux, uy, nx, ny, pw, rnd, st=None, wall_mat="hsid#mid0"):
+    """Front porch along a wall from (sx, sy) for pw metres: deck, a hipped roof with fascia and painted ceiling, and
+    by kind - open with posts and railings (F), a small stoop (P), enclosed with windows (E); brick piers and knee
+    walls instead of posts and rails when st["piers"]."""
+    st = st or {"porch": "F", "piers": False}
+    kind = st["porch"]; piers = st.get("piers") and kind != "P"
+    dep = 1.6 if kind == "P" else (2.4 if rnd < 0.7 else 2.0)
     cx, cy = sx + ux * pw / 2 + nx * dep / 2, sy + uy * pw / 2 + ny * dep / 2
     cbox(c, cx, cy, (ux, uy), (nx, ny), pw / 2, dep / 2, -0.2, DECK, "concrete_dk", True)          # deck
     z_beam = DECK + 2.38
-    zr0, zr1 = z_beam + 0.55, z_beam + 0.08                                                         # roof: wall -> eave
-    ov = 0.25
+    ov = 0.3; zr1 = z_beam + 0.12; D = dep + ov
+    zr0 = zr1 + D * 0.42                                                                           # ~23 degree pitch
     def P(t, d, z): return to3(c, sx + ux * t + nx * d, sy + uy * t + ny * d, z)
     t0, t1 = -ov, pw + ov
-    sl = (zr0 - zr1) / (dep + ov); nz = 1 / math.hypot(1, sl)
-    quad(c, "shingle", P(t0, 0, zr0), P(t1, 0, zr0), P(t1, dep + ov, zr1), P(t0, dep + ov, zr1), (nx * sl * nz, nz, -ny * sl * nz), [(0, 0), (1, 0), (1, 1), (0, 1)])
-    quad(c, TRIM_MAT[0], P(t0, dep + ov, zr1 - 0.2), P(t1, dep + ov, zr1 - 0.2), P(t1, dep + ov, zr1), P(t0, dep + ov, zr1), (nx, 0.0, -ny), [(0, 0), (1, 0), (1, 1), (0, 1)])
-    quad(c, TRIM_MAT[0], P(t0, 0, z_beam), P(t0, dep + ov, z_beam), P(t1, dep + ov, z_beam), P(t1, 0, z_beam), (0.0, -1.0, 0.0), [(0, 0), (1, 0), (1, 1), (0, 1)])   # ceiling
-    for side in (t0, t1):     # roof ends
-        tri(c, TRIM_MAT[0], P(side, 0, z_beam), P(side, 0, zr0), P(side, dep + ov, zr1), (-ux if side == t0 else ux, 0.0, uy if side == t0 else -uy), [(0, 0), (1, 0), (0, 1)])
-    cbox(c, sx + ux * pw / 2 + nx * (dep - 0.12), sy + uy * pw / 2 + ny * (dep - 0.12), (ux, uy), (nx, ny), pw / 2 + 0.05, 0.1, z_beam, z_beam + 0.25, TRIM_MAT[0])   # beam
-    nposts = max(2, int(pw / 2.4) + 1)
-    pts = [i * pw / (nposts - 1) for i in range(nposts)]
-    pts = [min(max(t, 0.2), pw - 0.2) for t in pts]
-    for t in pts:
-        _modelz("hp_post", sx + ux * t + nx * (dep - 0.15), sy + uy * t + ny * (dep - 0.15), DECK, nx, ny)
+    dd = min(D, (t1 - t0) / 2 - 0.05)
+    zr0 = zr1 + dd * 0.42
+    nz = 1 / math.hypot(1, 0.42)
+    # hipped porch roof: front slope + two side slopes, rising to the house wall
+    quad(c, "shingle", P(t0, D, zr1), P(t1, D, zr1), P(t1 - dd, D - dd, zr0), P(t0 + dd, D - dd, zr0), (nx * 0.42 * nz, nz, -ny * 0.42 * nz), [(0, D / 2), ((t1 - t0) / 2, D / 2), ((t1 - t0 - dd) / 2, 0), (dd / 2, 0)])
+    if D - dd > 0.05:
+        quad(c, "shingle", P(t0 + dd, D - dd, zr0), P(t1 - dd, D - dd, zr0), P(t1 - dd, 0, zr0), P(t0 + dd, 0, zr0), UP, [(0, 0), (1, 0), (1, 1), (0, 1)])
+    for sg, te, ti in ((-1, t0, t0 + dd), (1, t1, t1 - dd)):
+        quad(c, "shingle", P(te, 0, zr1), P(te, D, zr1), P(ti, D - dd, zr0), P(ti, 0, zr0), (sg * ux * 0.42 * nz, nz, -sg * uy * 0.42 * nz), [(0, 0), (D / 2, 0), (D / 2, dd / 2), (0, dd / 2)])
+    for (a_, b_, nn) in (((t0, D), (t1, D), (nx, ny)), ((t0, 0), (t0, D), (-ux, -uy)), ((t1, D), (t1, 0), (ux, uy))):     # fascia
+        quad(c, TRIM_MAT[0], P(a_[0], a_[1], zr1 - 0.2), P(b_[0], b_[1], zr1 - 0.2), P(b_[0], b_[1], zr1), P(a_[0], a_[1], zr1), (nn[0], 0.0, -nn[1]), [(0, 0), (1, 0), (1, 1), (0, 1)])
+    quad(c, TRIM_MAT[0], P(t0, 0, zr1 - 0.2), P(t0, D, zr1 - 0.2), P(t1, D, zr1 - 0.2), P(t1, 0, zr1 - 0.2), (0.0, -1.0, 0.0), [(0, 0), (1, 0), (1, 1), (0, 1)])   # ceiling
+    cbox(c, sx + ux * pw / 2 + nx * (dep - 0.14), sy + uy * pw / 2 + ny * (dep - 0.14), (ux, uy), (nx, ny), pw / 2 + 0.05, 0.12, z_beam, zr1 - 0.2, TRIM_MAT[0])   # beam
     mid = pw / 2
-    _modelz("hp_steps", sx + ux * mid + nx * dep, sy + uy * mid + ny * dep, -0.0, nx, ny)
-    # railings between posts along the front, leaving the step opening (1.6 m) clear; and on the two ends
+    _modelz("hp_steps", sx + ux * mid + nx * dep, sy + uy * mid + ny * dep, 0.0, nx, ny)
+    if kind == "P":
+        for t in (0.2, pw - 0.2):
+            _modelz("hp_post", sx + ux * t + nx * (dep - 0.15), sy + uy * t + ny * (dep - 0.15), DECK, nx, ny)
+        return
+    nposts = max(2, int(pw / 2.6) + 1)
+    pts = [min(max(i * pw / (nposts - 1), 0.25), pw - 0.25) for i in range(nposts)]
+    if kind == "E":
+        # sun porch: siding knee wall and a ribbon of windows on the front and ends
+        for (a_, b_, nn, ln) in ((0.0, pw, (nx, ny), pw),):
+            cbox(c, sx + ux * pw / 2 + nx * (dep - 0.1), sy + uy * pw / 2 + ny * (dep - 0.1), (ux, uy), (nx, ny), pw / 2, 0.1, DECK, DECK + 0.85, wall_mat)
+        for sg in (0, 1):
+            t = 0.1 if sg == 0 else pw - 0.1
+            cbox(c, sx + ux * t + nx * dep / 2, sy + uy * t + ny * dep / 2, (nx, ny), (ux, uy), dep / 2, 0.1, DECK, DECK + 0.85, wall_mat)
+        nw = max(1, int((pw - 0.4) / 1.9))
+        for i in range(nw):
+            t = 0.2 + (i + 0.5) * (pw - 0.4) / nw
+            if abs(t - mid) < 0.6 and nw > 2: continue                  # entry door gap
+            _modelz("hp_win2", sx + ux * t + nx * dep, sy + uy * t + ny * dep, DECK + 0.8, nx, ny)
+        for t in (0.1, pw - 0.1):
+            _modelz("hp_win", sx + ux * t + nx * dep / 2, sy + uy * t + ny * dep / 2, DECK + 0.8, ux if t > 1 else -ux, uy if t > 1 else -uy)
+        _modelz("hp_door_w", sx + ux * mid + nx * (dep + 0.01), sy + uy * mid + ny * (dep + 0.01), DECK, nx, ny)
+        return
+    for t in pts:
+        _modelz("hp_pier" if piers else "hp_post", sx + ux * t + nx * (dep - 0.25 if piers else dep - 0.15), sy + uy * t + ny * (dep - 0.25 if piers else dep - 0.15), DECK, nx, ny)
+    if piers:
+        # brick knee wall between the piers, open at the steps
+        for a, b in zip(pts, pts[1:]):
+            lo, hi = a + 0.25, b - 0.25
+            for (u0, u1) in ((lo, min(hi, mid - 0.8)), (max(lo, mid + 0.8), hi)):
+                if u1 - u0 > 0.3:
+                    cbox(c, sx + ux * (u0 + u1) / 2 + nx * (dep - 0.25), sy + uy * (u0 + u1) / 2 + ny * (dep - 0.25), (ux, uy), (nx, ny), (u1 - u0) / 2, 0.11, DECK, DECK + 0.8, "hbrk_old")
+        for t in (0.25, pw - 0.25):
+            cbox(c, sx + ux * t + nx * (dep / 2 - 0.1), sy + uy * t + ny * (dep / 2 - 0.1), (nx, ny), (ux, uy), dep / 2 - 0.4, 0.11, DECK, DECK + 0.8, "hbrk_old")
+        return
     for a, b in zip(pts, pts[1:]):
         t = a + 0.62
         while t + 0.5 <= b - 0.1:
             if abs(t - mid) > 0.95:
                 _modelz("hp_rail", sx + ux * t + nx * (dep - 0.15), sy + uy * t + ny * (dep - 0.15), DECK, nx, ny)
             t += 1.0
-    for t in (0.2, pw - 0.2):
+    for t in (0.25, pw - 0.25):
         d = 0.6
         while d + 0.5 <= dep - 0.3:
             _modelz("hp_rail", sx + ux * t + nx * d, sy + uy * t + ny * d, DECK, ux, uy)
@@ -1503,7 +1643,7 @@ def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=No
             walls(c, p.buffer(0.08, join_style=2) if p.area > 20 else p, -0.3, 0.55, "foundation")
             want_porch = ((rnd * 3.17) % 1.0) < e.get("_porch", 0.78) and 45 < p.area < 300
             if e.get("_detail"):
-                house_detail(c, p, [(orient(Polygon(w_["rect"]), 1.0), max(2.5, min(w_["eave"], w_["h"] - 0.6)) if not (Polygon(w_["rect"]).area > 0.35 * sum(Polygon(x["rect"]).area for x in hw) and w_["eave"] < e.get("_hw_eave", 0) and w_["h"] > e.get("_hw_eave", 0) + 1.2) else e["_hw_eave"], w_["h"], w_["shape"]) for w_ in hw], rnd, want_porch, mat)
+                house_detail(c, p, [(orient(Polygon(w_["rect"]), 1.0), max(2.5, min(w_["eave"], w_["h"] - 0.6)) if not (Polygon(w_["rect"]).area > 0.35 * sum(Polygon(x["rect"]).area for x in hw) and w_["eave"] < e.get("_hw_eave", 0) and w_["h"] > e.get("_hw_eave", 0) + 1.2) else e["_hw_eave"], w_["h"], w_["shape"]) for w_ in hw], rnd, want_porch, mat, e.get("_addr"), e.get("_look"))
             elif want_porch:
                 porch(c, p, (rnd * 7.31) % 1.0)
             continue
@@ -1546,7 +1686,7 @@ def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=No
                 tri(c, "concrete_dk", pts[0], pts[1], pts[2], (0, -1.0, 0), [(0, 0), (1, 0), (0, 1)])
         want_porch = cls == "house" and ((rnd * 3.17) % 1.0) < e.get("_porch", 0.78) and 45 < p.area < 300
         if e.get("_detail") and cls == "house":
-            house_detail(c, p, [(p, wall_top, wall_top + (ridge if pitched else 0.0), kind if pitched else "flat")], rnd, want_porch, mat)
+            house_detail(c, p, [(p, wall_top, wall_top + (ridge if pitched else 0.0), kind if pitched else "flat")], rnd, want_porch, mat, e.get("_addr"), e.get("_look"))
         elif want_porch:
             porch(c, p, (rnd * 7.31) % 1.0)
         if lm and lm.get("colonnade"):
@@ -1801,7 +1941,6 @@ def yards(Rg, rb, generic, roads_r, side_r, rng_):
             continue
         # front walk: from the wall facing the street to the sidewalk
         edge = h.exterior.interpolate(h.exterior.project(Point(c_.x + ux * 60, c_.y + uy * 60)))
-        paved.append(LineString([(edge.x, edge.y), (q.x, q.y)]).buffer(0.6, cap_style="flat"))
         # foundation shrubs along the front wall
         vx, vy = -uy, ux
         for k in range(-2, 3):
@@ -1911,10 +2050,15 @@ def do_building(e, g, cp, is_part):
             e["_hw_eave"] = {1: 2.7, 1.3: 2.9, 1.5: 3.4, 2: 5.5, 2.5: 5.8, 3: 8.3}.get(st_, 0.0) if st_ else 0.0
     hl = HLOOKS.get(key) if cls in ("house", "garage") and not lm else None
     if hl:
-        if mat.startswith("h_clap_"): mat = mat.split("#")[0] + "@%d" % hl["w"]
-        elif mat.startswith("h_lap#"): mat = "h_lap@%d" % hl["w"]
+        if hl["w"] >= 0 and mat.startswith("h_clap_"): mat = mat.split("#")[0] + "@%d" % hl["w"]
+        elif hl["w"] >= 0 and mat.startswith("h_lap#"): mat = "h_lap@%d" % hl["w"]
         if hl["t"] >= 0: TRIM_MAT[0] = "trim@%d" % hl["t"]
         if hl["p"] >= 0 and cls == "house": e["_porch"] = float(hl["p"])
+        e["_look"] = hl
+        rf = {"H": "hip", "G": "gable", "S": "gable"}.get((hl.get("lab") or "xxxx")[3])
+        if rf and e.get("_hw"):            # the photo shows the roof type: trust it over a noisy LiDAR fit
+            tot_ = sum(Polygon(w_["rect"]).area for w_ in e["_hw"])
+            e["_hw"] = [dict(w_, shape=rf) if Polygon(w_["rect"]).area > 0.35 * tot_ and w_.get("shape") != "flat" else w_ for w_ in e["_hw"]]
     if cls in ("house", "garage") and not lm and not exact:
         if mat.startswith(("h_clap_", "h_lap")):
             if "@" in mat: mat = "hsid@" + mat.split("@")[1]
@@ -1924,6 +2068,9 @@ def do_building(e, g, cp, is_part):
             e["_detail"] = cls == "house"
         elif mat.startswith("h_brick_"):
             mat = "hbrk_" + mat[8:]; e["_detail"] = cls == "house"
+        elif mat in ("h_stucco", "h_stone", "h_block"):
+            mat = {"h_stucco": "hstu", "h_stone": "hstn", "h_block": "hblk"}[mat]; e["_detail"] = cls == "house"
+        e["_addr"] = (ct or {}).get("c:addr")
     bar_theme = BAR_BLDG.get(key)
     if bar_theme and h <= 15.0:      # the themed bar front only on low buildings; a tower keeps its own walls (door + sign still go on)
         mat = BAR_MAT[bar_theme]; store = False; roof = None; tiers = None
@@ -2117,6 +2264,11 @@ for ri in range(rx0, rx1 + 1):
         for (e, g, cp, is_part) in bjobs.get((ri, rj), []):
             try: do_building(e, g, cp, is_part)
             except Exception as ex: print("bldg fail", e["id"], ex)
+        if REGION_WALKS:      # front walks laid by house_detail, from each real door out to the street
+            wk = safe(lambda a, b: a.difference(b), unary_union(REGION_WALKS), unary_union([roads_r, side_r, water_r]))
+            wk = safe(lambda a, b: a.intersection(b), wk, Rg)
+            if not wk.is_empty: add_area(wk, "drive", 0.035, 3.0)
+            REGION_WALKS.clear()
         flush_region()
         if done % 20 == 0: log(f"region {done}/{nreg} chunks {len(manifest_chunks)} verts {total_v}")
 

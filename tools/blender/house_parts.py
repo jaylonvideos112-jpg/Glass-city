@@ -76,6 +76,56 @@ def post():
     export("hp_post")
 
 
+def win_shutters(name, col):
+    """Double-hung window with a pair of louvred shutters."""
+    reset(); m = mats()
+    window_unit(m, 0, 0.82, 1.45)
+    sm = mat(name, col, rough=0.6)
+    for sx in (-1, 1):
+        x = sx * (0.82 / 2 + 0.1 + 0.2)
+        box((0.38, 0.03, 1.5), (x, 0.015, 0.05 + 0.75), sm, bevel=0)
+        for k in range(9):                       # louvres
+            box((0.32, 0.02, 0.03), (x, 0.035, 0.18 + k * 0.08), sm, bevel=0)
+        for k in range(8):
+            box((0.32, 0.02, 0.03), (x, 0.035, 0.92 + k * 0.08), sm, bevel=0)
+    export(name)
+
+
+def pier():
+    """Craftsman porch support: brick pier to rail height, tapered square column above, to the porch beam (2.38)."""
+    reset(); m = mats()
+    brick = mat("hp_brick", (0.42, 0.2, 0.15), rough=0.9)
+    box((0.5, 0.5, 0.95), (0, 0, 0.475), brick, bevel=0)
+    box((0.58, 0.58, 0.07), (0, 0, 0.985), m["step"], bevel=0)           # stone cap
+    bm = bpy.data.meshes.new("taper"); import bmesh
+    b = bmesh.new()
+    for z, r in ((1.02, 0.17), (2.25, 0.11)):
+        for dx, dy in ((-r, -r), (r, -r), (r, r), (-r, r)): b.verts.new((dx, dy, z))
+    b.verts.ensure_lookup_table(); v = b.verts
+    for i in range(4):
+        j = (i + 1) % 4; b.faces.new((v[i], v[j], v[4 + j], v[4 + i]))
+    b.to_mesh(bm); b.free()
+    ob = bpy.data.objects.new("taper", bm); bpy.context.collection.objects.link(ob); ob.data.materials.append(m["trim"])
+    box((0.3, 0.3, 0.13), (0, 0, 2.31), m["trim"], bevel=0)
+    export("hp_pier")
+
+
+def awning():
+    """Aluminium window awning (striped), mounted above a window: 1.1 wide, projects 0.7, drops 0.55."""
+    reset()
+    a = mat("hp_awn_a", (0.85, 0.85, 0.82), rough=0.4, metal=0.6)
+    b_ = mat("hp_awn_b", (0.2, 0.32, 0.22), rough=0.4, metal=0.6)
+    n = 8
+    for i in range(n):
+        x = -0.55 + (i + 0.5) * 1.1 / n
+        ob = box((1.1 / n, 0.76, 0.012), (x, 0.33, -0.27), a if i % 2 == 0 else b_, bevel=0)
+        ob.rotation_euler = (math.radians(-46), 0, 0)
+    box((1.1, 0.012, 0.16), (0, 0.66, -0.6), b_, bevel=0)                 # valance
+    for sx in (-1, 1):
+        ob = box((0.012, 0.7, 0.012), (sx * 0.55, 0.33, -0.3), a, bevel=0); ob.rotation_euler = (math.radians(-40), 0, 0)
+    export("hp_awning")
+
+
 def rail():
     """1.0 m railing segment centred on the origin, along X."""
     reset(); m = mats()
@@ -105,4 +155,6 @@ if __name__ == "__main__":
     door("hp_door_r", (0.36, 0.07, 0.06))
     door("hp_door_k", (0.06, 0.08, 0.07))
     door("hp_door_w", (0.82, 0.82, 0.79))
-    post(); rail(); steps()
+    post(); rail(); steps(); pier(); awning()
+    win_shutters("hp_win_sh", (0.07, 0.11, 0.08))
+    win_shutters("hp_win_shr", (0.3, 0.07, 0.06))

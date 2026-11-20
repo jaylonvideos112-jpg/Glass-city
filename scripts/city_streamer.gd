@@ -30,7 +30,8 @@ var _detail_tex: Texture2D = preload("res://textures/parking.png")
 ## [photo_mix, clean set, clean tile metres]; sets are CC0 Poly Haven scans in textures/pbr/
 const PHOTO_MIX := {"lot": [-1.0, "brushed_concrete", 2.5], "parking": [0.0, "asphalt_04", 3.0], "industrial": [0.0, "brushed_concrete", 2.5],
 	"grass": [0.0, "grass_ground", 2.5], "forest_floor": [0.0, "forest_leaves_02", 2.5],
-	"lawn": [0.0, "grass_ground", 2.2], "drive": [0.0, "brushed_concrete", 2.0]}   # residential yards (build_city yards())
+	"lawn": [0.0, "grass_ground", 2.2], "drive": [0.0, "brushed_concrete", 2.0],
+	"shingle": [2.0, "grey_roof_01", 1.0]}   # 2 = sloped roof: aerial colour, asphalt-shingle relief along the roof UVs   # residential yards (build_city yards())
 const LAWN_TINT := Color(0.28, 0.5, 0.16)
 var _pbr_cache := {}
 func pbr(set_name: String) -> Dictionary:
@@ -79,6 +80,9 @@ func _mat(name: String) -> Material:
 	if name.begins_with("hsid#"):              # house siding (real lap boards) in an era paint: hsid#<era><i>
 		var era := name.substr(5, name.length() - 6); var i := int(name.substr(name.length() - 1))
 		materials[name] = _tex_mat("hsid", Color(ERA_PAINT.get(era, ERA_PAINT["mid"])[i]), 0.75)
+		return materials[name]
+	if name in ["hstu", "hstn", "hblk"]:        # stucco / stone / block houses (3D windows go on top)
+		materials[name] = _tex_mat(name, Color(1, 1, 1), 0.9)
 		return materials[name]
 	if name.begins_with("hbrk_"):
 		materials[name] = _tex_mat("hbrk", BRICK_TONE.get(name.substr(5), Color.WHITE), 0.9)
@@ -376,7 +380,8 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 				if not _ground_mats.has(key2):
 					var gm := aerial_mat.duplicate() as ShaderMaterial
 					var cs := pbr(pm[1])
-					gm.set_shader_parameter("photo_mix", maxf(pm[0], 0.0))
+					gm.set_shader_parameter("photo_mix", clampf(pm[0], 0.0, 1.0))
+					if pm[0] >= 2.0: gm.set_shader_parameter("roof_uv", 1.0)
 					gm.set_shader_parameter("use_pbr", 1.0)
 					gm.set_shader_parameter("clean", cs["diff"]); gm.set_shader_parameter("clean_nor", cs["nor"]); gm.set_shader_parameter("clean_rough", cs["rough"])
 					gm.set_shader_parameter("clean_scale", 1.0 / float(pm[2]))

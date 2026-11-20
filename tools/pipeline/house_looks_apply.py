@@ -46,10 +46,16 @@ def nearest(cen, rgb):
     return int(np.argmin(((cen - lab) ** 2).sum(1)))
 
 
+# hand labels read off the photos (porch F/P/E/N, dormer, shutters, roof G/S/H/M/X, awnings, brick piers)
+import os
+LAB = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "source_data", "house_photo_labels.json")))
 out = {}
+for k, (assr, _, _) in link.items():
+    if assr in LAB: out[k] = {"w": -1, "t": -1, "p": -1, "lab": LAB[assr]}
 for (k, lk), wcol in zip(keys, walls):
     o = {"w": nearest(wlab, wcol), "t": nearest(tlab, paint(lk["trim"])) if "trim" in lk else -1}
     o["p"] = 1 if lk["porch"] >= 0.2 and lk.get("q", 0) >= 0.45 else -1     # "no porch" is not reliable from segmentation
+    if k in out: o["lab"] = out[k]["lab"]
     out[k] = o
 hx = lambda c: "#%02x%02x%02x" % tuple(int(v) for v in c)
 json.dump(out, open(OUT, "w"))
