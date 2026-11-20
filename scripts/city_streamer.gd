@@ -69,8 +69,20 @@ func _ready() -> void:
 # ------------------------------------------------------------------ materials
 ## Paint palette measured from county reference photos (data/house_palette.json, written by the city build).
 var _house_pal := {}
+const ERA_PAINT := {"old": ["#e9e3d2", "#c8b386", "#7f8d6f", "#9b5c4b", "#61748a", "#d8c27c", "#5e6b5a", "#efe8d8"],
+	"mid": ["#eeeadc", "#bab29b", "#8f9c86", "#c6a679", "#7f90a2", "#e6dcc1", "#a8826a", "#f3efe4"],
+	"post": ["#f2f0ea", "#cfd3cf", "#a3b3c1", "#e3d6b5", "#b9aa92", "#a7b59c", "#e9e4d4", "#c9c2b2"],
+	"new": ["#f4f2ec", "#d9d5c9", "#c3c5c0", "#b7ab95", "#8f9ba4", "#e8e0cc", "#a6a294", "#d2c6ad"]}
+const BRICK_TONE := {"old": Color(1.0, 0.93, 0.88), "mid": Color(1, 1, 1), "post": Color(0.93, 0.86, 0.8), "new": Color(1.08, 1.0, 0.94)}
 func _mat(name: String) -> Material:
 	if materials.has(name): return materials[name]
+	if name.begins_with("hsid#"):              # house siding (real lap boards) in an era paint: hsid#<era><i>
+		var era := name.substr(5, name.length() - 6); var i := int(name.substr(name.length() - 1))
+		materials[name] = _tex_mat("hsid", Color(ERA_PAINT.get(era, ERA_PAINT["mid"])[i]), 0.75)
+		return materials[name]
+	if name.begins_with("hbrk_"):
+		materials[name] = _tex_mat("hbrk", BRICK_TONE.get(name.substr(5), Color.WHITE), 0.9)
+		return materials[name]
 	var at := name.find("@")
 	if at < 0: return materials["concrete"]
 	if _house_pal.is_empty():
@@ -83,6 +95,8 @@ func _mat(name: String) -> Material:
 	_mutex.lock()
 	if base == "trim":
 		var t := StandardMaterial3D.new(); t.albedo_color = col; t.roughness = 0.7; m = t
+	elif base == "hsid":
+		m = _tex_mat("hsid", col, 0.75)
 	elif base == "h_lap":
 		m = _tex_mat("h_lap_plain", col)
 	else:
@@ -173,12 +187,13 @@ func _make_materials() -> void:
 			materials["h_clap_%s#%d" % [era, i]] = _tex_mat("h_clap_" + era, Color(etints[i]))
 			materials["h_lap#%s%d" % [era, i]] = _tex_mat("h_lap_plain", Color(etints[i]))
 		materials["h_brick_" + era] = _tex_mat("h_brick_" + era)
+		_mat("hbrk_" + era)
+		for i in 8: _mat("hsid#%s%d" % [era, i])
 	# photo-measured paint (eager so the far-city HLOD sees their colours too)
 	if FileAccess.file_exists("res://data/house_palette.json"):
 		var pal = JSON.parse_string(FileAccess.get_file_as_string("res://data/house_palette.json"))
 		for i in pal["wall"].size():
-			for era in era_tints: _mat("h_clap_%s@%d" % [era, i])
-			_mat("h_lap@%d" % i)
+			_mat("hsid@%d" % i)
 		for i in pal["trim"].size(): _mat("trim@%d" % i)
 	for nm in ["h_stucco", "h_stone", "h_block"]:
 		materials[nm] = _tex_mat(nm)

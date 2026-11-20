@@ -965,6 +965,12 @@ for i in range(6): TILE[f"siding{i}"] = (5, 5)
 for _m in HOUSE_MATS:
     TILE[_m] = (3.4 if "_old" in _m else 5.0, 2.95) if not _m.startswith("h_lap") else (4.0, 2.95)
 TILE["h_block"] = (4.0, 2.95)
+TILE.update({"hsid": (2.4, 2.4), "hbrk": (1.45, 1.45)})
+def tile_of(mat):
+    if mat in TILE: return TILE[mat]
+    b = mat.split("@")[0].split("#")[0]
+    if b.startswith("hbrk"): b = "hbrk"
+    return TILE.get(b, TILE.get(mat.split("@")[0] + "#0", (6, 6)))
 TILE.update({m: (8, 4.5) for m in ["bar_shooters","bar_anchor","bar_cardboard","bar_easypour","bar_velvet","bar_lakefront","bar_coyote","bar_gator","dive_twobuck","dive_dollar","dive_cornertap","dive_happyhour","dive_tipsytom","dive_bar","dive_lastcall"]})
 TILE.update({"storefront": (8, 4.2), "intl_dark": (4.5, 3.9), "glass_oneseagate": (6, 3.9), "limestone": (6, 4.2),
              "granite_black": (6, 4.5), "yamasaki": (3, 3.9), "terracotta": (5, 4.0), "sandstone": (6, 5), "marble": (8, 8),
@@ -1074,7 +1080,7 @@ def pitched_roof(c, g, h, mat_wall, ridge, kind="gable", roof_mat="shingle", ov=
             tri(c, roof_mat, P3(p, he), P3(q, he), P3(m, top), n, [(0, 0), (L / 4, 0), (L / 8, 1.5)], True)
         else:
             _, L, (nx, ny) = face_n(wp, wq, 1, 1)
-            tw, th = TILE.get(mat_wall, (5, 5))
+            tw, th = tile_of(mat_wall)
             tri(c, mat_wall, P3(wp, h), P3(wq, h), P3(((wp[0] + wq[0]) / 2, (wp[1] + wq[1]) / 2), top), (nx, 0.0, -ny), [(0, -h / th), (L / tw, -h / th), (L / 2 / tw, -top / th)], True)
             # rake board along the gable edge
             for (e_, f_) in ((p, m), (m, q)):
@@ -1146,7 +1152,7 @@ def cbox(c, cx, cy, u, v, hu, hv, z0, z1, mat, collide=False):
     quad(c, mat, cor(1, 1, z1), cor(-1, 1, z1), cor(-1, -1, z1), cor(1, -1, z1), UP, [(0, 0), (1, 0), (1, 1), (0, 1)], collide)
 
 def walls(c, p, z0, z1, mat):
-    tw, th = TILE.get(mat, (6, 6))
+    tw, th = tile_of(mat)
     for ring in [p.exterior] + list(p.interiors):
         cs = list(ring.coords); u = 0.0
         for (x0, y0), (x1, y1) in zip(cs, cs[1:]):
@@ -1254,6 +1260,131 @@ def porch(c, p, rnd):
     for s_ in (-1, 0, 1) if wdt > 2.5 else (-1, 1):
         cx_ = pcx + ux * (wdt - 0.2) * s_ + nx * (dep / 2 - 0.2); cy_ = pcy + uy * (wdt - 0.2) * s_ + ny * (dep / 2 - 0.2)
         cbox(c, cx_, cy_, (ux, uy), (nx, ny), 0.12, 0.12, 0.55, 2.85, "porch" if TRIM_MAT[0] == "trim_white" else TRIM_MAT[0])
+
+def _modelz(name, x, y, z, fx, fy):
+    if rkey(x, y) != CUR_REGION: return
+    c = chunk_at(x, y); c.props.append(["m:" + name, round(x - c.ox, 2), round(-(y - c.oy), 2), round(z, 2), round(_yaw(fx, fy), 3)])
+
+def front_edge(p):
+    """The house wall facing its street: (x0, y0, ux, uy, nx, ny, L) or None."""
+    if STREET_TREE is None: return None
+    road = street_lines[STREET_TREE.nearest(p.centroid)]
+    if road.distance(p) > 45: return None
+    rp = road.interpolate(road.project(p.centroid))
+    best = None
+    cs = list(orient(p, 1.0).exterior.coords)
+    for (x0, y0), (x1, y1) in zip(cs, cs[1:]):
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L < 4: continue
+        nx, ny = (y1 - y0) / L, -(x1 - x0) / L
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        dx, dy = rp.x - mx, rp.y - my; dl = math.hypot(dx, dy) or 1
+        sc = (nx * dx + ny * dy) / dl + L * 0.01
+        if best is None or sc > best[0]: best = (sc, x0, y0, (x1 - x0) / L, (y1 - y0) / L, nx, ny, L)
+    return best[1:] if best and best[0] > 0.45 else None
+
+FLOOR = 2.85; DECK = 0.55
+def house_detail(c, p, wl, rnd, want_porch, mat):
+    """Real-looking house skin: 3D double-hung windows on every wall and floor, attic windows in the gables, a panel
+    front door facing the street, corner boards, and a front porch (posts, railings, steps, shed roof)."""
+    p = orient(p, 1.0)
+    low = min(w[1] for w in wl)
+    fe = front_edge(p)
+    hsh = lambda *a: (math.sin(sum(v * k for v, k in zip(a, (12.9898, 78.233, 37.719)))) * 43758.5453) % 1.0
+    door_m = ("hp_door_r", "hp_door_k", "hp_door_w")[int(rnd * 31) % 3]
+    porch_span = None
+    if fe is not None:
+        x0, y0, ux, uy, nx, ny, L = fe
+        if want_porch and L >= 4.5:
+            wide = rnd < 0.6
+            pw = min(L - 0.4, 7.6) if wide else min(L * 0.5, 3.6)
+            t0 = (L - pw) / 2 if wide else max(0.2, L - pw - 0.3)
+            porch_span = (t0, t0 + pw)
+            porch3d(c, x0 + ux * t0, y0 + uy * t0, ux, uy, nx, ny, pw, rnd)
+    cs = list(p.exterior.coords)
+    for ei, ((ax, ay), (bx, by)) in enumerate(zip(cs, cs[1:])):
+        L = math.hypot(bx - ax, by - ay)
+        if L < 1.0: continue
+        ux, uy = (bx - ax) / L, (by - ay) / L; nx, ny = uy, -ux
+        # corner board at the start of every edge (convex corners; concave ones hide inside the wall)
+        if TRIM_MAT[0] and mat.startswith("hsid"):
+            cbox(c, ax + nx * 0.03 + ux * 0.07, ay + ny * 0.03 + uy * 0.07, (ux, uy), (nx, ny), 0.07, 0.03, DECK - 0.05, min(low, 9.0) - 0.05, TRIM_MAT[0])
+        if L < 1.7: continue
+        mx, my = (ax + bx) / 2, (ay + by) / 2
+        probe = Point(mx - nx * 0.6, my - ny * 0.6)
+        eave = max([w[1] for w in wl if w[0].buffer(0.4).contains(probe)] or [low])
+        is_front = fe is not None and abs(fe[0] - ax) < 1e-6 and abs(fe[1] - ay) < 1e-6
+        n = max(1, int((L - 0.6) / 2.6))
+        slots = [(i + 0.5) * L / n for i in range(n)]
+        door_t = None
+        if is_front:
+            door_t = (porch_span[0] + porch_span[1]) / 2 if porch_span else (slots[n // 2] if n > 1 else L / 2)
+            if porch_span and n >= 2: door_t = min(slots, key=lambda t: abs(t - (porch_span[0] + 1.0)))
+            _modelz(door_m, ax + ux * door_t + nx * 0.01, ay + uy * door_t + ny * 0.01, DECK, nx, ny)
+            if not porch_span: _modelz("hp_steps", ax + ux * door_t, ay + uy * door_t, 0.0, nx, ny)
+        floors = max(1, int(round((eave - DECK) / FLOOR)))
+        fh = (eave - DECK) / floors
+        if fh < 2.45 and floors > 1: floors -= 1; fh = (eave - DECK) / floors
+        for f in range(floors):
+            zs = DECK + f * fh + min(0.82, max(0.45, fh - 1.55 - 0.3))
+            if zs + 1.55 > eave - 0.08: break
+            for t in slots:
+                if f == 0 and door_t is not None and abs(t - door_t) < 1.3: continue
+                if t < 0.65 or t > L - 0.65: continue
+                h_ = hsh(ax, ay, t * 3 + f)
+                name = "hp_win_b" if h_ < 0.3 else "hp_win"
+                if is_front and f == 0 and L / n >= 2.4 and h_ > 0.45: name = "hp_win2"
+                _modelz(name, ax + ux * t + nx * 0.01, ay + uy * t + ny * 0.01, zs, nx, ny)
+    # gable-end attic windows: the short sides of each gable wing, where they are outside walls
+    for q, eave, top, shape in wl:
+        if shape not in ("gable", "gable_cross") or top - eave < 2.7: continue
+        qc = list(orient(q, 1.0).exterior.coords)
+        es = sorted(zip(qc, qc[1:]), key=lambda e_: math.hypot(e_[1][0] - e_[0][0], e_[1][1] - e_[0][1]))
+        for (a_, b_) in es[:2]:
+            L = math.hypot(b_[0] - a_[0], b_[1] - a_[1])
+            if L < 3.0: continue
+            mx, my = (a_[0] + b_[0]) / 2, (a_[1] + b_[1]) / 2
+            if p.exterior.distance(Point(mx, my)) > 0.5: continue
+            nx, ny = (b_[1] - a_[1]) / L, -(b_[0] - a_[0]) / L
+            _modelz("hp_attic", mx + nx * 0.01, my + ny * 0.01, eave + 0.3, nx, ny)
+
+def porch3d(c, sx, sy, ux, uy, nx, ny, pw, rnd):
+    """Front porch along a wall from (sx, sy) for pw metres: deck, posts, railings with a gap for the steps, a
+    shed roof sloping away from the house with fascia and a painted ceiling."""
+    dep = 2.4 if rnd < 0.7 else 2.0
+    cx, cy = sx + ux * pw / 2 + nx * dep / 2, sy + uy * pw / 2 + ny * dep / 2
+    cbox(c, cx, cy, (ux, uy), (nx, ny), pw / 2, dep / 2, -0.2, DECK, "concrete_dk", True)          # deck
+    z_beam = DECK + 2.38
+    zr0, zr1 = z_beam + 0.55, z_beam + 0.08                                                         # roof: wall -> eave
+    ov = 0.25
+    def P(t, d, z): return to3(c, sx + ux * t + nx * d, sy + uy * t + ny * d, z)
+    t0, t1 = -ov, pw + ov
+    sl = (zr0 - zr1) / (dep + ov); nz = 1 / math.hypot(1, sl)
+    quad(c, "shingle", P(t0, 0, zr0), P(t1, 0, zr0), P(t1, dep + ov, zr1), P(t0, dep + ov, zr1), (nx * sl * nz, nz, -ny * sl * nz), [(0, 0), (1, 0), (1, 1), (0, 1)])
+    quad(c, TRIM_MAT[0], P(t0, dep + ov, zr1 - 0.2), P(t1, dep + ov, zr1 - 0.2), P(t1, dep + ov, zr1), P(t0, dep + ov, zr1), (nx, 0.0, -ny), [(0, 0), (1, 0), (1, 1), (0, 1)])
+    quad(c, TRIM_MAT[0], P(t0, 0, z_beam), P(t0, dep + ov, z_beam), P(t1, dep + ov, z_beam), P(t1, 0, z_beam), (0.0, -1.0, 0.0), [(0, 0), (1, 0), (1, 1), (0, 1)])   # ceiling
+    for side in (t0, t1):     # roof ends
+        tri(c, TRIM_MAT[0], P(side, 0, z_beam), P(side, 0, zr0), P(side, dep + ov, zr1), (-ux if side == t0 else ux, 0.0, uy if side == t0 else -uy), [(0, 0), (1, 0), (0, 1)])
+    cbox(c, sx + ux * pw / 2 + nx * (dep - 0.12), sy + uy * pw / 2 + ny * (dep - 0.12), (ux, uy), (nx, ny), pw / 2 + 0.05, 0.1, z_beam, z_beam + 0.25, TRIM_MAT[0])   # beam
+    nposts = max(2, int(pw / 2.4) + 1)
+    pts = [i * pw / (nposts - 1) for i in range(nposts)]
+    pts = [min(max(t, 0.2), pw - 0.2) for t in pts]
+    for t in pts:
+        _modelz("hp_post", sx + ux * t + nx * (dep - 0.15), sy + uy * t + ny * (dep - 0.15), DECK, nx, ny)
+    mid = pw / 2
+    _modelz("hp_steps", sx + ux * mid + nx * dep, sy + uy * mid + ny * dep, -0.0, nx, ny)
+    # railings between posts along the front, leaving the step opening (1.6 m) clear; and on the two ends
+    for a, b in zip(pts, pts[1:]):
+        t = a + 0.62
+        while t + 0.5 <= b - 0.1:
+            if abs(t - mid) > 0.95:
+                _modelz("hp_rail", sx + ux * t + nx * (dep - 0.15), sy + uy * t + ny * (dep - 0.15), DECK, nx, ny)
+            t += 1.0
+    for t in (0.2, pw - 0.2):
+        d = 0.6
+        while d + 0.5 <= dep - 0.3:
+            _modelz("hp_rail", sx + ux * t + nx * d, sy + uy * t + ny * d, DECK, ux, uy)
+            d += 1.0
 
 def deco_crown(c, p, h, mat):
     """PNC-style Art Deco setbacks with a stepped pyramidal top (after the Mausoleum at Halicarnassus)."""
@@ -1370,7 +1501,10 @@ def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=No
                 if bh_ > z + 0.3: walls(c, p, z, bh_, bm_); z = bh_
             emit_wings(c, p, hw, mat, roof_mat, z, rnd, e.get("_hw_eave", 0.0))
             walls(c, p.buffer(0.08, join_style=2) if p.area > 20 else p, -0.3, 0.55, "foundation")
-            if ((rnd * 3.17) % 1.0) < e.get("_porch", 0.78) and 45 < p.area < 300:
+            want_porch = ((rnd * 3.17) % 1.0) < e.get("_porch", 0.78) and 45 < p.area < 300
+            if e.get("_detail"):
+                house_detail(c, p, [(orient(Polygon(w_["rect"]), 1.0), max(2.5, min(w_["eave"], w_["h"] - 0.6)) if not (Polygon(w_["rect"]).area > 0.35 * sum(Polygon(x["rect"]).area for x in hw) and w_["eave"] < e.get("_hw_eave", 0) and w_["h"] > e.get("_hw_eave", 0) + 1.2) else e["_hw_eave"], w_["h"], w_["shape"]) for w_ in hw], rnd, want_porch, mat)
+            elif want_porch:
                 porch(c, p, (rnd * 7.31) % 1.0)
             continue
         wings = []
@@ -1410,7 +1544,10 @@ def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=No
             for t3 in triangulate(p):
                 pts = [to3(c, x, y, mn) for x, y in t3]
                 tri(c, "concrete_dk", pts[0], pts[1], pts[2], (0, -1.0, 0), [(0, 0), (1, 0), (0, 1)])
-        if cls == "house" and ((rnd * 3.17) % 1.0) < e.get("_porch", 0.78) and 45 < p.area < 300:
+        want_porch = cls == "house" and ((rnd * 3.17) % 1.0) < e.get("_porch", 0.78) and 45 < p.area < 300
+        if e.get("_detail") and cls == "house":
+            house_detail(c, p, [(p, wall_top, wall_top + (ridge if pitched else 0.0), kind if pitched else "flat")], rnd, want_porch, mat)
+        elif want_porch:
             porch(c, p, (rnd * 7.31) % 1.0)
         if lm and lm.get("colonnade"):
             colonnade(c, p, h)
@@ -1778,6 +1915,15 @@ def do_building(e, g, cp, is_part):
         elif mat.startswith("h_lap#"): mat = "h_lap@%d" % hl["w"]
         if hl["t"] >= 0: TRIM_MAT[0] = "trim@%d" % hl["t"]
         if hl["p"] >= 0 and cls == "house": e["_porch"] = float(hl["p"])
+    if cls in ("house", "garage") and not lm and not exact:
+        if mat.startswith(("h_clap_", "h_lap")):
+            if "@" in mat: mat = "hsid@" + mat.split("@")[1]
+            else:
+                era_, i_ = (mat[7:].split("#") if mat.startswith("h_clap_") else (mat[6:-1], mat[-1]))
+                mat = f"hsid#{era_}{i_}"
+            e["_detail"] = cls == "house"
+        elif mat.startswith("h_brick_"):
+            mat = "hbrk_" + mat[8:]; e["_detail"] = cls == "house"
     bar_theme = BAR_BLDG.get(key)
     if bar_theme and h <= 15.0:      # the themed bar front only on low buildings; a tower keeps its own walls (door + sign still go on)
         mat = BAR_MAT[bar_theme]; store = False; roof = None; tiers = None
