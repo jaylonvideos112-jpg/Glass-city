@@ -1,0 +1,18 @@
+{"name": "Nicholas Building (1906), 608 Madison Ave",
+ "refs": "refs/w189371898/00-07 (Detroit Publishing Co. c.1905-1910, DPLA via Wikimedia Commons)",
+ "notes": "17 storeys: 2-storey stone base (storefronts + mezzanine) under a heavy belt; buff brick shaft with paired 1/1 sash between shallow piers, single windows in the end bays by wide corner piers; belt under the top floor; frieze and deep dentilled cornice.",
+ "materials": {"base": "limestone", "body": "brick_buff", "trim": "limestone", "cornice": "limestone", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "penthouse": "brick_buff"},
+ "floors": [
+   {"n": 1, "h": 5.2, "kind": "storefront", "glass_h": 0.86},
+   {"n": 1, "h": 3.8, "kind": "typical", "mat": "base", "group": 3, "ww": 0.86, "wh": 0.62, "mull": "none"},
+   {"n": 14, "h": 3.45, "kind": "typical"},
+   {"n": 1, "h": 3.3, "kind": "typical", "wh": 0.5}
+ ],
+ "bay": 4.5, "corner_pier": 2.4,
+ "window": {"w": 0.58, "h": 0.6, "group": 2, "end_group": 1, "group_gap": 0.32, "depth": 0.2, "mull": "transom", "sill_frac": 0.5},
+ "piers": {"every": 1, "w": 0.55, "d": 0.12},
+ "plinth": 0.9,
+ "belts": [{"above_floor": 2, "h": 0.9, "out": 0.45}, {"above_floor": 16, "h": 0.5, "out": 0.22}],
+ "cornice": {"h": 2.2, "out": 1.6, "profile": "classical"},
+ "parapet": 0.0
+}

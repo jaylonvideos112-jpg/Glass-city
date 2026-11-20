@@ -1,0 +1,65 @@
+{
+ "key": "w189305197",
+ "src": "lidar_exact",
+ "anchor": [
+  258.192,
+  -306.981
+ ],
+ "ground": 179.72999572753906,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 99.8,
+   "polys": [
+    [
+     [
+      -11.915,
+      30.183
+     ],
+     [
+      32.368,
+      1.285
+     ],
+     [
+      33.149,
+      -0.608
+     ],
+     [
+      15.075,
+      -29.384
+     ],
+     [
+      12.622,
+      -30.275
+     ],
+     [
+      -32.219,
+      -1.721
+     ],
+     [
+      -32.884,
+      0.951
+     ],
+     [
+      -14.594,
+      29.738
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "addr:city": "Toledo",
+  "addr:housenumber": "1",
+  "addr:postcode": "43604",
+  "addr:state": "OH",
+  "addr:street": "Government Center",
+  "building": "public",
+  "building:levels": "22",
+  "height": "99.8",
+  "name": "Government Center",
+  "office": "government",
+  "source": "https://www.skyscrapercenter.com/building/michael-disalle-building/25295;https://en.wikipedia.org/wiki/Michael_DiSalle_Government_Center",
+  "wheelchair": "yes"
+ }
+}

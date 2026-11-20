@@ -1,0 +1,56 @@
+{
+ "key": "w430271546",
+ "src": "lidar_county",
+ "anchor": [
+  -989.614,
+  -870.884
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 20.15,
+   "polys": [
+    [
+     [
+      -26.252,
+      11.468
+     ],
+     [
+      -25.537,
+      -11.82
+     ],
+     [
+      27.646,
+      -10.929
+     ],
+     [
+      27.555,
+      3.342
+     ],
+     [
+      23.72,
+      6.915
+     ],
+     [
+      20.859,
+      6.893
+     ],
+     [
+      20.768,
+      12.336
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "amenity": "place_of_worship",
+  "building": "church",
+  "denomination": "baptist",
+  "name": "Ashland Avenue Baptist Church",
+  "religion": "christian",
+  "wikidata": "Q4805224",
+  "wikipedia": "en:Ashland Avenue Baptist Church"
+ }
+}

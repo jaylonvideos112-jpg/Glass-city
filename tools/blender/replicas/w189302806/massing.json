@@ -1,0 +1,65 @@
+{
+ "key": "w189302806",
+ "src": "lidar_county",
+ "anchor": [
+  465.811,
+  230.652
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 23.71,
+   "polys": [
+    [
+     [
+      16.629,
+      52.574
+     ],
+     [
+      -46.286,
+      -24.392
+     ],
+     [
+      -26.989,
+      -37.294
+     ],
+     [
+      -22.498,
+      -31.428
+     ],
+     [
+      -5.962,
+      -45.332
+     ],
+     [
+      38.895,
+      9.76
+     ],
+     [
+      22.634,
+      23.341
+     ],
+     [
+      34.703,
+      38.069
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "addr:city": "Toledo",
+  "addr:state": "OH",
+  "building": "commercial",
+  "building:colour": "brown",
+  "building:material": "brick",
+  "name": "ProMedica Headquarters",
+  "office": "company",
+  "old_name": "Toledo Edison Steam Plant",
+  "roof:colour": "brown",
+  "roof:shape": "gabled",
+  "wikidata": "Q125320666",
+  "wikipedia": "en:ProMedica"
+ }
+}

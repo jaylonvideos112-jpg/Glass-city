@@ -21,7 +21,14 @@ tower_on("w191008880", 12.2, 125.3, 2320)
 set_top("w189305197", 99.8)      # Michael DiSalle Government Center: 100 m, 22 floors; dark glass under-read
 set_top("w189372081", 56.0)      # Four SeaGate (KeyBank): 56 m, 10 floors
 set_top("w429787172", 75.0)      # ProMedica Senior Care (HCR ManorCare), 333 N Summit: 77 m to the gable peak
-d["w8000104971"]["demolished"] = True   # Hotel SeaGate, 141 N Summit: deconstructed 2021 (pocket park)
+# Hotel SeaGate, 141 N Summit: deconstructed 2021 (pocket park). County footprint ids are renumbered whenever
+# county_join reruns, so find it by its county address rather than by key.
+import json as _json, os as _os
+_co = _json.load(open(_os.path.join(_os.path.dirname(_os.path.abspath(sys.argv[1])), "..", "osm", "county_osm.json")))
+for _e in _co["elements"]:
+    if _e.get("tags", {}).get("c:addr", "").upper().startswith("141 N SUMMIT"):
+        _k = "w%d" % _e["id"]
+        if _k in d: d[_k]["demolished"] = True; print(_k, "Hotel SeaGate demolished")
 
 # Secor Building (425 Jefferson, 1908, 10 floors) sits inside the convention-centre footprint: carve it out
 cc = d["w599481318"]["tiers"]

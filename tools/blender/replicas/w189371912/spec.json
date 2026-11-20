@@ -1,0 +1,17 @@
+{"name": "Spitzer Building (1896, addition 1904), 520 Madison Ave",
+ "refs": "refs/w189371912/00 (Spitzer Building, July 2022, Wikimedia Commons)",
+ "notes": "10 storeys of orange-red brick: 2-storey base (storefronts + mezzanine) under a strong belt; continuous brick piers with paired windows in every bay; round-arched paired windows on the top floor; dark bracketed cornice.",
+ "materials": {"base": "brick_orange", "body": "brick_orange", "trim": "sandstone", "pier": "brick_orange", "cornice": "metal_dark", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "penthouse": "brick_orange", "arch": "brick_orange"},
+ "floors": [
+   {"n": 1, "h": 5.0, "kind": "storefront", "glass_h": 0.82},
+   {"n": 1, "h": 4.0, "kind": "typical", "group": 2, "ww": 0.66, "wh": 0.62},
+   {"n": 7, "h": 3.6, "kind": "typical"},
+   {"n": 1, "h": 3.9, "kind": "typical", "arched": true, "wh": 0.5}
+ ],
+ "bay": 5.4, "corner_pier": 1.6, "pilaster": 1.0,
+ "window": {"w": 0.62, "h": 0.6, "group": 2, "group_gap": 0.35, "depth": 0.22, "mull": "transom", "sill_frac": 0.5},
+ "piers": {"every": 1, "w": 0.7, "d": 0.14},
+ "plinth": 0.6,
+ "belts": [{"above_floor": 2, "h": 0.8, "out": 0.35}, {"above_floor": 9, "h": 0.35, "out": 0.15}],
+ "cornice": {"h": 1.6, "out": 1.4, "profile": "classical"}
+}

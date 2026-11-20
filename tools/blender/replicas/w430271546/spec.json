@@ -1,0 +1,16 @@
+{"name": "Ashland Avenue Baptist Church (1890), 2001 Ashland Ave",
+ "refs": "refs/w430271546/00-05 (Wikimedia Commons; DPLA c.1890-1900)",
+ "notes": "Richardsonian Romanesque in red brick with sandstone trim: gabled sanctuary with a large rose window, round-arched windows, lower gabled hall, square bell tower with paired arched belfry openings, corbelled parapet and corner pinnacles (the spire seen c.1900 is gone today). Part layout fitted to the county footprint; which gable faces the avenue is a best reading of the photos.",
+ "materials": {"base": "sandstone", "body": "brick_red", "trim": "sandstone", "arch": "sandstone", "frame": "frame_dark", "glass": "glass_window", "roof": "roof_flat"},
+ "window": {"w": 0.5, "h": 0.55, "group": 1, "depth": 0.25, "mull": "vertical", "sill_frac": 0.4},
+ "corner_pier": 1.0, "bay": 3.6, "arched": true, "plinth": 0.8,
+ "floors": [{"n": 1, "h": 9.0}],
+ "parts": [
+  {"rect": [-12.1, -0.1, 28.0, 22.6, 0.96], "z1": 8.5, "floors": [{"n": 2, "h": 4.25, "ww": 0.5, "wh": 0.5}], "roof": {"type": "gable", "pitch": 38, "mat": "slate"}},
+  {"rect": [11.4, 0.4, 18.6, 23.2, 0.96], "z1": 10.5, "bay": 4.2, "floors": [{"n": 1, "h": 10.5, "ww": 0.42, "wh": 0.55}], "roof": {"type": "gable", "pitch": 45, "mat": "slate"}, "rose": {"r": 2.6, "end": 1}},
+  {"rect": [24.2, 0.1, 6.4, 6.2, 0.96], "z1": 7.5, "floors": [{"n": 1, "h": 7.5, "ww": 0.5, "wh": 0.5}], "bay": 3.5, "roof": {"type": "gable", "pitch": 45, "mat": "slate", "ridge": "short"}},
+  {"rect": [24.2, -7.2, 6.8, 6.8, 0.96], "z1": 28.0, "corner_pier": 1.1, "bay": 4.6, "belts": [{"z": 21.0, "h": 0.5, "out": 0.2}],
+   "floors": [{"n": 1, "h": 6.0, "ww": 0.45, "wh": 0.5}, {"n": 1, "h": 5.0, "group": 1, "ww": 0.25, "wh": 0.55}, {"n": 2, "h": 4.5, "kind": "blank"}, {"n": 1, "h": 8.0, "group": 2, "ww": 0.62, "wh": 0.62, "mull": "none"}],
+   "parapet": 1.0, "battlement": true, "turrets": [{"r": 0.55, "h": 1.8, "cap": 2.2}], "roof": {"type": "flat"}}
+ ]
+}

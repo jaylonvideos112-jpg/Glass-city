@@ -1,0 +1,115 @@
+{
+ "key": "w171964340",
+ "src": "lidar_county",
+ "anchor": [
+  545.282,
+  44.91
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 45.7,
+   "polys": [
+    [
+     [
+      -46.532,
+      -3.848
+     ],
+     [
+      -38.447,
+      -8.969
+     ],
+     [
+      7.757,
+      -37.522
+     ],
+     [
+      24.734,
+      -34.027
+     ],
+     [
+      36.636,
+      -14.524
+     ],
+     [
+      36.17,
+      -8.936
+     ],
+     [
+      31.721,
+      -6.13
+     ],
+     [
+      32.253,
+      -5.284
+     ],
+     [
+      41.436,
+      9.31
+     ],
+     [
+      -8.054,
+      40.446
+     ],
+     [
+      -16.904,
+      26.364
+     ],
+     [
+      -20.365,
+      28.546
+     ],
+     [
+      -23.766,
+      23.135
+     ],
+     [
+      -26.694,
+      24.972
+     ],
+     [
+      -35.594,
+      30.572
+     ],
+     [
+      -39.387,
+      24.538
+     ],
+     [
+      -30.637,
+      19.039
+     ],
+     [
+      -28.516,
+      17.703
+     ],
+     [
+      -36.226,
+      5.458
+     ],
+     [
+      -39.503,
+      7.517
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "addr:city": "Toledo",
+  "addr:housenumber": "444",
+  "addr:postcode": "43604",
+  "addr:state": "OH",
+  "addr:street": "North Summit",
+  "brand": "Marriott",
+  "building": "yes",
+  "internet_access": "wlan",
+  "name": "Renaissance Toledo Downtown Hotel",
+  "old_name": "Crowne Plaza Hotel Toledo",
+  "operator": "First Hospitality Group",
+  "rooms": "250",
+  "smoking": "no",
+  "tourism": "hotel"
+ }
+}

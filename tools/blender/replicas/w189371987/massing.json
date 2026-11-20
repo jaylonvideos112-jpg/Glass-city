@@ -1,0 +1,68 @@
+{
+ "key": "w189371987",
+ "src": "lidar_county",
+ "anchor": [
+  347.575,
+  -41.098
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 33.17,
+   "polys": [
+    [
+     [
+      -7.534,
+      38.306
+     ],
+     [
+      -30.516,
+      2.305
+     ],
+     [
+      -25.808,
+      -0.7
+     ],
+     [
+      -32.919,
+      -11.832
+     ],
+     [
+      -26.457,
+      -15.962
+     ],
+     [
+      -34.666,
+      -28.831
+     ],
+     [
+      -4.24,
+      -48.256
+     ],
+     [
+      41.365,
+      23.189
+     ],
+     [
+      11.023,
+      42.625
+     ],
+     [
+      3.895,
+      31.182
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "amenity": "theatre",
+  "building": "yes",
+  "building:colour": "orange",
+  "building:material": "brick",
+  "name": "Valentine Theatre",
+  "wikidata": "Q7911022",
+  "wikipedia": "en:Valentine Theatre"
+ }
+}

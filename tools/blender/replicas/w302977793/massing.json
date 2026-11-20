@@ -1,0 +1,108 @@
+{
+ "key": "w302977793",
+ "src": "lidar_county",
+ "anchor": [
+  392.465,
+  6.667
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 19.95,
+   "polys": [
+    [
+     [
+      28.416,
+      15.361
+     ],
+     [
+      11.273,
+      26.571
+     ],
+     [
+      7.672,
+      26.059
+     ],
+     [
+      5.551,
+      22.152
+     ],
+     [
+      6.815,
+      18.534
+     ],
+     [
+      -1.178,
+      23.488
+     ],
+     [
+      -4.247,
+      18.545
+     ],
+     [
+      -7.608,
+      20.638
+     ],
+     [
+      -24.617,
+      -6.791
+     ],
+     [
+      -28.394,
+      -4.453
+     ],
+     [
+      -31.746,
+      -9.852
+     ],
+     [
+      -23.91,
+      -14.717
+     ],
+     [
+      -22.987,
+      -12.68
+     ],
+     [
+      -10.203,
+      -20.383
+     ],
+     [
+      -8.889,
+      -21.24
+     ],
+     [
+      -10.494,
+      -24.892
+     ],
+     [
+      -0.779,
+      -31.037
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "addr:city": "Toledo",
+  "addr:housenumber": "316",
+  "addr:postcode": "43604",
+  "addr:state": "OH",
+  "addr:street": "Adams Street",
+  "amenity": "place_of_worship",
+  "building": "church",
+  "building:colour": "grey",
+  "building:material": "stone",
+  "denomination": "episcopal",
+  "gnis:feature_id": "1071642",
+  "name": "Trinity Episcopal Church",
+  "religion": "christian",
+  "roof:colour": "grey",
+  "roof:shape": "gabled",
+  "start_date": "1863",
+  "wheelchair": "yes",
+  "wikidata": "Q7842776",
+  "wikipedia": "en:Trinity Episcopal Church (Toledo, Ohio)"
+ }
+}

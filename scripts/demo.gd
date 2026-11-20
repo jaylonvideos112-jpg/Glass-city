@@ -40,7 +40,7 @@ func _ready() -> void:
 			var j = JSON.parse_string(FileAccess.get_file_as_string(a.substr(11)))
 			shots = []
 			for s in j:
-				shots.append([s[0], s[1] if (s[1] == null or s[1] is String) else Vector3(s[1][0], s[1][1], s[1][2]), null if s[2] == null else Vector3(s[2][0], s[2][1], s[2][2])])
+				shots.append([s[0], s[1] if (s[1] == null or s[1] is String) else Vector3(s[1][0], s[1][1], s[1][2]), s[2] if (s[2] == null or not (s[2] is Array)) else Vector3(s[2][0], s[2][1], s[2][2])])
 		if a.begins_with("--fly="):
 			var f := a.substr(6).split(",")
 			fly_center = Vector3(float(f[0]), 0, float(f[1])); fly_r0 = float(f[2]); fly_h0 = float(f[3])
@@ -255,6 +255,23 @@ func _shots(dt: float) -> void:
 		if shot_wait < 2.0:
 			shot_wait += dt
 			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 50.0
+			return
+	elif s[0] == "@replica":
+		# a hand-made replica building (s[1] = OSM key, optional s[2] = view angle degrees): walk there, frame it
+		main.hud.visible = false
+		var rp: Vector3 = Vector3.ZERO
+		for k in main.replicas.by_chunk:
+			for r in main.replicas.by_chunk[k]:
+				if r["key"] == str(s[1]): rp = r["pos"]
+		var ang := deg_to_rad(float(s[2]) if s[2] != null else 35.0)
+		var dirv := Vector3(cos(ang), 0, sin(ang))
+		if shot_wait == 0.0:
+			main.player.global_position = rp + dirv * 30.0 - main.world_offset + Vector3(0, 1, 0)
+		main.player.visible = false
+		pos = rp + dirv * 85.0 + Vector3(0, 22, 0); look = rp + Vector3(0, 30, 0)
+		if shot_wait < 6.0:
+			shot_wait += dt
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 60.0
 			return
 	elif s[0] == "@sky":
 		# looking up and out over the city: judging the sky and clouds

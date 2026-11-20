@@ -234,6 +234,7 @@ func apply_now() -> void:
 		m.emission_energy_multiplier = e * 0.9
 	if _lamp_mat:
 		_lamp_mat.emission_energy_multiplier = 2.5 * night
+	if main.get("replicas") and main.replicas: main.replicas.set_night(night, occupancy)
 	globals = {"night_level": night, "wetness": wetness, "snow_cover": snow_cover}
 	for k in globals: RenderingServer.global_shader_parameter_set(k, globals[k])
 	for g in _ground:

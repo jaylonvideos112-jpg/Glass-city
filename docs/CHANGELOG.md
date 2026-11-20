@@ -363,3 +363,19 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
 - `time_of_day.gd` drives it from the climate palette and weather (fair-weather cumulus even on "clear" days, more
   cover, overcast and storm-dark bases as weather worsens). The sky's lighting probe updates incrementally with a
   cheap cloud pass. Demo shot `@sky` frames the sky over the street.
+
+## Real-building replicas (Blender, one by one)
+- Pipeline: `source_data/replicas.json` (candidates: every Toledo building with a Wikidata link in OSM + the
+  downtown landmarks) -> `fetch_refs.py` / `fetch_named.py` (reference photos from Wikimedia Commons, reference
+  only) -> `replica_massing.py` (exact LiDAR footprint/tiers per building) -> hand-written
+  `tools/blender/replicas/<key>/spec.json` (floor rhythm, bays, window groups, piers, belts, cornice, storefronts,
+  curtain walls, or composed parts with gable/hip/pyramid roofs, towers, arched and rose windows) ->
+  `tools/blender/replica.py` -> `assets/models/bld_<key>.glb`.
+- The city build leaves out a replica's generic geometry (and any footprint inside it); `scripts/replicas.gd`
+  places the model in its chunk with trimesh collision, binds materials by name to the PBR textures and lights a
+  share of the windows at night.
+- Done so far: Nicholas Building, Fiberglas Tower / Tower on the Maumee, Ashland Avenue Baptist Church, Spitzer
+  Building.
+- Fix: the exact downtown LiDAR massing was keyed to county-footprint ids from an older county join, so 638
+  downtown buildings had their heights applied to unrelated houses (floating penthouses, wrong heights).
+  Regenerated; the Hotel SeaGate demolition override now finds the building by county address.

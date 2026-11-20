@@ -140,6 +140,7 @@ func _ready() -> void:
 	combat = load("res://scripts/combat.gd").new(); combat.name = "Combat"; combat.main = self; add_child(combat)
 	weapons = load("res://scripts/weapons.gd").new(); weapons.name = "Weapons"; weapons.main = self; add_child(weapons)
 	world_state.register("weapons", weapons)
+	replicas = load("res://scripts/replicas.gd").new(); replicas.name = "Replicas"; add_child(replicas)
 	gunstore = load("res://scripts/gunstore.gd").new(); gunstore.name = "GunStore"; gunstore.main = self; gunstore.wp = weapons; add_child(gunstore)
 	world_state.register("combat", combat)
 	Car.driver_hurt = hurt
@@ -284,6 +285,7 @@ var _aim_k := 0.0
 var combat: Node
 var weapons: Node
 var gunstore: Node
+var replicas: Node      # hand-made building replicas (scripts/replicas.gd)
 var hospitals: Array = []
 var times_wasted := 0
 func hurt(amount: float, cause: String) -> void:

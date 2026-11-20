@@ -1,0 +1,10 @@
+{"name": "Fiberglas Tower / Tower on the Maumee (1969, renovated 2019), 405 Madison Ave",
+ "refs": "refs/w429957698/00-01 (Wikimedia Commons)",
+ "notes": "30 storeys, ~114 m to the roof: long faces are a dark-glass curtain wall with fine vertical mullions and a spandrel at each floor; the narrow ends are solid light precast panels; tall glazed lobby; dark metal-clad mechanical penthouse.",
+ "materials": {"base": "granite_dark", "body": "precast", "solid": "precast", "trim": "metal_dark", "frame": "metal_dark", "glass": "glass_curtain", "curtain_glass": "glass_curtain", "spandrel": "glass_dark", "mullion": "metal_dark", "shop_glass": "glass_shop", "roof": "roof_flat"},
+ "style": "curtain", "solid_below": 30.0, "simplify": 0.8,
+ "floors": [{"n": 1, "h": 6.0, "kind": "lobby"}, {"n": 29, "h": 3.75, "kind": "typical"}],
+ "curtain": {"mullion": 1.52, "spandrel": 1.0, "fin": 0.14, "mw": 0.05},
+ "parapet": 0.8,
+ "tiers": [{}, {"style": "solid", "solid_below": 999, "mat_over": {"solid": "metal_dark", "body": "metal_dark"}, "floors": [{"n": 1, "h": 7.5, "kind": "blank"}], "parapet": 0.0}]
+}

@@ -1,0 +1,153 @@
+{
+ "key": "r10581471",
+ "src": "lidar_county",
+ "anchor": [
+  -1677.536,
+  -763.289
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 4.91,
+   "polys": [
+    [
+     [
+      -39.548,
+      -8.554
+     ],
+     [
+      -40.189,
+      -8.031
+     ],
+     [
+      -40.696,
+      -7.163
+     ],
+     [
+      -40.813,
+      -6.383
+     ],
+     [
+      -40.547,
+      -5.537
+     ],
+     [
+      -12.275,
+      38.657
+     ],
+     [
+      -11.643,
+      39.291
+     ],
+     [
+      -10.703,
+      39.681
+     ],
+     [
+      -9.597,
+      39.581
+     ],
+     [
+      39.336,
+      8.957
+     ],
+     [
+      39.968,
+      7.765
+     ],
+     [
+      40.55,
+      6.686
+     ],
+     [
+      40.11,
+      5.216
+     ],
+     [
+      28.947,
+      -13.018
+     ],
+     [
+      31.118,
+      -14.343
+     ],
+     [
+      30.17,
+      -15.901
+     ],
+     [
+      28.831,
+      -18.083
+     ],
+     [
+      26.286,
+      -16.547
+     ],
+     [
+      11.763,
+      -38.321
+     ],
+     [
+      10.59,
+      -39.356
+     ],
+     [
+      9.293,
+      -39.289
+     ],
+     [
+      8.153,
+      -38.777
+     ],
+     [
+      -23.396,
+      -18.595
+     ],
+     [
+      -25.192,
+      -21.523
+     ],
+     [
+      -27.355,
+      -20.198
+     ],
+     [
+      -28.187,
+      -19.296
+     ],
+     [
+      -29.301,
+      -18.584
+     ],
+     [
+      -27.421,
+      -15.634
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "addr:city": "Toledo",
+  "addr:housenumber": "2444",
+  "addr:postcode": "43620",
+  "addr:state": "OH",
+  "addr:street": "Monroe Street",
+  "air_conditioning": "yes",
+  "building": "museum",
+  "building:architecture": "modern",
+  "building:colour": "white",
+  "building:levels": "1",
+  "building:material": "glass",
+  "museum": "art",
+  "name": "Toledo Museum of Art Glass Pavillon",
+  "operator": "Toledo Museum of Art",
+  "roof:colour": "grey",
+  "roof:shape": "flat",
+  "tourism": "museum",
+  "type": "multipolygon",
+  "wheelchair": "yes",
+  "wikidata": "Q117348202"
+ }
+}

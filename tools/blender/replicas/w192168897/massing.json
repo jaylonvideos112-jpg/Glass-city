@@ -1,0 +1,41 @@
+{
+ "key": "w192168897",
+ "src": "lidar_county",
+ "anchor": [
+  -504.74,
+  -225.705
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 18.46,
+   "polys": [
+    [
+     [
+      6.223,
+      50.724
+     ],
+     [
+      42.637,
+      27.458
+     ],
+     [
+      -5.605,
+      -50.788
+     ],
+     [
+      -42.86,
+      -26.688
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "building": "yes",
+  "name": "Jefferson Center",
+  "old_name": "Central Post Office (historical)",
+  "wikidata": "Q6175384"
+ }
+}

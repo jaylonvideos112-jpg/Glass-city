@@ -1,0 +1,295 @@
+{
+ "_doc": "Buildings recreated as hand-made replicas in Blender from reference photos (tools/blender/replica.py). key = OSM id. The city build drops their generic geometry; the game places assets/models/bld_<key>.glb at the anchor.",
+ "buildings": [
+  {
+   "key": "w189371898",
+   "name": "Nicholas Building",
+   "wikidata": "Q30605720"
+  },
+  {
+   "key": "w430121151",
+   "name": "Amtrak Toledo Station",
+   "wikidata": "Q6776061"
+  },
+  {
+   "key": "w430271546",
+   "name": "Ashland Avenue Baptist Church",
+   "wikidata": "Q4805224"
+  },
+  {
+   "key": "w429787172",
+   "name": "Summit Center Toledo",
+   "wikidata": ""
+  },
+  {
+   "key": "w189371912",
+   "name": "Spitzer Building",
+   "wikidata": ""
+  },
+  {
+   "key": "w171964340",
+   "name": "Renaissance Toledo Downtown Hotel",
+   "wikidata": ""
+  },
+  {
+   "key": "w429963849",
+   "name": "Ohio Bell Building Toledo",
+   "wikidata": ""
+  },
+  {
+   "key": "w189369980",
+   "name": "Libbey-Owens-Ford building Toledo",
+   "wikidata": ""
+  },
+  {
+   "key": "w580662591",
+   "name": "Edison Plaza Toledo",
+   "wikidata": ""
+  },
+  {
+   "key": "w429962019",
+   "name": "Toledo Trust Building",
+   "wikidata": ""
+  },
+  {
+   "key": "w189305197",
+   "name": "Michael V. DiSalle Government Center",
+   "wikidata": ""
+  },
+  {
+   "key": "w429957793",
+   "name": "PNC Bank Building Toledo",
+   "wikidata": ""
+  },
+  {
+   "key": "w299681022",
+   "name": "Collingwood Arts Center",
+   "wikidata": "Q5147289"
+  },
+  {
+   "key": "w190606032",
+   "name": "Congregation B'nai Israel",
+   "wikidata": ""
+  },
+  {
+   "key": "w761332296",
+   "name": "Eastwood Theater 8",
+   "wikidata": "Q43163836"
+  },
+  {
+   "key": "w196493775",
+   "name": "Emmanuel Christian School",
+   "wikidata": "Q5373172"
+  },
+  {
+   "key": "w429957698",
+   "name": "Fiberglass Tower",
+   "wikidata": "Q5446386"
+  },
+  {
+   "key": "w585536001",
+   "name": "Franklin Park Mall",
+   "wikidata": "Q7988679"
+  },
+  {
+   "key": "w186945385",
+   "name": "Hollywood Casino Toledo",
+   "wikidata": "Q5882639"
+  },
+  {
+   "key": "w182059793",
+   "name": "Huntington Center",
+   "wikidata": "Q1638213"
+  },
+  {
+   "key": "w428956587",
+   "name": "IUOE Local 18",
+   "wikidata": ""
+  },
+  {
+   "key": "w189303388",
+   "name": "Imagination Station",
+   "wikidata": "Q6002603"
+  },
+  {
+   "key": "w192168897",
+   "name": "Jefferson Center",
+   "wikidata": "Q6175384"
+  },
+  {
+   "key": "w112574115",
+   "name": "John F. Savage Arena",
+   "wikidata": "Q7427699"
+  },
+  {
+   "key": "w429964820",
+   "name": "King Warehouse Number 1",
+   "wikidata": "Q117066094"
+  },
+  {
+   "key": "w189363860",
+   "name": "Lucas County Courthouse",
+   "wikidata": "Q14716642"
+  },
+  {
+   "key": "w196777177",
+   "name": "Medical Mutual of Ohio",
+   "wikidata": "Q6806388"
+  },
+  {
+   "key": "w421852806",
+   "name": "National Museum of the Great Lakes",
+   "wikidata": "Q19865650"
+  },
+  {
+   "key": "w196776366",
+   "name": "Notre Dame Academy",
+   "wikidata": "Q7063363"
+  },
+  {
+   "key": "w429955308",
+   "name": "Ohio Building",
+   "wikidata": "Q30605923"
+  },
+  {
+   "key": "w203399039",
+   "name": "Ohio Theatre",
+   "wikidata": "Q7080985"
+  },
+  {
+   "key": "r9991319",
+   "name": "Ottawa Hills High School",
+   "wikidata": "Q7109188"
+  },
+  {
+   "key": "r4726969",
+   "name": "Owens Corning Fiberglass World Headquarters",
+   "wikidata": "Q7114736"
+  },
+  {
+   "key": "w189302806",
+   "name": "ProMedica Headquarters",
+   "wikidata": "Q125320666"
+  },
+  {
+   "key": "w708650218",
+   "name": "Pythian Castle",
+   "wikidata": "Q7263861"
+  },
+  {
+   "key": "w365614688",
+   "name": "Rogers High School",
+   "wikidata": "Q7359293"
+  },
+  {
+   "key": "w637393360",
+   "name": "Rossford Public Library",
+   "wikidata": "Q7369819"
+  },
+  {
+   "key": "w323892467",
+   "name": "Saint Martin de Porres Catholic Church",
+   "wikidata": ""
+  },
+  {
+   "key": "w507077154",
+   "name": "Stranahan Theater",
+   "wikidata": "Q7621209"
+  },
+  {
+   "key": "w429966351",
+   "name": "The Historic Church of Saint Patrick",
+   "wikidata": "Q7590917"
+  },
+  {
+   "key": "w189305230",
+   "name": "Toledo Blade Building",
+   "wikidata": "Q442288"
+  },
+  {
+   "key": "w233893958",
+   "name": "Toledo Museum of Art",
+   "wikidata": "Q1743116"
+  },
+  {
+   "key": "r10581471",
+   "name": "Toledo Museum of Art Glass Pavillon",
+   "wikidata": "Q117348202"
+  },
+  {
+   "key": "w192168392",
+   "name": "Toledo School For the Arts",
+   "wikidata": "Q7814183"
+  },
+  {
+   "key": "r3360618",
+   "name": "Toledo Technology Academy of Engineering",
+   "wikidata": "Q7814194"
+  },
+  {
+   "key": "w691106269",
+   "name": "Toledo Transmission",
+   "wikidata": "Q7814196"
+  },
+  {
+   "key": "w593537151",
+   "name": "Toledo Yacht Club",
+   "wikidata": "Q7814200"
+  },
+  {
+   "key": "w189367647",
+   "name": "Toledo-Lucas County Public Library (Main Branch)",
+   "wikidata": "Q140142324"
+  },
+  {
+   "key": "w302977793",
+   "name": "Trinity Episcopal Church",
+   "wikidata": "Q7842776"
+  },
+  {
+   "key": "w632390828",
+   "name": "United Missionary Baptist Church",
+   "wikidata": "Q5452715"
+  },
+  {
+   "key": "w189304605",
+   "name": "United States Courthouse",
+   "wikidata": "Q6138352"
+  },
+  {
+   "key": "w25589623",
+   "name": "University of Toledo Center for the Visual Arts",
+   "wikidata": "Q118636751"
+  },
+  {
+   "key": "w706242351",
+   "name": "University of Toledo Medical Center",
+   "wikidata": "Q7896470"
+  },
+  {
+   "key": "w189371987",
+   "name": "Valentine Theatre",
+   "wikidata": "Q7911022"
+  },
+  {
+   "key": "w197807843",
+   "name": "WTVG-TV Studios",
+   "wikidata": "Q2386816"
+  },
+  {
+   "key": "r2639816",
+   "name": "Whitmer High School",
+   "wikidata": "Q7996627"
+  },
+  {
+   "key": "w430269736",
+   "name": "(unnamed, Q117066103)",
+   "wikidata": "Q117066103"
+  },
+  {
+   "key": "w754352264",
+   "name": "(unnamed, Q5160592)",
+   "wikidata": "Q5160592"
+  }
+ ]
+}

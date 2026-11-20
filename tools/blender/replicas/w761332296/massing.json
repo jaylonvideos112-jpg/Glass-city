@@ -1,0 +1,59 @@
+{
+ "key": "w761332296",
+ "src": "lidar_county",
+ "anchor": [
+  1876.41,
+  1892.855
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 9.59,
+   "polys": [
+    [
+     [
+      -18.241,
+      6.914
+     ],
+     [
+      -17.892,
+      -7.758
+     ],
+     [
+      3.393,
+      -7.246
+     ],
+     [
+      18.206,
+      -6.901
+     ],
+     [
+      17.857,
+      7.771
+     ],
+     [
+      9.107,
+      7.582
+     ],
+     [
+      -17.169,
+      6.87
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "addr:city": "Toldeo",
+  "addr:housenumber": "817",
+  "addr:postcode": "43605",
+  "addr:state": "OH",
+  "addr:street": "East Broadway",
+  "amenity": "cinema",
+  "building": "yes",
+  "name": "Eastwood Theater 8",
+  "screen": "1",
+  "wikidata": "Q43163836"
+ }
+}

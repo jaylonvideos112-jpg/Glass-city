@@ -1382,8 +1382,23 @@ for k_, (e, g) in enumerate(parts):
     if BBOX_P.contains(cp): bjobs[rkey(cp.x, cp.y)].append((e, g, cp, ("part", k_)))
 
 labels_done = set()
+# ---- hand-made replicas (tools/blender/replica.py): their generic geometry is left out, the game places the model
+_REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+REPLICAS = {}
+for _mf in glob.glob(os.path.join(_REPO, "tools/blender/replicas/*/massing.json")):
+    _md = json.load(open(_mf))
+    if not os.path.exists(os.path.join(_REPO, "assets/models/bld_%s.glb" % _md["key"])): continue
+    _ax, _ay = _md["anchor"][0], -_md["anchor"][1]
+    _polys = [Polygon([(x + _ax, y + _ay) for x, y in pp]) for pp in _md["tiers"][0]["polys"] if len(pp) >= 3]
+    REPLICAS[_md["key"]] = {"anchor": _md["anchor"], "foot": unary_union(_polys).buffer(1.5)}
+log("replicas", len(REPLICAS))
+REPLICA_PLACED = []
+
 def do_building(e, g, cp, is_part):
     t = tags(e)
+    _k = f"{e['type'][0]}{e['id']}"
+    if _k in REPLICAS: return
+    if REPLICAS and any(r["foot"].contains(cp) for r in REPLICAS.values()): return     # parts inside a replica
     rnd = int(hashlib.md5(str(e["id"]).encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
     part_lm = LANDMARKS.get(PART_PARENT.get(is_part[1])) if isinstance(is_part, tuple) else None
     kind = "yes" if is_part else t.get("building", "yes")
@@ -1607,4 +1622,7 @@ manifest = {"chunk_size": CHUNK, "origin_lat": LAT0, "origin_lon": LON0, "chunks
             "spawn": [sx, -sy], "spawn_desc": f"{s1} & {s2}", "bbox": [bx0, -by1, bx1, -by0],
             "water_y": WATER_Y, "ground_y": GROUND_COL_Y, "places": places}
 json.dump(manifest, open(os.path.join(OUTDIR, "manifest.json"), "w"))
+REPLICA_PLACED = [{"key": k, "anchor": r["anchor"]} for k, r in sorted(REPLICAS.items())]
+json.dump({"replicas": REPLICA_PLACED}, open(os.path.join(OUTDIR, "replicas.json"), "w"))
+log("replicas placed", len(REPLICA_PLACED))
 log("DONE chunks", len(manifest_chunks), "verts", total_v, "labels", len(labels_done))

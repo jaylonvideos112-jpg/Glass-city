@@ -1,0 +1,64 @@
+{
+ "key": "w189305230",
+ "src": "lidar_county",
+ "anchor": [
+  369.728,
+  -287.277
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 17.81,
+   "polys": [
+    [
+     [
+      -25.386,
+      44.433
+     ],
+     [
+      55.262,
+      -7.208
+     ],
+     [
+      52.584,
+      -11.227
+     ],
+     [
+      54.813,
+      -14.344
+     ],
+     [
+      12.651,
+      -40.226
+     ],
+     [
+      1.38,
+      -32.979
+     ],
+     [
+      2.462,
+      -31.354
+     ],
+     [
+      -11.337,
+      -22.492
+     ],
+     [
+      -51.561,
+      2.098
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "addr:housenumber": "541",
+  "addr:street": "N Superior Street",
+  "building": "commercial",
+  "name": "Toledo Blade Building",
+  "office": "newspaper",
+  "wikidata": "Q442288",
+  "wikipedia": "en:The Blade (Toledo, Ohio)"
+ }
+}

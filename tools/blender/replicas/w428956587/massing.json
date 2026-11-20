@@ -1,0 +1,52 @@
+{
+ "key": "w428956587",
+ "src": "lidar_county",
+ "anchor": [
+  -10596.445,
+  6275.181
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 9.600000000000001,
+   "polys": [
+    [
+     [
+      -16.044,
+      -13.134
+     ],
+     [
+      3.004,
+      -13.234
+     ],
+     [
+      3.012,
+      -10.908
+     ],
+     [
+      16.67,
+      -10.975
+     ],
+     [
+      16.794,
+      12.213
+     ],
+     [
+      -15.91,
+      12.38
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "addr:city": "Toledo",
+  "addr:state": "OH",
+  "addr:street": "South Reynolds Road",
+  "building": "commercial",
+  "name": "IUOE Local 18",
+  "office": "union",
+  "wikimedia_commons": "File:IUOE_Local_18_District_2_Union_Hall,_January_2023.jpg"
+ }
+}
