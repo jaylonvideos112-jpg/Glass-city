@@ -378,9 +378,11 @@ LiDAR heights and roofs, landmarks, Anthony Wayne Bridge and Skyway, ballparks, 
   cornices, parapets, battlements), curtain walls, solid walls, Art Deco spandrels, storefronts, per-LiDAR-tier specs,
   outline orthogonalisation for noisy LiDAR, composed parts (gable/hip/pyramid/mansard roofs, towers, pinnacles,
   rose windows), giant-order porticos with or without pediments, domes on colonnaded drums with lanterns.
-- Done so far (10): Nicholas Building, Fiberglas Tower / Tower on the Maumee, PNC Bank Building, Spitzer Building,
-  Lucas County Courthouse, Valentine Theatre building, Toledo Museum of Art, Ashland Avenue Baptist Church,
-  Collingwood Arts Center.
+- Done so far (11): Nicholas Building, Fiberglas Tower / Tower on the Maumee, Fifth Third Center at One SeaGate,
+  PNC Bank Building, Michael DiSalle Government Center, Spitzer Building, Lucas County Courthouse, Valentine
+  Theatre building, Toledo Museum of Art, Ashland Avenue Baptist Church, Collingwood Arts Center.
+- Reference photos: `fetch_named.py` downloads named Commons files with curl (Python urllib is throttled);
+  `demo.gd` shots `@replica <key> <angle>` and `@cam [pos] [look]` for checking replicas in game.
 - Fix: the exact downtown LiDAR massing was keyed to county-footprint ids from an older county join, so 638
   downtown buildings had their heights applied to unrelated houses (floating penthouses, wrong heights).
   Regenerated; the Hotel SeaGate demolition override now finds the building by county address.

@@ -256,6 +256,16 @@ func _shots(dt: float) -> void:
 			shot_wait += dt
 			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 50.0
 			return
+	elif s[0] == "@cam":
+		# free camera: s[1] = position, s[2] = look-at (world metres); streams the area under the camera first
+		main.hud.visible = false; main.player.visible = false
+		pos = s[1]; look = s[2]
+		if shot_wait == 0.0:
+			main.player.global_position = Vector3(pos.x, 1.0, pos.z) - main.world_offset
+		if shot_wait < 8.0:
+			shot_wait += dt
+			cam.global_position = pos - main.world_offset; cam.look_at(look - main.world_offset, Vector3.UP); cam.fov = 50.0
+			return
 	elif s[0] == "@replica":
 		# a hand-made replica building (s[1] = OSM key, optional s[2] = view angle degrees): walk there, frame it
 		main.hud.visible = false

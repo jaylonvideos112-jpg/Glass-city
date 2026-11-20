@@ -58,6 +58,7 @@ const MAT := {
 	"brick_orange": ["brick_wall_003", Color(1.18, 0.8, 0.58), 0.85, 0.0, 1.4],
 	"brick_brown": ["brick_wall_001", Color(0.8, 0.7, 0.6), 0.85, 0.0, 2.0],
 	"terracotta": ["white_sandstone_bricks", Color(1.05, 0.9, 0.75), 0.7, 0.0, 2.5],
+	"precast_white": ["concrete_wall_008", Color(1.3, 1.3, 1.28), 0.7, 0.0, 3.0],
 	"precast": ["concrete_wall_008", Color(1.1, 1.08, 1.04), 0.8, 0.0, 3.0],
 	"concrete": ["concrete_wall_008", Color(1, 1, 1), 0.85, 0.0, 3.0],
 	"granite_dark": ["", Color(0.16, 0.15, 0.15), 0.35, 0.0, 1.0],
@@ -99,7 +100,8 @@ func material(name: String) -> Material:
 func _glass(name: String) -> ShaderMaterial:
 	var sm := ShaderMaterial.new()
 	sm.shader = load("res://shaders/replica_glass.gdshader")
-	sm.set_shader_parameter("tint", Color(0.05, 0.08, 0.11) if name != "glass_curtain" else Color(0.1, 0.18, 0.26))
+	var tints := {"glass_curtain": Color(0.1, 0.18, 0.26), "glass_teal": Color(0.12, 0.3, 0.32), "glass_dark": Color(0.03, 0.035, 0.04)}
+	sm.set_shader_parameter("tint", tints.get(name, Color(0.05, 0.08, 0.11)))
 	sm.set_shader_parameter("shop", 1.0 if name == "glass_shop" else 0.0)
 	return sm
 

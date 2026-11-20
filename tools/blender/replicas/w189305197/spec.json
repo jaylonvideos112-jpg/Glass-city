@@ -1,0 +1,10 @@
+{"name": "Michael DiSalle Government Center (1982, Minoru Yamasaki), 1 Government Center",
+ "refs": "refs/w189305197/00 (DiSalle Government Center Toledo, Ohio, Wikimedia Commons)",
+ "notes": "22 storeys, ~100 m: white precast slab with chamfered corners, a dense grid of tall narrow punched windows (Yamasaki's signature), recessed glazed lobby, rooftop mechanical penthouse.",
+ "materials": {"base": "precast", "body": "precast_white", "trim": "precast_white", "solid": "precast_white", "frame": "metal_dark", "glass": "glass_dark", "shop_glass": "glass_shop", "roof": "roof_flat", "penthouse": "precast_white"},
+ "min_face": 6.0, "solid_below": 6.0,
+ "floors": [{"n": 1, "h": 7.0, "kind": "storefront", "glass_h": 0.92}, {"n": 21, "h": 4.15}],
+ "bay": 1.62, "corner_pier": 1.0, "pilaster": 0.6,
+ "window": {"w": 0.42, "h": 0.66, "group": 1, "depth": 0.28, "mull": "none", "sill_frac": 0.5},
+ "parapet": 1.2
+}

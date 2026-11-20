@@ -1,0 +1,12 @@
+{"name": "Fifth Third Center at One SeaGate (1982), 1 SeaGate",
+ "refs": "refs/w191008880/00 (Toledo, Ohio Skyline, July 2022, Wikimedia Commons) + LiDAR/published height 125 m",
+ "notes": "32 storeys, 125 m: blue-green reflective glass curtain wall with fine mullions and spandrel bands, on a glazed 3-storey podium; the Fifth Third Bank sign at the crown is left off (trademark).",
+ "materials": {"base": "granite_dark", "body": "glass_teal", "solid": "metal_dark", "trim": "metal_light", "frame": "metal_light", "glass": "glass_teal", "curtain_glass": "glass_teal", "spandrel": "glass_teal", "mullion": "metal_light", "shop_glass": "glass_shop", "roof": "roof_flat"},
+ "style": "curtain", "simplify": 0.5,
+ "curtain": {"mullion": 1.5, "spandrel": 1.0, "fin": 0.06, "mw": 0.04},
+ "floors": [{"n": 1, "h": 4.0}],
+ "tiers": [
+  {"floors": [{"n": 1, "h": 5.0, "kind": "lobby"}, {"n": 2, "h": 3.6}], "parapet": 0.8},
+  {"floors": [{"n": 29, "h": 3.85}], "parapet": 1.0}
+ ]
+}

@@ -330,7 +330,7 @@ func t_carjack() -> Array:
 	var car = vh.try_carjack(main.player.global_position)
 	main.player.global_position = keep
 	if car == null: return [false, "couldn't take the stopped car"]
-	var ok: bool = main.cars.size() == n0 + 1 and car.stolen and car.spec_id == "takumi_corsa" and not tr.cars.has(tc)
+	var ok: bool = main.cars.has(car) and main.cars.size() >= n0 + 1 and car.stolen and car.spec_id == "takumi_corsa" and not tr.cars.has(tc)
 	var crime: Array = main.police.crimes[-1] if not main.police.crimes.is_empty() else []
 	main.cars.erase(car); car.queue_free(); main.police.lose_them()
 	if not ok: return [false, "stolen car not set up right"]
