@@ -457,10 +457,14 @@ func _step_special(p: Dictionary, dt: float) -> bool:
 			p["flee_t"] -= dt
 			var fd: Vector3 = p["flee_dir"]
 			var np: Vector3 = p["pos"] + fd * p["speed"] * 2.4 * dt
+			var was: Vector3 = p["pos"]
 			p["pos"] = np
 			p["yaw"] = lerp_angle(p["yaw"], atan2(-fd.x, -fd.z), clampf(dt * 8.0, 0.0, 1.0))
 			p["phase"] = fmod(p["phase"] + dt * p["speed"] * 2.4 * 5.2, TAU)
 			_ground(p, false)
+			if float(p["y"]) < -0.8:          # don't run into the river: turn along the bank instead
+				p["pos"] = was; _ground(p, true)
+				p["flee_dir"] = Vector3(-fd.z, 0, fd.x) if rng.randf() < 0.5 else Vector3(fd.z, 0, -fd.x)
 			if p["flee_t"] <= 0.0:
 				# back to a normal walk on the nearest sidewalk
 				p["state"] = "walk"

@@ -77,7 +77,7 @@ func dress(look: Dictionary) -> void:
 				if look.has("hair") and key == "a_hair": m.albedo_color = (look["hair"] as Color).lightened(0.4)
 			elif key == "skin":
 				m.roughness = 0.55
-				m.subsurf_scatter_enabled = true; m.subsurf_scatter_strength = 0.15
+				m.roughness = 0.62           # (no subsurface: it washed out faces in daylight)
 			elif key.begins_with("cloth_") and look.has("uniform") and not key.contains("shoes"):
 				m.albedo_color = look["uniform"]
 			mi.set_surface_override_material(i, m)
