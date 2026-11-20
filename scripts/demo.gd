@@ -40,7 +40,7 @@ func _ready() -> void:
 			var j = JSON.parse_string(FileAccess.get_file_as_string(a.substr(11)))
 			shots = []
 			for s in j:
-				shots.append([s[0], s[1] if (s[1] == null or s[1] is String) else Vector3(s[1][0], s[1][1], s[1][2]), s[2] if (s[2] == null or not (s[2] is Array)) else Vector3(s[2][0], s[2][1], s[2][2])])
+				shots.append([s[0], s[1] if (s[1] == null or s[1] is String) else Vector3(s[1][0], s[1][1], s[1][2]), s[2] if (s[2] == null or not (s[2] is Array)) else Vector3(s[2][0], s[2][1], s[2][2]), s[3] if s.size() > 3 else ""])
 		if a.begins_with("--fly="):
 			var f := a.substr(6).split(",")
 			fly_center = Vector3(float(f[0]), 0, float(f[1])); fly_r0 = float(f[2]); fly_h0 = float(f[3])
@@ -611,7 +611,8 @@ func _shots(dt: float) -> void:
 		await RenderingServer.frame_post_draw
 		busy = false
 		var img := get_viewport().get_texture().get_image()
-		var path: String = out_dir.path_join(String(s[0]).replace("@", "") + ".png")
+		var fname: String = String(s[3]) if s.size() > 3 and String(s[3]) != "" else String(s[0]).replace("@", "")
+		var path: String = out_dir.path_join(fname + ".png")
 		img.save_png(path)
 		print("[demo] saved ", path)
 		shot_i += 1

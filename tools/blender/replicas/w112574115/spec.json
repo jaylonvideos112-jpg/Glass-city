@@ -1,0 +1,10 @@
+{"name": "John F. Savage Arena (1976, renovated 2008 by SSOE + Ellerbe Becket), University of Toledo",
+ "refs": "No open-licence exterior photo; built from Wikipedia/SSOE/UT Athletics descriptions + LiDAR.",
+ "notes": "1970s concrete-and-brick arena bowl with a flat roof, wrapped by the 2008 Sullivan Athletic Complex addition with a glazed entrance front; 90-ft campus steam-plant stack added in the renovation.",
+ "materials": {"base": "concrete", "body": "brick_brown", "trim": "precast", "cornice": "precast", "pier": "precast", "frame": "frame_dark", "glass": "glass_curtain", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_brown"},
+ "smooth_m": 2.0, "simplify": 0.5, "min_face": 5.0, "min_poly_area": 40, "bay": 7.0, "corner_pier": 1.0,
+ "window": {"w": 0.85, "h": 0.6, "group": 1, "depth": 0.15, "mull": "grid", "sill_frac": 0.3},
+ "floors": [{"n": 1, "h": 6.0, "kind": "storefront"}, {"n": 1, "h": 12.82, "kind": "blank"}],
+ "piers": {"every": 2, "w": 1.2, "d": 0.3}, "cornice": {"h": 1.0, "out": 0.4}, "parapet": 0.6,
+ "extras": [{"stack": {"rel": [40, 30], "r0": 1.6, "r1": 1.3, "z1": 27.4, "mat": "concrete"}}]
+}

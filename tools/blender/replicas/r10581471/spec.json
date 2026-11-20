@@ -1,0 +1,9 @@
+{"name": "Glass Pavilion, Toledo Museum of Art (2006, SANAA), 2445 Monroe St",
+ "refs": "No usable open-licence photo; built from published descriptions (SANAA/Front Inc./Pilkington/Domus/Bluffton College) + LiDAR footprint and height.",
+ "notes": "One-storey pavilion ~60 x 60 m, roof ~4.5 m: continuous floor-to-ceiling low-iron curved glass perimeter with no exposed mullions, a thin aluminium fascia over the roof edge and a low aluminium platform at the base.",
+ "materials": {"base": "metal_light", "body": "metal_light", "trim": "metal_light", "cornice": "metal_light", "pier": "metal_light", "frame": "metal_light", "glass": "glass_window", "shop_glass": "glass_window", "roof": "roof_flat", "solid": "metal_light", "spandrel": "metal_light"},
+ "smooth_m": 2.5, "simplify": 0.3, "min_face": 2.0, "bay": 2.4, "corner_pier": 0.05,
+ "style": "curtain", "solid_below": 0, "curtain": {"mullion": 2.4, "spandrel": 0.02, "fin": 0.0, "mw": 0.01},
+ "floors": [{"n": 1, "h": 4.4, "kind": "storefront"}],
+ "plinth": 0.3, "cornice": {"h": 0.5, "out": 0.02}
+}

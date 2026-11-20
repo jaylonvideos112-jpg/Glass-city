@@ -107,6 +107,11 @@ func _make_materials() -> void:
 		materials["siding%d" % i] = _tex_mat("siding", tints[i])
 	materials["roof"] = _tex_mat("roof")
 	materials["sand"] = ground_mat("coast_sand_01", 2.5)   # island beaches
+	# sports courts / ball fields / playgrounds (OSM leisure=pitch, playground)
+	for cm in [["court_green", Color(0.24, 0.42, 0.32), 0.75], ["court_blue", Color(0.20, 0.33, 0.52), 0.75], ["court_red", Color(0.55, 0.24, 0.20), 0.8],
+			["infield", Color(0.56, 0.40, 0.28), 0.95], ["mulch", Color(0.36, 0.25, 0.16), 1.0], ["paint_line", Color(0.93, 0.93, 0.9), 0.7]]:
+		var sm := StandardMaterial3D.new(); sm.albedo_color = cm[1]; sm.roughness = cm[2]
+		materials[cm[0]] = sm
 	var fac := ShaderMaterial.new()
 	fac.shader = load("res://shaders/facade.gdshader")
 	var nt := NoiseTexture2D.new()
@@ -353,10 +358,20 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		root.add_child(body)
 	var trees := []
 	var lamps := []
+	var models := {}
 	for p in d["props"]:
 		if p[0] == "tree": trees.append(p)
 		elif p[0] == "lamp": lamps.append(p)
+		elif String(p[0]).begins_with("m:"):      # Blender model prop (park equipment ...): batch per model
+			if not models.has(p[0]): models[p[0]] = []
+			models[p[0]].append(p)
 		else: _add_prop(root, p)
+	for mk in models:
+		var mm_mesh := ModelLib.mesh(String(mk).substr(2))
+		if mm_mesh: 
+			var mmi := _multimesh(mm_mesh, models[mk], false)
+			mmi.visibility_range_end = 350.0
+			root.add_child(mmi)
 	if not trees.is_empty():
 		# two species of photo-real billboard trees (baked from CC0 Poly Haven models)
 		var tA: Array = []; var tB: Array = []
@@ -443,7 +458,9 @@ func _multimesh(mesh: Mesh, items: Array, scale_from_data: bool) -> MultiMeshIns
 	for i in items.size():
 		var p: Array = items[i]
 		var b := Basis()
-		if scale_from_data:
+		if scale_from_data and p.size() > 5:      # LiDAR tree: [.., height scale, crown scale]
+			b = Basis(Vector3.UP, float(i) * 1.7).scaled(Vector3(p[5], p[4], p[5]))
+		elif scale_from_data:
 			b = Basis(Vector3.UP, float(i) * 1.7).scaled(Vector3.ONE * p[4])
 		else:
 			b = Basis(Vector3.UP, p[4])

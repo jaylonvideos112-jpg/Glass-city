@@ -1,0 +1,8 @@
+{"name": "Rossford Public Library, 720 Dixie Hwy",
+ "refs": "refs/w637393360/00 (Rossford Public Library, February 2021, Wikimedia Commons)",
+ "notes": "Single-storey red-brick library with a white metal fascia and flat roof, a glazed entrance under a deep flat canopy, clerestory glass band, and a round drum reading room with tall windows and a stacked white roof ring.",
+ "materials": {"base": "brick_brown", "body": "brick_red", "trim": "frame_white", "cornice": "frame_white", "pier": "brick_red", "frame": "frame_white", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "brick_red"},
+ "smooth_m": 1.0, "simplify": 0.3, "bay": 4.0, "corner_pier": 0.6,
+ "window": {"w": 0.7, "h": 0.55, "group": 1, "depth": 0.12, "mull": "grid", "sill_frac": 0.3},
+ "floors": [{"n": 1, "h": 6.57}], "cornice": {"h": 0.8, "out": 0.9}
+}

@@ -3,7 +3,7 @@ Godot faces -Z = Blender +Y, so every prop's 'front' (road side) points +Y here.
 usage: bpyenv/bin/python tools/blender/street_props.py OUTDIR"""
 import sys, math, bpy, bmesh
 from mathutils import Vector, Matrix
-OUT = sys.argv[1]
+OUT = sys.argv[1] if len(sys.argv) > 1 else "."
 
 def reset():
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -145,4 +145,5 @@ def bench():
         box((1.62, 0.028, 0.095), (0, -0.25 - i * 0.02, 0.6 + i * 0.12), wood, 0.008, rot=(-0.16, 0, 0))
     export("park_bench")
 
-street_light(); mailbox(); newsbox(); bench()
+if __name__ == "__main__":
+    street_light(); mailbox(); newsbox(); bench()

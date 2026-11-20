@@ -1,0 +1,10 @@
+{"name": "The Blade Building (1927), 541 N Superior St at Orange St",
+ "refs": "No open-licence photo; built from Blade/HMDB descriptions ('grand grey castle', 1926-27) + LiDAR.",
+ "notes": "Renaissance Revival newspaper headquarters in grey stone: rusticated ground floor with big round-arched windows, regular punched windows in the upper storeys, belt course and heavy cornice with parapet. Height and footprint from LiDAR; window rhythm approximated.",
+ "materials": {"base": "granite_dark", "body": "limestone", "trim": "limestone", "cornice": "limestone", "pier": "limestone", "frame": "frame_dark", "glass": "glass_window", "shop_glass": "glass_shop", "roof": "roof_flat", "solid": "limestone"},
+ "orthogonal": true, "grid": 0.5, "bay": 3.6, "corner_pier": 1.8,
+ "window": {"w": 0.5, "h": 0.62, "group": 1, "depth": 0.3, "mull": "cross", "sill_frac": 0.5},
+ "floors": [{"n": 1, "h": 6.0, "arched": true, "ww": 0.6, "wh": 0.72}, {"n": 3, "h": 3.6}],
+ "plinth": 0.7, "belts": [{"above_floor": 1, "h": 0.7, "out": 0.3}],
+ "cornice": {"h": 1.2, "out": 0.9}, "parapet": 0.8, "battlement": true
+}

@@ -11,6 +11,7 @@ from collections import defaultdict
 import numpy as np
 import shapely
 import shapely.prepared
+import shapely.affinity
 from shapely.geometry import Polygon, LineString, MultiPolygon, box, Point, GeometryCollection, MultiLineString
 from shapely.geometry.polygon import orient
 from shapely.ops import unary_union, polygonize, linemerge
@@ -89,9 +90,14 @@ class Chunk:
 chunks = {}
 def ckey(x, y): return (math.floor(x / CHUNK), math.floor(y / CHUNK))
 def rkey(x, y): return (math.floor(x / REGION), math.floor(y / REGION))
+CUR_REGION = None; SPILL = defaultdict(int)
 def chunk_at(x, y):
     k = ckey(x, y)
-    if k not in chunks: chunks[k] = Chunk(*k)
+    if k not in chunks:
+        chunks[k] = Chunk(*k)
+        if CUR_REGION is not None and rkey(k[0] * CHUNK + 1, k[1] * CHUNK + 1) != CUR_REGION:
+            import traceback
+            fr = traceback.extract_stack()[-2]; SPILL[(fr.name, fr.lineno)] += 1
     return chunks[k]
 def to3(c, x, y, h): return (x - c.ox, h, -(y - c.oy))
 
@@ -991,6 +997,12 @@ for _ev in ("LIDAR2", "LIDAR3"):          # LIDAR3 = exact downtown massing (ful
     _l2 = os.environ.get(_ev, "")
     if _l2 and os.path.exists(_l2): LID.update(pickle.load(open(_l2, "rb")))
 log("lidar measurements", len(LID))
+# real trees measured from LiDAR (tools/pipeline/lidar_trees.py): [x, z_game, height, crown radius]
+LTREES = defaultdict(list)
+_lt = os.environ.get("LTREES", "")
+if _lt and os.path.exists(_lt):
+    for _x, _z, _h, _r in json.load(open(_lt))["trees"]: LTREES[rkey(_x, -_z)].append((_x, -_z, _h, _r))
+log("lidar trees", sum(len(v) for v in LTREES.values()))
 STREET_TREE = STRtree(street_lines) if street_lines else None
 
 def rect_frame(g):
@@ -1049,6 +1061,47 @@ def pitched_roof(c, g, h, mat_wall, ridge, kind="gable", roof_mat="shingle"):
             tw, th = TILE.get(mat_wall, (5, 5))
             tri(c, mat_wall, P3(p, h), P3(q, h), P3(m, top), (nx, 0.0, -ny), [(0, -h / th), (L / tw, -h / th), (L / 2 / tw, -top / th)], True)
     return True
+
+def _max_rect(M):
+    """largest all-True axis-aligned rectangle in a bool matrix (histogram method) -> (area, i0, j0, i1, j1)."""
+    H = np.zeros(M.shape[1], int); best = (0, 0, 0, 0, 0)
+    for i in range(M.shape[0]):
+        H = np.where(M[i], H + 1, 0); st = []
+        for j in range(M.shape[1] + 1):
+            hj = H[j] if j < M.shape[1] else 0
+            start = j
+            while st and st[-1][1] >= hj:
+                s0, hh = st.pop()
+                if hh * (j - s0) > best[0]: best = (hh * (j - s0), i - hh + 1, s0, i + 1, j)
+                start = s0
+            st.append((start, hj))
+    return best
+
+def rect_parts(g, res=0.5, max_parts=4):
+    """Split an L / T / U / stepped house footprint into rectangles in its own frame, so each wing gets a real
+    pitched roof (wings at the same pitch intersect like real cross gables)."""
+    rect = g.minimum_rotated_rectangle
+    if not isinstance(rect, Polygon): return []
+    cs = list(rect.exterior.coords)[:4]
+    if math.dist(cs[0], cs[1]) < math.dist(cs[1], cs[2]): cs = cs[1:] + cs[:1]
+    ang = math.atan2(cs[1][1] - cs[0][1], cs[1][0] - cs[0][0]); ca, sa = math.cos(ang), math.sin(ang)
+    ox, oy = g.centroid.x, g.centroid.y
+    loc = shapely.affinity.affine_transform(g, [ca, sa, -sa, ca, -(ca * ox + sa * oy), -(-sa * ox + ca * oy)])
+    x0, y0, x1, y1 = loc.bounds
+    nx, ny = int(math.ceil((x1 - x0) / res)), int(math.ceil((y1 - y0) / res))
+    if nx * ny > 40000 or nx < 4 or ny < 4: return []
+    xs = x0 + (np.arange(nx) + 0.5) * res; ys = y0 + (np.arange(ny) + 0.5) * res
+    gx, gy = np.meshgrid(xs, ys, indexing="ij")
+    M = shapely.contains_xy(loc, gx, gy)
+    total = M.sum(); parts = []
+    while len(parts) < max_parts and M.sum() > 0.12 * total:
+        a, i0, j0, i1, j1 = _max_rect(M)
+        if a * res * res < 8.0 or min(i1 - i0, j1 - j0) * res < 2.5: break
+        M[i0:i1, j0:j1] = False
+        lx0, lx1, ly0, ly1 = x0 + i0 * res, x0 + i1 * res, y0 + j0 * res, y0 + j1 * res
+        pts = [(lx0, ly0), (lx1, ly0), (lx1, ly1), (lx0, ly1)]
+        parts.append(Polygon([(ox + ca * u - sa * v, oy + sa * u + ca * v) for u, v in pts]))
+    return parts if len(parts) >= 1 and sum(q.area for q in parts) > 0.7 * g.area else []
 
 def cbox(c, cx, cy, u, v, hu, hv, z0, z1, mat, collide=False):
     """Oriented box in chunk space (porches, columns, crowns)."""
@@ -1244,7 +1297,11 @@ def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=No
             walls(c, p, b0, h - dome_h if h - dome_h > 3 else h, mat)
             dome(c, p.centroid.x, p.centroid.y, r_, h - dome_h if h - dome_h > 3 else h, dome_h, roof_mat if roof_mat != "shingle" else "cable")
             continue
+        wings = []
         pitched = kind in ("gable", "gable_cross", "hip") and rect_frame(p) is not None and (p.area < 700 or e.get("tags", {}).get("roof:shape"))
+        if not pitched and kind in ("gable", "gable_cross", "hip") and p.area < 700 and cls in ("house", "garage", "yes", "detached", "residential", "semidetached_house"):
+            wings = rect_parts(p)        # L / T shaped house: one pitched roof per wing
+            pitched = bool(wings)
         if pitched:
             wall_top = eave if (eave and eave > 2.2) else (h if roof is None else h - 2.2)
             ridge = max(0.8, min(7.0, h - wall_top)) if (h - wall_top) > 0.8 else (2.2 if cls == "house" else 1.2)
@@ -1259,7 +1316,15 @@ def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=No
             bm_, bh_ = e["_base"]; bh_ = min(bh_, wall_top - 0.3)
             if bh_ > z + 0.3: walls(c, p, z, bh_, bm_); z = bh_
         walls(c, p, z, wall_top, mat)
-        if not (pitched and pitched_roof(c, p, wall_top, mat, ridge, kind, roof_mat)):
+        if wings:
+            flat_poly(c, "roof", p, wall_top, 6.0, True)          # under-deck for any sliver the wings miss
+            main = max(wings, key=lambda q: q.area); fr0 = rect_frame(main)
+            slope = ridge / max(fr0[2] / 2, 1.0) if fr0 else 0.6
+            for q in wings:
+                fq = rect_frame(q)
+                if fq is None: continue
+                pitched_roof(c, q, wall_top, mat, max(0.6, min(7.0, slope * fq[2] / 2)), "gable" if kind == "gable_cross" else kind, roof_mat)
+        elif not (pitched and pitched_roof(c, p, wall_top, mat, ridge, kind, roof_mat)):
             flat_poly(c, "roof", p, wall_top, 6.0, True)
         if mn > 0:
             for t3 in triangulate(p):
@@ -1291,6 +1356,127 @@ for e in els:
         cp_ = sg.representative_point()
         stadium_jobs[rkey(cp_.x, cp_.y)].append((sg, pitch, t.get("name", "")))
 log("stadiums", sum(len(v) for v in stadium_jobs.values()))
+
+# ---------------------------------------------------------------- sports courts, ball fields, playgrounds (OSM leisure=*)
+park_jobs = defaultdict(list)
+for e in els:
+    t = tags(e); le = t.get("leisure")
+    if le not in ("pitch", "playground"): continue
+    if e["type"] == "node":
+        if le == "playground" and "lat" in e:
+            x, y = P(e["lat"], e["lon"]); park_jobs[rkey(x, y)].append(("play", Point(x, y).buffer(9), "", ""))
+        continue
+    gg = area_geom(e)
+    if gg is None or gg.area < 40 or gg.area > 60000: continue
+    cp_ = gg.representative_point()
+    park_jobs[rkey(cp_.x, cp_.y)].append(("pitch" if le == "pitch" else "play", gg, t.get("sport", ""), t.get("surface", "")))
+log("park features", sum(len(v) for v in park_jobs.values()))
+
+def _yaw(fx, fy): return math.atan2(-fx, fy)          # model front (+Y blender / -Z godot) -> plan direction
+
+def _model(name, x, y, fx, fy):
+    if rkey(x, y) != CUR_REGION: return        # never touch a neighbour region's (already written) chunks
+    c = chunk_at(x, y); c.props.append(["m:" + name, round(x - c.ox, 2), round(-(y - c.oy), 2), 0.0, round(_yaw(fx, fy), 3)])
+
+def _frame(g):
+    fr = rect_frame(g) or (lambda r: (list(r.exterior.coords)[:4], 0, 0, r))(g.minimum_rotated_rectangle)
+    cs = fr[0]
+    if math.dist(cs[0], cs[1]) < math.dist(cs[1], cs[2]): cs = cs[1:] + cs[:1]
+    L, S_ = math.dist(cs[0], cs[1]), math.dist(cs[1], cs[2])
+    u = ((cs[1][0] - cs[0][0]) / L, (cs[1][1] - cs[0][1]) / L); v = ((cs[2][0] - cs[1][0]) / S_, (cs[2][1] - cs[1][1]) / S_)
+    c0 = g.minimum_rotated_rectangle.centroid
+    return (c0.x, c0.y), u, v, L, S_
+
+def _rect(cx, cy, u, v, hl, hs):
+    return Polygon([(cx + u[0] * a * hl + v[0] * b * hs, cy + u[1] * a * hl + v[1] * b * hs) for a, b in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+
+def _line(a, b, w=0.08): return LineString([a, b]).buffer(w / 2, cap_style="flat")
+
+def _aa(g, *args):
+    if g is None or g.is_empty: return
+    g = g.intersection(box(CUR_REGION[0] * REGION, CUR_REGION[1] * REGION, (CUR_REGION[0] + 1) * REGION, (CUR_REGION[1] + 1) * REGION))
+    if not g.is_empty: add_area(g, *args)
+
+def park_feature(kind, g, sport, surface):
+    (cx, cy), u, v, L, S_ = _frame(g)
+    P2 = lambda a, b: (cx + u[0] * a + v[0] * b, cy + u[1] * a + v[1] * b)
+    lines = []
+    if kind == "play":
+        if g.area < 60: return
+        _aa(g, "mulch", 0.03, 3.0)
+        n = 2 if g.area > 700 else 1
+        for k in range(n):
+            x, y = P2((k - (n - 1) / 2) * min(L / 2, 9), 0)
+            _model("park_playground", x, y, v[0], v[1])
+        return
+    hard = sport in ("tennis", "basketball", "pickleball", "volleyball", "multi", "netball") and surface not in ("grass", "sand", "clay")
+    if sport in ("tennis", "pickleball") and hard:
+        _aa(g, "court_green", 0.03, 4.0)
+        cl, cw = (23.77, 10.97) if sport == "tennis" else (13.41, 6.1)
+        n = max(1, min(6, int(round(S_ / (cw + 7.0)))))
+        if L < cl * 0.8: cl, cw = L * 0.85, min(cw, S_ * 0.7); n = 1
+        for k in range(n):
+            ob = (k - (n - 1) / 2) * (S_ / n)
+            ccx, ccy = P2(0, ob)
+            inner = _rect(ccx, ccy, u, v, cl / 2, cw / 2)
+            _aa(_rect(ccx, ccy, u, v, cl / 2 + 3.5, cw / 2 + 2.0).intersection(g), "court_blue", 0.035, 4.0)
+            lines.append(inner.exterior.buffer(0.04))
+            lines.append(_line(P2(0, ob - cw / 2), P2(0, ob + cw / 2)))
+            if sport == "tennis":
+                for sgn in (-1, 1):
+                    lines.append(_line(P2(sgn * 6.4, ob - cw / 2 + 1.37), P2(sgn * 6.4, ob + cw / 2 - 1.37)))
+                lines.append(_line(P2(-6.4, ob), P2(6.4, ob)))
+                for sgn in (-1, 1): lines.append(_line(P2(-cl / 2, ob + sgn * (cw / 2 - 1.37)), P2(cl / 2, ob + sgn * (cw / 2 - 1.37))))
+            x, y = P2(0, ob); _model("park_tennis_net", x, y, u[0], u[1])
+    elif sport == "basketball" or (hard and sport in ("multi", "netball")):
+        _aa(g, "court_red" if surface in ("acrylic",) else "asphalt", 0.03, 4.0)
+        cl, cw = min(28.0, L - 1.0), min(15.0, S_ - 1.0)
+        if cl < 8 or cw < 5: return
+        lines.append(_rect(cx, cy, u, v, cl / 2, cw / 2).exterior.buffer(0.04))
+        lines.append(_line(P2(0, -cw / 2), P2(0, cw / 2)))
+        lines.append(Point(cx, cy).buffer(1.8).exterior.buffer(0.04))
+        for sgn in (-1, 1):
+            lines.append(Point(P2(sgn * (cl / 2 - 1.6), 0)).buffer(6.75).exterior.buffer(0.04).intersection(_rect(*P2(sgn * (cl / 2 - 3.4), 0), u, v, 3.4, cw / 2)))
+            lines.append(_rect(*P2(sgn * (cl / 2 - 2.9), 0), u, v, 2.9, 2.45).exterior.buffer(0.04))
+            x, y = P2(sgn * (cl / 2 - 0.2), 0); _model("park_hoop", x, y, -sgn * u[0], -sgn * u[1])
+    elif sport in ("soccer", "american_football", "rugby", "lacrosse", "field_hockey"):
+        lines.append(_rect(cx, cy, u, v, L / 2 - 1.0, S_ / 2 - 1.0).exterior.buffer(0.06))
+        if sport == "american_football":
+            for k in range(-5, 6): lines.append(_line(P2(k * 9.144, -S_ / 2 + 1), P2(k * 9.144, S_ / 2 - 1), 0.1))
+            for sgn in (-1, 1): x, y = P2(sgn * (L / 2 - 0.5), 0); _model("park_goalpost", x, y, -sgn * u[0], -sgn * u[1])
+        else:
+            lines.append(_line(P2(0, -S_ / 2 + 1), P2(0, S_ / 2 - 1), 0.1))
+            lines.append(Point(cx, cy).buffer(min(9.15, S_ / 5)).exterior.buffer(0.06))
+            for sgn in (-1, 1):
+                pa = min(16.5, L / 6); pw = min(40.3, S_ * 0.6)
+                lines.append(_rect(*P2(sgn * (L / 2 - 1 - pa / 2), 0), u, v, pa / 2, pw / 2).exterior.buffer(0.06))
+                if L > 40: x, y = P2(sgn * (L / 2 - 1.0), 0); _model("park_goal", x, y, -sgn * u[0], -sgn * u[1])
+    elif sport in ("baseball", "softball"):
+        # home plate = the polygon corner closest to a right angle with long straight sides (the foul lines)
+        q = g.simplify(1.5); cs = list(q.exterior.coords)[:-1]; best = None
+        for i in range(len(cs)):
+            a, b, c3 = cs[i - 1], cs[i], cs[(i + 1) % len(cs)]
+            l1, l2 = math.dist(a, b), math.dist(b, c3)
+            if min(l1, l2) < 15: continue
+            ang = math.degrees(math.acos(max(-1, min(1, ((a[0] - b[0]) * (c3[0] - b[0]) + (a[1] - b[1]) * (c3[1] - b[1])) / (l1 * l2)))))
+            sc = abs(ang - 90) - min(l1, l2) * 0.05
+            if best is None or sc < best[0]: best = (sc, b, a, c3)
+        if best is None or best[0] > 25: return
+        _, hp, a, c3 = best
+        d1 = ((a[0] - hp[0]) / math.dist(a, hp), (a[1] - hp[1]) / math.dist(a, hp)); d2 = ((c3[0] - hp[0]) / math.dist(c3, hp), (c3[1] - hp[1]) / math.dist(c3, hp))
+        bis = (d1[0] + d2[0], d1[1] + d2[1]); bl = math.hypot(*bis) or 1; bis = (bis[0] / bl, bis[1] / bl)
+        bs = 27.43 if sport == "baseball" else 18.29; rr = 29.0 if sport == "baseball" else 20.0
+        sector = Polygon([hp] + [(hp[0] + rr * math.cos(t_), hp[1] + rr * math.sin(t_)) for t_ in
+                  [math.atan2(d1[1], d1[0]) + (math.atan2(d2[1], d2[0]) - math.atan2(d1[1], d1[0])) * k / 12 for k in range(13)]])
+        if sector.is_valid: _aa(sector.intersection(g), "infield", 0.03, 3.0)
+        diamond = Polygon([hp, (hp[0] + d1[0] * bs, hp[1] + d1[1] * bs), (hp[0] + (d1[0] + d2[0]) * bs, hp[1] + (d1[1] + d2[1]) * bs), (hp[0] + d2[0] * bs, hp[1] + d2[1] * bs)])
+        if diamond.is_valid: _aa(diamond.buffer(-1.4, join_style=2), "grass", 0.035, 8.0)
+        for d_ in (d1, d2): lines.append(_line(hp, (hp[0] + d_[0] * min(90, rr * 3), hp[1] + d_[1] * min(90, rr * 3)), 0.1).intersection(g))
+        _model("park_backstop", hp[0] - bis[0] * 1.0, hp[1] - bis[1] * 1.0, -bis[0], -bis[1])
+    else:
+        return
+    ln = unary_union([l for l in lines if l is not None and not l.is_empty])
+    if not ln.is_empty: _aa(ln, "paint_line", 0.045, 2.0)
 
 def build_stadium(sg, pitch):
     cp_ = sg.representative_point(); c = chunk_at(cp_.x, cp_.y)
@@ -1530,6 +1716,7 @@ for ri in range(rx0, rx1 + 1):
     for rj in range(ry0, ry1 + 1):
         Rb_ = box(ri * REGION, rj * REGION, (ri + 1) * REGION, (rj + 1) * REGION)
         Rg = Rb_.intersection(BBOX)
+        CUR_REGION = (ri, rj)
         done += 1
         if Rg.is_empty or Rg.area < 1: continue
         rb = Rg.buffer(40)
@@ -1569,8 +1756,19 @@ for ri in range(rx0, rx1 + 1):
         water_p = shapely.prepared.prep(water_r)
         hard = shapely.prepared.prep(unary_union([roads_r.buffer(0.5), water_r, side_r]))
         lamp_bad = shapely.prepared.prep(unary_union([roads_r.buffer(0.2), water_r]))   # lamps stand ON the sidewalk
-        # scatter trees in parks (sparse) and woods (dense)
-        for g, dens in ((park_r, 220.0), (forest_r, 55.0)):
+        # real trees from LiDAR; the random scatter below only fills regions the LiDAR didn't cover
+        lt = LTREES.get((ri, rj), [])
+        for tx, ty, th, tr in lt:
+            pt = Point(tx, ty)
+            if not BBOX_P.contains(pt) or water_p.contains(pt): continue
+            if hard.contains(pt):         # crown centre over a street/sidewalk: put the trunk just off it
+                for dx, dy in ((2, 0), (-2, 0), (0, 2), (0, -2), (3, 3), (-3, -3), (3, -3), (-3, 3), (4, 0), (-4, 0), (0, 4), (0, -4)):
+                    if not hard.contains(Point(tx + dx, ty + dy)) and rkey(tx + dx, ty + dy) == (ri, rj): tx += dx; ty += dy; break
+                else: continue
+            c = chunk_at(tx, ty)
+            # [kind, x, z, y, height scale, crown scale]: billboards are ~8 m tall and ~6 m wide at scale 1
+            c.props.append(["tree", round(tx - c.ox, 2), round(-(ty - c.oy), 2), 0.0, round(min(th, 26.0) / 8.0, 2), round(2.0 * min(tr, 0.45 * min(th, 26.0), 9.0) / 6.0, 2)])
+        for g, dens in (() if lt else ((park_r, 220.0), (forest_r, 55.0))):
             for pg in polys_of(g):
                 n = int(pg.area / dens); x0, y0, x1, y1 = pg.bounds; tries = 0
                 pp = shapely.prepared.prep(pg)
@@ -1601,6 +1799,7 @@ for ri in range(rx0, rx1 + 1):
                 if BBOX_P.contains(pt) and not lamp_bad.contains(pt):
                     c = chunk_at(j[1], j[2]); c.props.append(["lamp", j[1] - c.ox, -(j[2] - c.oy), 0.0, j[3]])
             elif k == "stree":
+                if lt: continue                # LiDAR already has the real street trees here
                 pt = Point(j[1], j[2])
                 if BBOX_P.contains(pt) and not hard.contains(pt):
                     c = chunk_at(j[1], j[2]); c.props.append(["tree", j[1] - c.ox, -(j[2] - c.oy), 0.0, j[3]])
@@ -1609,6 +1808,9 @@ for ri in range(rx0, rx1 + 1):
                 _, mat_, a_, b_, c3_, n_, uv_, col_ = j
                 ch = chunk_at((a_[0] + b_[0] + c3_[0]) / 3, (a_[1] + b_[1] + c3_[1]) / 3)
                 tri(ch, mat_, to3(ch, *a_), to3(ch, *b_), to3(ch, *c3_), n_, uv_, col_)
+        for pj in park_jobs.get((ri, rj), []):
+            try: park_feature(*pj)
+            except Exception as ex_: log("park feature skipped", ex_)
         for (sg, pitch, nm_) in stadium_jobs.get((ri, rj), []):
             try: build_stadium(sg, pitch)
             except Exception as ex: print("stadium fail", nm_, ex)
@@ -1625,4 +1827,5 @@ json.dump(manifest, open(os.path.join(OUTDIR, "manifest.json"), "w"))
 REPLICA_PLACED = [{"key": k, "anchor": r["anchor"]} for k, r in sorted(REPLICAS.items())]
 json.dump({"replicas": REPLICA_PLACED}, open(os.path.join(OUTDIR, "replicas.json"), "w"))
 log("replicas placed", len(REPLICA_PLACED))
+log("chunk spill sources", sorted(SPILL.items(), key=lambda kv: -kv[1])[:10])
 log("DONE chunks", len(manifest_chunks), "verts", total_v, "labels", len(labels_done))
