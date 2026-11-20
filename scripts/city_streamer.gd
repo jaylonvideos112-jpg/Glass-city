@@ -67,6 +67,30 @@ func _ready() -> void:
 		hlod.setup(self)
 
 # ------------------------------------------------------------------ materials
+## Paint palette measured from county reference photos (data/house_palette.json, written by the city build).
+var _house_pal := {}
+func _mat(name: String) -> Material:
+	if materials.has(name): return materials[name]
+	var at := name.find("@")
+	if at < 0: return materials["concrete"]
+	if _house_pal.is_empty():
+		var f := FileAccess.open("res://data/house_palette.json", FileAccess.READ)
+		_house_pal = JSON.parse_string(f.get_as_text()) if f else {"wall": [], "trim": []}
+	var base := name.substr(0, at); var i := int(name.substr(at + 1))
+	var pal: Array = _house_pal.get("trim" if base == "trim" else "wall", [])
+	var col := Color(pal[i]) if i < pal.size() else Color(0.85, 0.84, 0.8)
+	var m: Material
+	_mutex.lock()
+	if base == "trim":
+		var t := StandardMaterial3D.new(); t.albedo_color = col; t.roughness = 0.7; m = t
+	elif base == "h_lap":
+		m = _tex_mat("h_lap_plain", col)
+	else:
+		m = _tex_mat(base, col)        # h_clap_<era>
+	materials[name] = m
+	_mutex.unlock()
+	return m
+
 func _tex_mat(tex: String, tint := Color.WHITE, rough := 0.9) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = load("res://textures/%s.png" % tex)
@@ -149,6 +173,13 @@ func _make_materials() -> void:
 			materials["h_clap_%s#%d" % [era, i]] = _tex_mat("h_clap_" + era, Color(etints[i]))
 			materials["h_lap#%s%d" % [era, i]] = _tex_mat("h_lap_plain", Color(etints[i]))
 		materials["h_brick_" + era] = _tex_mat("h_brick_" + era)
+	# photo-measured paint (eager so the far-city HLOD sees their colours too)
+	if FileAccess.file_exists("res://data/house_palette.json"):
+		var pal = JSON.parse_string(FileAccess.get_file_as_string("res://data/house_palette.json"))
+		for i in pal["wall"].size():
+			for era in era_tints: _mat("h_clap_%s@%d" % [era, i])
+			_mat("h_lap@%d" % i)
+		for i in pal["trim"].size(): _mat("trim@%d" % i)
 	for nm in ["h_stucco", "h_stone", "h_block"]:
 		materials[nm] = _tex_mat(nm)
 	for nm in ["bar_shooters", "bar_anchor", "bar_cardboard", "bar_easypour", "bar_velvet", "bar_lakefront", "bar_coyote", "bar_gator",
@@ -321,7 +352,7 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 			arrays[Mesh.ARRAY_CUSTOM0] = layer["c0"]
 			fmt = Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, fmt)
-		var m: Material = materials.get(layer["mat"], materials["concrete"])
+		var m: Material = _mat(String(layer["mat"]))
 		if aerial_mat != null and AERIAL_LAYERS.has(layer["mat"]):
 			m = aerial_mat
 			if PHOTO_MIX.has(layer["mat"]):

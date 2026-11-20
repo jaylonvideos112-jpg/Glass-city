@@ -1064,10 +1064,10 @@ def pitched_roof(c, g, h, mat_wall, ridge, kind="gable", roof_mat="shingle", ov=
         quad(c, roof_mat, P3(p, he), P3(q, he), P3(rq, top), P3(rp, top), n, [(0, 0), (L / 4, 0), (L / 4, 1.5), (0, 1.5)], True)
         # soffit: underside of the overhang, back to the wall line
         wp = grow(p, 0, ov if p in (A, B) else -ov); wq = grow(q, 0, ov if q in (A, B) else -ov)
-        quad(c, "trim_white", P3(wp, he), P3(wq, he), P3(q, he), P3(p, he), (0.0, -1.0, 0.0), [(0, 0), (1, 0), (1, 1), (0, 1)])
+        quad(c, TRIM_MAT[0], P3(wp, he), P3(wq, he), P3(q, he), P3(p, he), (0.0, -1.0, 0.0), [(0, 0), (1, 0), (1, 1), (0, 1)])
         # fascia board on the eave edge
         _, _, (nx, ny) = face_n(p, q, 1, 1)
-        quad(c, "trim_white", P3(p, he - 0.22), P3(q, he - 0.22), P3(q, he), P3(p, he), (nx, 0.0, -ny), [(0, 0), (1, 0), (1, 1), (0, 1)])
+        quad(c, TRIM_MAT[0], P3(p, he - 0.22), P3(q, he - 0.22), P3(q, he), P3(p, he), (nx, 0.0, -ny), [(0, 0), (1, 0), (1, 1), (0, 1)])
     for (p, q, m, wp, wq) in ((D, A, M0, d, a), (B, CC, M1, b, cc)):
         if kind == "hip":
             n, L, _ = face_n(p, q, ridge, max(math.dist(m, ((p[0] + q[0]) / 2, (p[1] + q[1]) / 2)), 0.5))
@@ -1079,7 +1079,7 @@ def pitched_roof(c, g, h, mat_wall, ridge, kind="gable", roof_mat="shingle", ov=
             # rake board along the gable edge
             for (e_, f_) in ((p, m), (m, q)):
                 z0_, z1_ = (he, top) if e_ is p else (top, he)
-                quad(c, "trim_white", P3(e_, z0_ - 0.2), P3(f_, z1_ - 0.2), P3(f_, z1_), P3(e_, z0_), (nx, 0.0, -ny), [(0, 0), (1, 0), (1, 1), (0, 1)])
+                quad(c, TRIM_MAT[0], P3(e_, z0_ - 0.2), P3(f_, z1_ - 0.2), P3(f_, z1_), P3(e_, z0_), (nx, 0.0, -ny), [(0, 0), (1, 0), (1, 1), (0, 1)])
     return True
 
 def chimney(c, g, h, ridge, rnd, mat="brick_red"):
@@ -1158,6 +1158,9 @@ def walls(c, p, z0, z1, mat):
             u += L
 
 # ---------------------------------------------------------------- parametric facades (downtown exact buildings)
+# per-house paint from county reference photos (tools/pipeline/house_looks*.py): key -> wall/trim palette index, porch seen
+HLOOKS = json.load(open(os.environ["HLOOKS"])) if os.environ.get("HLOOKS") and os.path.exists(os.environ["HLOOKS"]) else {}
+TRIM_MAT = ["trim_white"]
 FACADES = json.load(open(os.environ["FACADES"])) if os.environ.get("FACADES") and os.path.exists(os.environ["FACADES"]) else {}
 MAT_WALL = {"brick_red": ("#8c3a2c", 0.0), "brick_brown": ("#6e4430", 0.0), "brick_tan": ("#b89a72", 0.0), "concrete": ("#aaa69d", 0.5),
             "limestone": ("#cfc6b0", 0.25), "granite_black": ("#2a2a2c", 0.25), "metal": ("#8e9399", 0.75), "intl_dark": ("#2c2f33", 0.75),
@@ -1250,7 +1253,7 @@ def porch(c, p, rnd):
     cbox(c, pcx + nx * 0.15, pcy + ny * 0.15, (ux, uy), (nx, ny), wdt + 0.2, dep / 2 + 0.15, 2.85, 3.05, "porch")  # roof slab
     for s_ in (-1, 0, 1) if wdt > 2.5 else (-1, 1):
         cx_ = pcx + ux * (wdt - 0.2) * s_ + nx * (dep / 2 - 0.2); cy_ = pcy + uy * (wdt - 0.2) * s_ + ny * (dep / 2 - 0.2)
-        cbox(c, cx_, cy_, (ux, uy), (nx, ny), 0.12, 0.12, 0.55, 2.85, "porch")
+        cbox(c, cx_, cy_, (ux, uy), (nx, ny), 0.12, 0.12, 0.55, 2.85, "porch" if TRIM_MAT[0] == "trim_white" else TRIM_MAT[0])
 
 def deco_crown(c, p, h, mat):
     """PNC-style Art Deco setbacks with a stepped pyramidal top (after the Mausoleum at Halicarnassus)."""
@@ -1287,6 +1290,37 @@ def colonnade(c, p, h):
             cbox(c, cx_, cy_, (ux, uy), (nx, ny), 0.45, 0.45, 0.0, hc, "marble", True)
         mx0, my0 = x0 + nx * 1.6, y0 + ny * 1.6
         cbox(c, (x0 + x1) / 2 + nx * 1.6, (y0 + y1) / 2 + ny * 1.6, (ux, uy), (nx, ny), L / 2, 1.2, hc, hc + 1.4, "marble", True)
+
+# per-wing LiDAR fit (tools/pipeline/house_fit.py): key -> [{"rect", "h", "eave", "shape", "n"}]
+HWINGS = pickle.load(open(os.environ["HWINGS"], "rb")) if os.environ.get("HWINGS") and os.path.exists(os.environ["HWINGS"]) else {}
+
+def emit_wings(c, p, hw, mat, roof_mat, z0, rnd, min_eave=0.0):
+    """A house as its measured wings: every wing gets its own wall height and roof (gable/hip/flat) from the LiDAR."""
+    wl = []
+    tot = sum(Polygon(w_["rect"]).area for w_ in hw) or 1.0
+    for w_ in hw:
+        q = Polygon(w_["rect"])
+        if not q.is_valid or q.area < 4: continue
+        eave = max(2.5, min(w_["eave"], w_["h"] - 0.6)); top = max(eave + 0.6, w_["h"])
+        if q.area > 0.35 * tot and eave < min_eave and top > min_eave + 1.2:
+            eave = min_eave
+        wl.append((q, eave, top, w_["shape"]))
+    if not wl:
+        walls(c, p, z0, 3.0, mat); flat_poly(c, "roof", p, 3.0, 6.0, True); return
+    low = min(x[1] for x in wl)
+    walls(c, p, z0, low, mat)
+    flat_poly(c, "roof", p, low, 6.0, True)          # under-deck for any sliver the wings miss
+    mi = max(range(len(wl)), key=lambda i: wl[i][0].area)
+    for i, (q, eave, top, shape) in enumerate(wl):
+        q = orient(q, 1.0)
+        if shape == "flat":
+            walls(c, q, low, top, mat); flat_poly(c, "roof", q, top, 6.0, True); continue
+        if eave > low + 0.4: walls(c, q, low, eave, mat)
+        ridge = max(0.8, min(7.0, top - eave))
+        if not pitched_roof(c, q, eave, mat, ridge, "hip" if shape == "hip" else "gable", roof_mat):
+            flat_poly(c, "roof", q, eave, 6.0, True)
+        elif i == mi and ((rnd * 5.71) % 1.0) < 0.55 and ridge > 1.5:
+            chimney(c, q, eave, ridge, (rnd * 9.13) % 1.0)
 
 def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=None, lm=None, store=False, roof_mat="shingle"):
     c = chunk_at(cp.x, cp.y)
@@ -1327,6 +1361,17 @@ def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=No
             dome_h = min(r_ * 0.9, 25.0)
             walls(c, p, b0, h - dome_h if h - dome_h > 3 else h, mat)
             dome(c, p.centroid.x, p.centroid.y, r_, h - dome_h if h - dome_h > 3 else h, dome_h, roof_mat if roof_mat != "shingle" else "cable")
+            continue
+        hw = e.get("_hw") if cls == "house" and not lm else None
+        if hw:
+            z = b0
+            if e.get("_base"):
+                bm_, bh_ = e["_base"]; bh_ = min(bh_, min(w_["eave"] for w_ in hw) - 0.3)
+                if bh_ > z + 0.3: walls(c, p, z, bh_, bm_); z = bh_
+            emit_wings(c, p, hw, mat, roof_mat, z, rnd, e.get("_hw_eave", 0.0))
+            walls(c, p.buffer(0.08, join_style=2) if p.area > 20 else p, -0.3, 0.55, "foundation")
+            if ((rnd * 3.17) % 1.0) < e.get("_porch", 0.78) and 45 < p.area < 300:
+                porch(c, p, (rnd * 7.31) % 1.0)
             continue
         wings = []
         pitched = kind in ("gable", "gable_cross", "hip") and rect_frame(p) is not None and (p.area < 700 or e.get("tags", {}).get("roof:shape"))
@@ -1720,6 +1765,19 @@ def do_building(e, g, cp, is_part):
             mat, cls, h, store = cmat, cls2, h2, store2
             if cls in ("house", "garage") and roof is None and not (m and m.get("roof") == "flat"):
                 roof = "gable" if rnd < 0.62 else "hip"
+    if cls == "house" and not lm and not is_part and key in HWINGS and not exact:
+        hw_ = HWINGS[key]
+        if all("h" in w_ and w_.get("n", 0) >= 6 for w_ in hw_):
+            e["_hw"] = hw_
+            st_ = _f(ct or {}, "c:stories", 0)
+            # county story count -> least believable eave for the main body (LiDAR's low percentile catches porch roofs)
+            e["_hw_eave"] = {1: 2.7, 1.3: 2.9, 1.5: 3.4, 2: 5.5, 2.5: 5.8, 3: 8.3}.get(st_, 0.0) if st_ else 0.0
+    hl = HLOOKS.get(key) if cls in ("house", "garage") and not lm else None
+    if hl:
+        if mat.startswith("h_clap_"): mat = mat.split("#")[0] + "@%d" % hl["w"]
+        elif mat.startswith("h_lap#"): mat = "h_lap@%d" % hl["w"]
+        if hl["t"] >= 0: TRIM_MAT[0] = "trim@%d" % hl["t"]
+        if hl["p"] >= 0 and cls == "house": e["_porch"] = float(hl["p"])
     bar_theme = BAR_BLDG.get(key)
     if bar_theme and h <= 15.0:      # the themed bar front only on low buildings; a tower keeps its own walls (door + sign still go on)
         mat = BAR_MAT[bar_theme]; store = False; roof = None; tiers = None
@@ -1729,6 +1787,7 @@ def do_building(e, g, cp, is_part):
         sp.update(FACADES.get(key, {}))
         e["_fspec"] = sp
     emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=roof, eave=eave, tiers=tiers, lm=lm, store=store, roof_mat=roof_mat)
+    TRIM_MAT[0] = "trim_white"
     if bar_theme:
         c_ = chunk_at(cp.x, cp.y)
         p_ = max(polys_of(g), key=lambda a: a.area)
@@ -1919,6 +1978,8 @@ manifest = {"chunk_size": CHUNK, "origin_lat": LAT0, "origin_lon": LON0, "chunks
             "spawn": [sx, -sy], "spawn_desc": f"{s1} & {s2}", "bbox": [bx0, -by1, bx1, -by0],
             "water_y": WATER_Y, "ground_y": GROUND_COL_Y, "places": places}
 json.dump(manifest, open(os.path.join(OUTDIR, "manifest.json"), "w"))
+if os.environ.get("HPAL") and os.path.exists(os.environ["HPAL"]):     # paint palette the photo looks index into
+    import shutil; shutil.copy(os.environ["HPAL"], os.path.join(OUTDIR, "house_palette.json"))
 REPLICA_PLACED = [{"key": k, "anchor": r["anchor"]} for k, r in sorted(REPLICAS.items())]
 json.dump({"replicas": REPLICA_PLACED}, open(os.path.join(OUTDIR, "replicas.json"), "w"))
 log("replicas placed", len(REPLICA_PLACED))
