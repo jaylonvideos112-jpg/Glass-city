@@ -239,6 +239,7 @@ func _make_materials() -> void:
 			"dive_twobuck", "dive_dollar", "dive_cornertap", "dive_happyhour", "dive_tipsytom", "dive_bar", "dive_lastcall"]:
 		materials[nm] = _tex_mat(nm)
 	materials["asphalt"] = ground_mat("asphalt_02", 3.0, Color.WHITE, 0.0, 0.95)
+	if Look.bully(): materials["asphalt"].set_shader_parameter("wear", 1.0)    # patches, cracks, tar snakes
 	materials["sidewalk"] = ground_mat("concrete_pavement", 1.8, Color.WHITE, 0.0, 1.05, 0.0)
 	materials["lot"] = _tex_mat("grass", Color(0.7, 0.72, 0.62))
 	materials["grass"] = _tex_mat("grass", Color(0.85, 0.9, 0.8))

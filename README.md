@@ -49,6 +49,9 @@ It is the owner's passion project for his own city.
     - models from `tools/blender/util_poles.py`: `util_pole`, `util_pole_t` (transformer can, 22%) and `util_pole_f` (flyers stapled on, 10%). Each has a cross-arm with insulators, a secondary rack, a cable clamp, step bolts and a pole tag;
     - chunk props `["wire", x0, z0, x1, z1]` link consecutive poles. `scripts/utility_wires.gd` turns each into five sagging cables (3 primaries, the triplex secondary and a phone/cable line) as one thin-tube mesh per chunk, with terrain heights at runtime;
     - tests: `utility_poles_and_wires`, `house_windows_lived_in`.
+  - **Road wear and street hardware:**
+    - `ground_pbr.gdshader` `wear` (on for the asphalt in Bully look): rotated repair patches with tar rims (about 1 in 6 cells of 7 m), alligator cracking in tired zones (voronoi edges masked by slow noise), glossy tar snakes, and oil blots, all in world space;
+    - cast-iron `manhole` covers near the centreline every 72 m, and `storm_grate` drains at both curbs every 55 m (`util_poles.py`; build job `mdl`, kept only where they land on the road surface, 0.08 m road height).
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
   - **Parked cars:** `scripts/parked_cars.gd`. Cars line residential (class 5) and tertiary (class 4) streets that have sidewalks, within 170 m of the camera.
@@ -996,7 +999,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/dbg/helpers/study.sh` | usage: study.sh KEY ASSR [bands] |
 | `tools/dbg/helpers/tz.py` | — |
 
-Also: `tools/blender/replicas/<key>/{spec,massing}.json` (97 landmark specs), `tools/blender/mh/` (MakeHuman base mesh, targets, rig and weights; see its SOURCE.md), `assets/models/` (188 .glb models), `textures/` (procedural + Poly Haven PBR), `scenes/`, `fonts/`, `assets_src/` (source models, not shipped).
+Also: `tools/blender/replicas/<key>/{spec,massing}.json` (97 landmark specs), `tools/blender/mh/` (MakeHuman base mesh, targets, rig and weights; see its SOURCE.md), `assets/models/` (190 .glb models), `textures/` (procedural + Poly Haven PBR), `scenes/`, `fonts/`, `assets_src/` (source models, not shipped).
 
 ## 19. Data files (`source_data/`) and every name in them
 
@@ -3370,6 +3373,7 @@ Changes to the development bible made by the project owner. The latest explicit 
 * Every house pane paints its own curtains, blinds or sheet and a parallax room behind; lit rooms at night
   (`shaders/window_interior.gdshader`). Own character system started (`tools/blender/glasshuman/`), then paused.
 * Wooden utility poles (3 variants) with sagging overhead wires along alleys and alley-less residential streets.
+* Road wear (patches, cracks, tar snakes, oil), manholes and storm drains. East Toledo chunks rebuilt.
 * 20-minute work backups (`tools/backup.py`).
 
 #### Bully look and 3D grass (2026-11-21)

@@ -535,6 +535,7 @@ _SFX = {"AVE", "AVENUE", "ST", "STREET", "RD", "ROAD", "DR", "DRIVE", "BLVD", "B
         "EAST", "WEST", "TRL", "TRAIL", "SQ", "PIKE"}
 def street_key(name):
     return frozenset(w for w in re.sub(r"[^A-Z0-9 ]", " ", (name or "").upper()).split() if w not in _SFX and not w.isdigit())
+YARD_LIFE = os.environ.get("YARD_LIFE", "1") == "1"   # lived-in extras (yard props, poles, manholes ...)
 ALLEY_TREE = [None]
 seg_jobs = defaultdict(list)       # region -> centerline / street / lamp / streettree jobs
 node_degree = defaultdict(int)
@@ -591,7 +592,7 @@ for e in els:
         side_polys.append(line.buffer(w / 2, quad_segs=2))
     center = drivable and hw in ("primary", "secondary", "tertiary", "trunk") and t.get("oneway") != "yes"
     name = STREET_MAP.get(t.get("name"), t.get("name")) if drivable else None   # parody street names
-    acc_l = acc_t = 0.0
+    acc_l = acc_t = acc_m = acc_g = 0.0
     lamp_step = 50.0 if hw in RESID else 36.0
     is_alley = hw == "service" and t.get("service") == "alley"
     if YARD_LIFE and (is_alley or hw in RESID) and t.get("bridge") in (None, "no"):
@@ -614,6 +615,21 @@ for e in els:
                 seg_jobs[rkey(px, py)].append(("lamp", px, py, math.atan2(-dy * side, -dx * side)))
             d += lamp_step
         acc_l = (acc_l + L) % lamp_step
+        if YARD_LIFE:      # manholes near the centre, storm drains at both curbs (lived-in streets)
+            d = 36.0 - acc_m
+            while d < L:
+                o_ = 1.3 * (1 if rng.random() < 0.5 else -1)
+                px, py = x0 + dx * d - dy * o_, y0 + dy * d + dx * o_
+                seg_jobs[rkey(px, py)].append(("mdl", "manhole", px, py, dx, dy, 0.085))
+                d += 72.0
+            d = 27.0 - acc_g
+            while d < L:
+                for side in (-1, 1):
+                    o_ = (w / 2 - 0.4) * side
+                    px, py = x0 + dx * d - dy * o_, y0 + dy * d + dx * o_
+                    seg_jobs[rkey(px, py)].append(("mdl", "storm_grate", px, py, -dy * side, dx * side, 0.083))
+                d += 55.0
+            acc_m = (acc_m + L) % 72.0; acc_g = (acc_g + L) % 55.0
         if hw in RESID:   # street trees in the yard strip beyond the sidewalk
             d = 7.0 - acc_t
             while d < L:
@@ -2544,6 +2560,10 @@ for ri in range(rx0, rx1 + 1):
                 pt = Point(j[1], j[2])
                 if BBOX_P.contains(pt) and not lamp_bad.contains(pt):
                     c = chunk_at(j[1], j[2]); c.props.append(["lamp", j[1] - c.ox, -(j[2] - c.oy), 0.0, j[3]])
+            elif k == "mdl":       # small road model (manhole, storm grate): must sit on the road surface
+                pt = Point(j[2], j[3])
+                if BBOX_P.contains(pt) and lamp_bad.contains(pt) and not water_p.contains(pt):
+                    c = chunk_at(j[2], j[3]); c.props.append(["m:" + j[1], round(j[2] - c.ox, 2), round(-(j[3] - c.oy), 2), j[6], round(_yaw(j[4], j[5]), 3)])
             elif k in ("upole", "uwire"):
                 if ALLEY_TREE[0] is None: ALLEY_TREE[0] = shapely.STRtree(ALLEY_LINES) if ALLEY_LINES else False
                 if k == "upole": pts_ = [(j[1], j[2])]

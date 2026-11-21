@@ -49,6 +49,9 @@ It is the owner's passion project for his own city.
     - models from `tools/blender/util_poles.py`: `util_pole`, `util_pole_t` (transformer can, 22%) and `util_pole_f` (flyers stapled on, 10%). Each has a cross-arm with insulators, a secondary rack, a cable clamp, step bolts and a pole tag;
     - chunk props `["wire", x0, z0, x1, z1]` link consecutive poles. `scripts/utility_wires.gd` turns each into five sagging cables (3 primaries, the triplex secondary and a phone/cable line) as one thin-tube mesh per chunk, with terrain heights at runtime;
     - tests: `utility_poles_and_wires`, `house_windows_lived_in`.
+  - **Road wear and street hardware:**
+    - `ground_pbr.gdshader` `wear` (on for the asphalt in Bully look): rotated repair patches with tar rims (about 1 in 6 cells of 7 m), alligator cracking in tired zones (voronoi edges masked by slow noise), glossy tar snakes, and oil blots, all in world space;
+    - cast-iron `manhole` covers near the centreline every 72 m, and `storm_grate` drains at both curbs every 55 m (`util_poles.py`; build job `mdl`, kept only where they land on the road surface, 0.08 m road height).
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
   - **Parked cars:** `scripts/parked_cars.gd`. Cars line residential (class 5) and tertiary (class 4) streets that have sidewalks, within 170 m of the camera.

@@ -17,6 +17,7 @@ uniform float pane_h = 1.45;
 
 varying vec3 pos_l;
 varying vec3 cam_l;
+varying vec3 inst;     // this instance's world position (NODE_POSITION_WORLD is the whole MultiMesh node)
 
 float h1(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float h2(float s, float k) { return fract(sin(s * 91.3 + k * 17.17) * 43758.5453); }
@@ -32,13 +33,14 @@ vec3 pick(float r, vec3 a, vec3 b, vec3 c, vec3 d, vec3 e, vec3 f) {
 
 void vertex() {
 	pos_l = VERTEX;
+	inst = MODEL_MATRIX[3].xyz;
 	cam_l = (inverse(MODEL_MATRIX) * vec4(CAMERA_POSITION_WORLD, 1.0)).xyz;
 }
 
 void fragment() {
 	vec2 uv = UV;
 	// a pane = one model instance (+ which pane of a mulled pair)
-	float seed = h1(floor(NODE_POSITION_WORLD.xz * 3.0) + vec2(round(pos_l.x * 3.0) * 7.31, floor(NODE_POSITION_WORLD.y * 2.0) * 3.7));
+	float seed = h1(floor(inst.xz * 3.0) * 0.731 + vec2(round(pos_l.x * 3.0) * 7.31, floor(inst.y * 2.0) * 3.7));
 	// ---------------- the room behind the glass
 	vec3 vd = normalize(pos_l - cam_l);
 	vec3 o = pos_l;

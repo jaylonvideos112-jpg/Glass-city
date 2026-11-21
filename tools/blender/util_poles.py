@@ -51,3 +51,33 @@ if __name__ == "__main__":
     pole("util_pole")
     pole("util_pole_t", transformer=True)
     pole("util_pole_f", flyers=True)
+
+
+def manhole():
+    """Cast-iron manhole cover, 0.64 m across, sitting 1 cm proud of the road; raised waffle pattern + ring."""
+    reset()
+    iron = mat("mh_iron", (0.11, 0.1, 0.095), metal=0.6, rough=0.55)
+    rust = mat("mh_rust", (0.24, 0.13, 0.08), rough=0.85)
+    cyl(0.36, 0.02, (0, 0, 0.0), rust, verts=24)                    # rusty frame ring
+    cyl(0.32, 0.03, (0, 0, 0.005), iron, verts=24)
+    for i in range(-3, 4):
+        box((0.48 - abs(i) * 0.05, 0.03, 0.008), (0, i * 0.075, 0.022), iron, bevel=0)
+        box((0.03, 0.48 - abs(i) * 0.05, 0.008), (i * 0.075, 0, 0.022), iron, bevel=0)
+    export("manhole")
+
+
+def storm_grate():
+    """Curb-side storm drain: a steel grate 0.9 x 0.55 in a concrete apron. +Y = toward the curb."""
+    reset()
+    conc = mat("sg_conc", (0.42, 0.41, 0.39), rough=0.95)
+    iron = mat("sg_iron", (0.09, 0.085, 0.08), metal=0.6, rough=0.5)
+    box((1.15, 0.8, 0.02), (0, 0, 0.0), conc, bevel=0)
+    box((0.9, 0.55, 0.012), (0, 0, 0.012), mat("sg_hole", (0.01, 0.01, 0.01), rough=1.0), bevel=0)
+    for i in range(9):
+        box((0.03, 0.55, 0.02), (-0.4 + i * 0.1, 0, 0.018), iron, bevel=0)
+    box((0.9, 0.03, 0.02), (0, -0.26, 0.018), iron, bevel=0); box((0.9, 0.03, 0.02), (0, 0.26, 0.018), iron, bevel=0)
+    export("storm_grate")
+
+
+if __name__ == "__main__":
+    manhole(); storm_grate()

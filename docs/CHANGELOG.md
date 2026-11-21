@@ -4,6 +4,7 @@
 * Every house pane paints its own curtains, blinds or sheet and a parallax room behind; lit rooms at night
   (`shaders/window_interior.gdshader`). Own character system started (`tools/blender/glasshuman/`), then paused.
 * Wooden utility poles (3 variants) with sagging overhead wires along alleys and alley-less residential streets.
+* Road wear (patches, cracks, tar snakes, oil), manholes and storm drains. East Toledo chunks rebuilt.
 * 20-minute work backups (`tools/backup.py`).
 
 ## Bully look and 3D grass (2026-11-21)
