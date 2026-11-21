@@ -23,9 +23,7 @@ It is the owner's passion project for his own city.
   - it suits Godot and the 1080 Ti;
   - it ages better.
 - The city geometry stays 1:1 and accurate. The stylisation lives in the characters (slightly bigger heads and hands, exaggerated faces, painted skin), the painted textures, and a warm, soft grade.
-- **A style test is in progress** (section 9). The owner decides after seeing it. Until he does, both looks exist:
-  - **current look:** default;
-  - **test look:** `--style=painted`.
+- **A style test is in progress** (section 9). The owner decides after seeing it. The current look stays until he does. A screen "painted" filter was tried and rejected, so the stylisation must come from the art itself.
 
 ---
 
@@ -88,7 +86,7 @@ Each phase starts with a fresh prompt from Claude and a detailed study of the ar
 - **Screenshots:** `godot --path . --rendering-driver vulkan --resolution 1280x720 -- --demo=shots --out=DIR --shotlist=FILE.json`
   - Shotlist entries: `["@cam", [x, y, z], [look_x, look_y, look_z], "name"]`, in world coords (z = −plan y).
   - The camera y must include terrain height. The build box renders on the CPU, about 10 min per shot.
-- **Other demo modes:** `--demo=drive|walk|fly|tour|bars`, `--at=x,z`, `--hour=H`, `--style=painted` (art test).
+- **Other demo modes:** `--demo=drive|walk|fly|tour|bars`, `--at=x,z`, `--hour=H`.
 - **Benchmark:** `godot --path . -- --benchmark=user://benchmark.json` (see `docs/PERF_BUDGETS.md`).
 
 ### Controls
