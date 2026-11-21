@@ -144,7 +144,7 @@ class PropList(list):
         if DEM_DIR and len(p) > 3:
             x, y = p[1] + self.ox, self.oy - p[2]
             if p[0] == "pillar": p = list(p); gz = TZ(x, y); p[3] = max(0.5, p[3] - gz); p[4] = gz     # pillar: [.., height, ground y]
-            elif p[0] == "pool": pass
+            elif p[0] in ("pool", "wire"): pass         # wire: [.., x0, z0, x1, z1] (heights at runtime)
             else: p = list(p); p[3] = p[3] + G(x, y)
         super().append(p)
 
@@ -535,12 +535,39 @@ _SFX = {"AVE", "AVENUE", "ST", "STREET", "RD", "ROAD", "DR", "DRIVE", "BLVD", "B
         "EAST", "WEST", "TRL", "TRAIL", "SQ", "PIKE"}
 def street_key(name):
     return frozenset(w for w in re.sub(r"[^A-Z0-9 ]", " ", (name or "").upper()).split() if w not in _SFX and not w.isdigit())
+ALLEY_TREE = [None]
 seg_jobs = defaultdict(list)       # region -> centerline / street / lamp / streettree jobs
 node_degree = defaultdict(int)
 
 for e in els:
     if e["type"] == "way" and "highway" in tags(e):
         for nid in e.get("nodes", []): node_degree[nid] += 1
+
+ALLEY_LINES = []
+def utility_line(pts, w, is_alley):
+    """Wooden utility poles every ~38 m with overhead wires between them: along every alley, and along one side
+    of residential streets (those runs are dropped at build time where an alley runs within 45 m, because the
+    lines then live in the alley). Jobs: ("upole", x, y, fx, fy, variant, street?) and ("uwire", x0, y0, x1, y1, street?)."""
+    if is_alley: ALLEY_LINES.append(LineString(pts))
+    side = 1 if is_alley else -1
+    off = (w / 2 + (0.6 if is_alley else 0.75)) * side
+    step = 38.0
+    prev = None; acc = 0.0; d = step * 0.5
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+        L = math.hypot(x1 - x0, y1 - y0)
+        if L < 0.1: continue
+        dx, dy = (x1 - x0) / L, (y1 - y0) / L
+        while d < L:
+            px, py = x0 + dx * d - dy * off, y0 + dy * d + dx * off
+            hv = (math.sin(px * 12.9898 + py * 78.233) * 43758.5453) % 1.0
+            var = "util_pole_t" if hv < 0.22 else "util_pole_f" if hv < 0.32 else "util_pole"
+            seg_jobs[rkey(px, py)].append(("upole", px, py, dx, dy, var, not is_alley))
+            if prev is not None and math.hypot(px - prev[0], py - prev[1]) < 60:
+                mx, my = (px + prev[0]) / 2, (py + prev[1]) / 2
+                seg_jobs[rkey(mx, my)].append(("uwire", prev[0], prev[1], px, py, not is_alley))
+            prev = (px, py)
+            d += step
+        d -= L
 
 rng = random.Random(42)
 for e in els:
@@ -566,6 +593,9 @@ for e in els:
     name = STREET_MAP.get(t.get("name"), t.get("name")) if drivable else None   # parody street names
     acc_l = acc_t = 0.0
     lamp_step = 50.0 if hw in RESID else 36.0
+    is_alley = hw == "service" and t.get("service") == "alley"
+    if YARD_LIFE and (is_alley or hw in RESID) and t.get("bridge") in (None, "no"):
+        utility_line(pts, w, is_alley)
     for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
         L = math.hypot(x1 - x0, y1 - y0)
         if L < 0.1: continue
@@ -2514,6 +2544,19 @@ for ri in range(rx0, rx1 + 1):
                 pt = Point(j[1], j[2])
                 if BBOX_P.contains(pt) and not lamp_bad.contains(pt):
                     c = chunk_at(j[1], j[2]); c.props.append(["lamp", j[1] - c.ox, -(j[2] - c.oy), 0.0, j[3]])
+            elif k in ("upole", "uwire"):
+                if ALLEY_TREE[0] is None: ALLEY_TREE[0] = shapely.STRtree(ALLEY_LINES) if ALLEY_LINES else False
+                if k == "upole": pts_ = [(j[1], j[2])]
+                else: pts_ = [(j[1], j[2]), (j[3], j[4])]
+                if not all(BBOX_P.contains(Point(*q)) and not lamp_bad.contains(Point(*q)) for q in pts_): continue
+                if j[-1] and ALLEY_TREE[0]:                  # street run: skip where an alley carries the lines
+                    q = Point(*pts_[0])
+                    if ALLEY_LINES[ALLEY_TREE[0].nearest(q)].distance(q) < 45: continue
+                if k == "upole":
+                    c = chunk_at(j[1], j[2]); c.props.append(["m:" + j[5], round(j[1] - c.ox, 2), round(-(j[2] - c.oy), 2), 0.0, round(_yaw(j[3], j[4]), 3)])
+                else:
+                    mx, my = (j[1] + j[3]) / 2, (j[2] + j[4]) / 2
+                    c = chunk_at(mx, my); c.props.append(["wire", round(j[1] - c.ox, 2), round(-(j[2] - c.oy), 2), round(j[3] - c.ox, 2), round(-(j[4] - c.oy), 2)])
             elif k == "stree":
                 if lt: continue                # LiDAR already has the real street trees here
                 pt = Point(j[1], j[2])

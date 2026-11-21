@@ -53,6 +53,7 @@ var bars: Node = null   # bars.gd: builds bar exteriors and handles enter/exit
 const Hlod := preload("res://scripts/hlod.gd")
 const ModelLib := preload("res://scripts/model_lib.gd")
 const StreetFurniture := preload("res://scripts/street_furniture.gd")
+const UtilityWires := preload("res://scripts/utility_wires.gd")
 var grass: Node = null   # grass.gd: 3D grass blades on lawns near the camera (set by main.gd)
 var hlod: Node3D = null   # far-distance low-detail city (hlod.gd); off with --no-hlod
 
@@ -453,19 +454,29 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 	var trees := []
 	var lamps := []
 	var models := {}
+	var wires := []
 	for p in d["props"]:
 		if p[0] == "tree": trees.append(p)
+		elif p[0] == "wire": wires.append(p)
 		elif p[0] == "lamp": lamps.append(p)
 		elif String(p[0]).begins_with("m:"):      # Blender model prop (park equipment ...): batch per model
 			if not models.has(p[0]): models[p[0]] = []
 			models[p[0]].append(p)
 		else: _add_prop(root, p)
+	var npoles := 0
 	for mk in models:
-		var mm_mesh := ModelLib.mesh(String(mk).substr(2))
+		var mname := String(mk).substr(2)
+		if mname.begins_with("util_pole"): npoles += models[mk].size()
+		var swap := {}
+		if mname.begins_with("hp_"): swap = {"hp_glass": _window_mat()}    # lived-in panes (curtains, blinds, rooms)
+		var mm_mesh := ModelLib.mesh(mname, swap)
 		if mm_mesh: 
 			var mmi := _multimesh(mm_mesh, models[mk], false)
 			mmi.visibility_range_end = 350.0
 			root.add_child(mmi)
+	root.set_meta("poles", npoles)
+	var wmi := UtilityWires.build(wires, chunk_world_origin(k))
+	if wmi: root.add_child(wmi)
 	if not trees.is_empty():
 		# two species of photo-real billboard trees (baked from CC0 Poly Haven models)
 		var tA: Array = []; var tB: Array = []
@@ -552,6 +563,14 @@ func _add_prop(root: Node3D, p: Array) -> void:
 
 var _tree_cache: ArrayMesh
 var _lamp_cache: ArrayMesh
+
+## house window glass: shaders/window_interior.gdshader paints a different curtain / blind / room on every pane
+func _window_mat() -> ShaderMaterial:
+	if not materials.has("window"):
+		var m := ShaderMaterial.new()
+		m.shader = load("res://shaders/window_interior.gdshader")
+		materials["window"] = m
+	return materials["window"]
 
 func _multimesh(mesh: Mesh, items: Array, scale_from_data: bool) -> MultiMeshInstance3D:
 	var mm := MultiMesh.new()

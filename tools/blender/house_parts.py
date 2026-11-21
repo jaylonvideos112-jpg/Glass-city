@@ -16,15 +16,27 @@ def mats():
                 step=mat("hp_step", (0.36, 0.355, 0.34), rough=0.92))
 
 
+def pane_uv(o):
+    """planar UV over a glass pane, 0..1 across its width (x) and height (z): the window-interior shader
+    (shaders/window_interior.gdshader) paints curtains, blinds and the room behind the glass in this space"""
+    xs = [v.co.x for v in o.data.vertices]; zs = [v.co.z for v in o.data.vertices]
+    x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
+    uvl = o.data.uv_layers.active or o.data.uv_layers.new()
+    for lp in o.data.loops:
+        co = o.data.vertices[lp.vertex_index].co
+        uvl.data[lp.index].uv = ((co.x - x0) / max(x1 - x0, 1e-6), (co.z - z0) / max(z1 - z0, 1e-6))
+    return o
+
+
 def window_unit(m, cx, w, h, z0=0.0, blinds=0.0):
     """One double-hung window, glass w x h, bottom of the sill at z0."""
     cas, t = 0.1, 0.035
     sill_h = 0.05
     zb = z0 + sill_h                       # bottom of glass opening
     # glass (a pane sits a hair in front of the wall plane; the blind behind the upper sash shows as a pale band)
-    box((w, 0.01, h), (cx, 0.006, zb + h / 2), m["glass"], bevel=0)
-    if blinds > 0:
-        box((w - 0.02, 0.008, h * blinds), (cx, 0.003, zb + h - h * blinds / 2), m["blind"], bevel=0)
+    pane_uv(box((w, 0.01, h), (cx, 0.006, zb + h / 2), m["glass"], bevel=0))
+    # (curtains, blinds and the room behind are painted by the window-interior shader in the game; `blinds` is
+    # kept only so older calls still work)
     # casing boards around the opening
     box((cas, t, h + cas), (cx - w / 2 - cas / 2, t / 2, zb + (h + cas) / 2), m["trim"], bevel=0)
     box((cas, t, h + cas), (cx + w / 2 + cas / 2, t / 2, zb + (h + cas) / 2), m["trim"], bevel=0)
@@ -57,7 +69,7 @@ def door(name, col):
     for zc in (0.45, 1.05):                                   # raised panels
         for xc in (-0.21, 0.21):
             box((0.3, 0.02, 0.5), (xc, 0.045, zc), dm, bevel=0)
-    box((0.66, 0.012, 0.42), (0, 0.042, 1.68), m["glass"], bevel=0)      # glass light in the top third
+    pane_uv(box((0.66, 0.012, 0.42), (0, 0.042, 1.68), m["glass"], bevel=0))      # glass light in the top third
     cyl(0.03, 0.06, (0.36, 0.08, 1.0), knob, verts=10, rot=(math.pi / 2, 0, 0))
     cas, t = 0.12, 0.04
     box((cas, t, h + cas), (-w / 2 - cas / 2, t / 2, (h + cas) / 2), m["trim"], bevel=0)

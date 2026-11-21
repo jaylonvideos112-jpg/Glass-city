@@ -85,6 +85,8 @@ func _run() -> void:
 		["emergency_responds_with_siren", t_dispatch],
 		["grass_grows_on_lawns", t_grass],
 		["parked_cars_line_side_streets", t_parked],
+		["utility_poles_and_wires", t_utility],
+		["house_windows_lived_in", t_windows],
 	]
 	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
 		if a.begins_with("--only="): tests = tests.filter(func(t): return a.substr(7) in t[0])
@@ -1746,3 +1748,27 @@ func t_parked() -> Array:
 	var n: int = pk.count()
 	if n <= 0: return [false, "no parked cars near the player (%d edges)" % main.traffic.edges.size()]
 	return [true, "%d parked cars on %d blocks near the player" % [n, pk._edges.size()]]
+
+## lived-in streets: wooden utility poles with overhead wires along alleys / residential streets near spawn
+func t_utility() -> Array:
+	await _tr_reset_to_spawn()
+	await _frames(90)
+	var poles := 0; var wires := 0
+	for ch in main.streamer.get_children():
+		for n in ch.get_children():
+			if n is MeshInstance3D and n.material_override == preload("res://scripts/utility_wires.gd").material(): wires += 1
+		poles += int(ch.get_meta("poles", 0))
+	if poles == 0: return [false, "no utility poles in loaded chunks"]
+	if wires == 0: return [false, "%d poles but no wire meshes" % poles]
+	return [true, "%d poles, wires in %d chunks" % [poles, wires]]
+
+## every house pane uses the window-interior shader (curtains / blinds / rooms, lit at night)
+func t_windows() -> Array:
+	await _tr_reset_to_spawn()
+	await _frames(60)
+	var wm = main.streamer.materials.get("window")
+	if wm == null: return [false, "window material never created (no house windows loaded?)"]
+	var sh: Shader = wm.shader
+	if sh == null or not sh.code.contains("night_level"): return [false, "window shader missing"]
+	return [true, "window-interior shader on house panes"]
+

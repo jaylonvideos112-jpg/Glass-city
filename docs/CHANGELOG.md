@@ -1,5 +1,11 @@
 # Changelog
 
+## Lived-in windows (2026-11-21)
+* Every house pane paints its own curtains, blinds or sheet and a parallax room behind; lit rooms at night
+  (`shaders/window_interior.gdshader`). Own character system started (`tools/blender/glasshuman/`), then paused.
+* Wooden utility poles (3 variants) with sagging overhead wires along alleys and alley-less residential streets.
+* 20-minute work backups (`tools/backup.py`).
+
 ## Bully look and 3D grass (2026-11-21)
 * Art direction is now "4K upscaled Bully" on modern geometry: hand-painted texture set (`textures_bully/`,
   `make_bully_textures.py`), `scripts/look.gd` switch (`source_data/look.json`, `--look=classic`), warm soft lighting.

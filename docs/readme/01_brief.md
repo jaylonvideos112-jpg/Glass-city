@@ -37,6 +37,18 @@ It is the owner's passion project for his own city.
   - **3D trees near the camera:** chunks whose centre is within 240 m show the Blender trees as real 3D meshes (`assets/models/bully_tree_a/c.glb`). Billboards are used further out. `city_streamer._update_tree_lod` swaps them per chunk twice a second.
     - Bark is dark matte; leaves are alpha-tested and lit through.
     - About 2k triangles per tree; the leaf count may need trimming on low-end PCs.
+  - **Lived-in house windows** (`shaders/window_interior.gdshader`, swapped onto the `hp_glass` material of every `hp_*` house model by `city_streamer._window_mat()`):
+    - each pane picks its own treatment from a hash of its world position: curtains (6 colours; open, half-open or shut; tied back; valance), blinds (white, beige or yellowed, pulled to a random height, the odd crooked slat), a bedsheet or flag, or bare glass;
+    - behind it is a fake room with real parallax: back wall, side walls, floor and ceiling, plus a couch or dresser shape, a picture and a doorway;
+    - on top: a glass fresnel sky tint, a painted streak, and grimy corners;
+    - at night, `occupancy` (from `time_of_day.gd`) picks which rooms are lit: warm light (a few TV-blue) glows through curtains and blinds;
+    - pane UVs come from `pane_uv()` in `tools/blender/house_parts.py`. The old modelled blind strip is gone.
+  - **Utility poles and overhead wires** (lived-in streets; Toledo neighbourhoods have them along nearly every alley):
+    - `tools/pipeline/build_city.py` `utility_line()` puts a wooden pole about every 38 m along every OSM alley (`highway=service, service=alley`), 0.6 m off the edge;
+    - along one side of residential streets (opposite the lamps) too, except where an alley runs within 45 m, because then the lines live in the alley;
+    - models from `tools/blender/util_poles.py`: `util_pole`, `util_pole_t` (transformer can, 22%) and `util_pole_f` (flyers stapled on, 10%). Each has a cross-arm with insulators, a secondary rack, a cable clamp, step bolts and a pole tag;
+    - chunk props `["wire", x0, z0, x1, z1]` link consecutive poles. `scripts/utility_wires.gd` turns each into five sagging cables (3 primaries, the triplex secondary and a phone/cable line) as one thin-tube mesh per chunk, with terrain heights at runtime;
+    - tests: `utility_poles_and_wires`, `house_windows_lived_in`.
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
   - **Parked cars:** `scripts/parked_cars.gd`. Cars line residential (class 5) and tertiary (class 4) streets that have sidewalks, within 170 m of the camera.
@@ -297,6 +309,7 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 **Test photos:** GAN-generated faces (not real people) from the NVIDIA StyleGAN2 repo, in `dl/facetest/`.
 
 ### GLASS CITY's own human system (owner, 2026-11-21: "don't use MakeHuman, make your own")
+**PAUSED (owner, 2026-11-21 16:35):** "That's nowhere near close, let's ignore this for a little and go back to the city." The SDF head below is the starting point when it resumes. The owner judged the clay head far from the Bully reference look.
 All game characters, NPCs and other humans will come from our own generator in `tools/blender/glasshuman/`, in Bully style. **MakeHuman/MPFB2 is no longer used for game people**; the older creator code stays only as reference.
 - **Head** (`glasshuman/head.py`, in progress): parametric and built from scratch as a signed-distance field (SDF) of sculpting primitives blended with smooth unions:
   - cranium, forehead, face mass, jaw (ellipsoid ↔ rounded box for `jaw_square`), jaw angles, chin, cheekbones, cheeks, muzzle;

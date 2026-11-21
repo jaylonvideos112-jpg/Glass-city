@@ -228,6 +228,8 @@ func apply_now() -> void:
 	if fac:
 		fac.set_shader_parameter("night", night)
 		fac.set_shader_parameter("occupancy", occupancy)
+	var wm: ShaderMaterial = main.streamer.materials.get("window")
+	if wm: wm.set_shader_parameter("occupancy", 0.25 + 0.6 * occupancy)    # house rooms lit at night
 	var hl = main.streamer.hlod if main.streamer else null
 	if hl != null and hl._mat != null:
 		hl._mat.set_shader_parameter("night", night)
