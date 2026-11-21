@@ -290,16 +290,15 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 - After East Toledo: send the owner a fresh prompt for the **downtown overhaul**.
 
 ## 9. Art-style test (Bully-like), in progress
-
 - **Street:** `shaders/painted.gdshader`, a full-screen pass enabled by `--style=painted` (`main.gd`).
-  - A Kuwahara filter makes painted brush areas while keeping edges.
-  - Warm, saturated grade with lifted shadows.
-  - Softer filmic tonemap; more ambient light, less AO.
-  - Test shots: Freedom St, Waite, Freedom St from above → `/tmp/cap_style/`.
-- **Character:** the stylized creator mode (section 7).
-- **Next:** show the owner before and after, and he decides the direction.
-
----
+  - A Kuwahara "brush" filter plus a warm, saturated grade with lifted shadows; softer tonemap, more ambient light, less AO.
+  - It is too slow to render on the CPU-only build box. For previews, `tools/dbg/helpers/paint_post.py` applies the same filter to normal screenshots. The before/after sheets of Waite and Freedom St were shown to the owner on 2026-11-21.
+- **Character (stylized creator mode):** with no photo fit, the painted skin looks clean. With a photo fit, the mouth goes wrong: the lower lip droops and a pale patch shows below it.
+  - It is not teeth, helper geometry or proxy refit; tested.
+  - The cause is the face fit pulling the lip and nose sliders. Unreliable lip and nose correspondences have been partly tamed by per-family slider caps (mouth 0.35, nose 0.5).
+  - The lip-colour mask also catches the chin.
+  - **Next:** a better correspondence around the mouth (anchor the lip corners and centres explicitly) and a UV-based lip mask.
+- **Decision pending:** the owner chooses the direction after seeing the test.
 
 ## 10. Owner's standing preferences (how to work with Jay)
 

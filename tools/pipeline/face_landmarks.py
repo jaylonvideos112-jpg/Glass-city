@@ -53,6 +53,17 @@ for f in (0.10, 0.16, 0.22):
         if 0 <= q[0] < W and 0 <= q[1] < H: hair_pts.append(arr[int(q[1]), int(q[0])])
 hair = [round(float(c) / 255.0, 4) for c in np.median(np.array(hair_pts), axis=0)] if hair_pts else None
 
+# white balance from the whites of the eyes (between iris and the eye corners): skin colour without the photo's light tint
+scl = []
+for iris, corners in ((468, (33, 133)), (473, (362, 263))):
+    for c in corners:
+        q = P[iris, :2] * 0.5 + P[c, :2] * 0.5
+        x, y = int(q[0]), int(q[1])
+        if 0 <= x < W and 0 <= y < H: scl.append(arr[max(0, y - 1):y + 2, max(0, x - 1):x + 2].reshape(-1, 3))
+sclera = np.median(np.concatenate(scl), 0) / 255.0 if scl else np.ones(3)
+wb = sclera.mean() / np.maximum(sclera, 0.05)
+wb = np.clip(wb / wb.mean(), 0.7, 1.4)
+
 out = {
     "photo": os.path.abspath(PHOTO), "size": [W, H], "landmarks": P.round(3).tolist(),
     "pose": np.array(res.facial_transformation_matrixes[fi]).round(5).tolist() if res.facial_transformation_matrixes else None,
@@ -63,7 +74,9 @@ out = {
         "brow": sample([105, 334, 66, 296], r=max(1, int(0.006 * face_w))),
         "lips": sample([13, 14, 0, 17], r=max(1, int(0.006 * face_w))),
         "hair": hair},
-    "face_width_px": round(float(face_w), 1)}
+    "face_width_px": round(float(face_w), 1), "white_balance": wb.round(4).tolist()}
+out["colors"]["skin_wb"] = [round(float(min(1, c * g)), 4) for c, g in zip(out["colors"]["skin"], wb)]
+out["colors"]["lips_wb"] = [round(float(min(1, c * g)), 4) for c, g in zip(out["colors"]["lips"], wb)]
 json.dump(out, open(OUT, "w"))
 print("face %d px wide; skin %s iris %s hair %s; smile %.2f" % (face_w, out["colors"]["skin"], out["colors"]["iris"], hair,
       out["blendshapes"].get("mouthSmileLeft", 0)))

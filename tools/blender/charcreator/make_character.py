@@ -65,7 +65,7 @@ if S.get("fit"):
         for n, x in weights.items():
             for k in (n, "r-" + n[2:] if n.startswith("l-") else None):
                 if k and k in kb: kb[k].value = min(1.0, x * float(ST["exaggerate"]))
-    HumanService.refit(basemesh)      # eyes, brows, lashes, hair and clothes follow the new face
+    if not os.environ.get("NO_REFIT"): HumanService.refit(basemesh)      # eyes, brows, lashes, hair and clothes follow the new face
     if S["fit"].get("photo") and not ST.get("painted"):
         facefit.project_photo(basemesh, S["fit"])
 
@@ -107,6 +107,16 @@ for o in bpy.data.objects:
         bpy.context.view_layer.objects.active = o; o.select_set(True)
         bpy.ops.object.shape_key_remove(all=True, apply_mix=True)      # bake the slider mix into the mesh
         o.select_set(False)
+# the base mesh carries MakeHuman helper geometry (tights, skirt, hair cap, tongue/teeth/eye helpers, joint cubes)
+# hidden by a Mask modifier; delete it for real so it can't leak into exports or renders
+import bmesh as _bm
+_gi = basemesh.vertex_groups["body"].index
+_bmh = _bm.new(); _bmh.from_mesh(basemesh.data)
+_dl = _bmh.verts.layers.deform.active
+_bm.ops.delete(_bmh, geom=[v for v in _bmh.verts if not (_dl and _gi in v[_dl] and v[_dl][_gi] > 0.5)], context="VERTS")
+_bmh.to_mesh(basemesh.data); _bmh.free()
+for _m in list(basemesh.modifiers):
+    if _m.type == "MASK": basemesh.modifiers.remove(_m)
 ST = S.get("style", {})
 if ST:
     import stylize

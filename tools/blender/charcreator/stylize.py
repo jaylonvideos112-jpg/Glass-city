@@ -26,7 +26,7 @@ def _scale_part(arm, bones, pivot_bone, k):
             q = piv + (p - piv) * (1 + (k - 1) * min(1.0, w))
             v.co = mi @ q
 
-def _painted_skin(obj, rgb):
+def _painted_skin(obj, rgb, lips=None):
     from scipy.ndimage import gaussian_filter, median_filter
     for slot in obj.material_slots:
         m = slot.material
@@ -37,6 +37,12 @@ def _painted_skin(obj, rgb):
                 img = n.image; W, H = img.size
                 T = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)
                 c = T[..., :3]
+                # lips: pixels much redder than the skin around them (MakeHuman textures paint the lips pink)
+                red = c[..., 0] - c[..., 1]
+                body = c.reshape(-1, 3).sum(1) > 0.15
+                lipmask = red > (np.median(red.reshape(-1)[body]) + 0.12)
+                from scipy.ndimage import binary_opening, gaussian_filter as _g
+                lipmask = _g(binary_opening(lipmask, iterations=2).astype(np.float32), 2.0)
                 sig = max(1.5, W / 700.0)
                 c = median_filter(c, size=(5, 5, 1))
                 c = gaussian_filter(c, sigma=(sig, sig, 0))
@@ -44,6 +50,10 @@ def _painted_skin(obj, rgb):
                     med = np.median(c.reshape(-1, 3)[c.reshape(-1, 3).sum(1) > 0.15], 0)
                     tgt = np.array(rgb) * float(S_LUM)                 # photo skin minus its highlight
                     c = c * (tgt / np.maximum(med, 1e-3))
+                if lips is not None:
+                    lum = c.mean(2, keepdims=True) / max(1e-3, float(np.mean(lips)))
+                    lipc = np.clip(np.array(lips) * np.clip(lum, 0.6, 1.3) * 0.95, 0, 1)
+                    c = c * (1 - lipmask[..., None]) + lipc * lipmask[..., None]
                 # gentle posterize toward flat painted areas
                 lv = 24.0
                 c = np.round(c * lv) / lv * 0.35 + c * 0.65
@@ -66,5 +76,7 @@ def apply(basemesh, ST, S):
         rgb = ST.get("skin_rgb")
         if rgb is None and S.get("fit"):
             import json
-            lm = json.load(open(S["fit"]["landmarks"])); rgb = lm["colors"]["skin"]
-        _painted_skin(basemesh, rgb)
+            lm = json.load(open(S["fit"]["landmarks"]))
+            rgb = lm["colors"].get("skin_wb", lm["colors"]["skin"]); lips = lm["colors"].get("lips_wb")
+        else: lips = None
+        _painted_skin(basemesh, rgb, lips)

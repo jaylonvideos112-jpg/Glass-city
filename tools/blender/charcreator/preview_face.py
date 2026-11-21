@@ -11,6 +11,12 @@ def _cam(loc, look, lens):
 def render(basemesh, out, opt):
     import os as _os
     quick = _os.environ.get("QUICK")
+    if _os.environ.get("CLAY"):
+        cm = bpy.data.materials.new("clay"); cm.use_nodes = True
+        cm.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.6, 0.6, 0.6, 1)
+        for o in bpy.data.objects:
+            if o.type == "MESH":
+                for sl in o.material_slots: sl.material = cm
     sc = bpy.context.scene
     sc.render.engine = "BLENDER_EEVEE"
     sc.render.resolution_x, sc.render.resolution_y = 640, 900
@@ -27,6 +33,9 @@ def render(basemesh, out, opt):
     shots = []
     c = _cam((0, -0.95, hz), (0, 0, hz), 85); sc.camera = c
     p1 = out.replace(".png", "_face.png"); sc.render.filepath = p1; bpy.ops.render.render(write_still=True); shots.append(p1)
+    if quick == "side":
+        c2 = _cam((0.75, -0.55, hz), (0, 0, hz - 0.03), 85); sc.camera = c2
+        sc.render.filepath = out; bpy.ops.render.render(write_still=True); return
     if quick:
         import shutil; shutil.copy(p1, out); return
     c2 = _cam((0.7, -0.7, hz), (0, 0, hz), 85); sc.camera = c2

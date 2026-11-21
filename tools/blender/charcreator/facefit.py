@@ -20,6 +20,12 @@ CANON = os.environ.get("MP_CANON", "/home/claude/dl/facefit/canonical_face_model
 # slider families the face fit may use (MakeHuman target folders); ears are never seen from the front
 FIT_DIRS = ["nose", "mouth", "eyes", "eyebrows", "chin", "cheek", "forehead", "head", "neck"]
 SKIP = ("head-scale", "head-trans", "head-age", "neck-trans", "neck-scale-vert")
+# per-family slider limits: the lip and nose correspondences are the least reliable, so they may move less
+CAPS = {"mouth": 0.35, "nose": 0.5, "l-eye": 0.5, "eyebrows": 0.5, "chin": 0.6, "l-cheek": 0.6}
+def cap_of(name):
+    for k, v in CAPS.items():
+        if name.startswith(k): return v
+    return 0.9
 # MediaPipe landmark groups
 LIPS = [0, 13, 14, 17, 37, 39, 40, 61, 78, 80, 81, 82, 84, 87, 88, 91, 95, 146, 178, 181, 185, 191, 267, 269, 270, 291,
         308, 310, 311, 312, 314, 317, 318, 321, 324, 375, 402, 405, 409, 415]
@@ -83,7 +89,9 @@ def target_paths():
         fs = [files[n]]
         if n.startswith("l-") and "r-" + n[2:] in files: fs.append(files["r-" + n[2:]])
         out[n] = fs; return n
+    excl = tuple(x for x in os.environ.get("FIT_EXCLUDE", "").split(",") if x)
     for item in CURATED:
+        if excl and item.startswith(excl): continue
         base, _, suf = item.partition(":")
         if ":" in item and not suf:
             if add(base): sliders.append((base, None, base))
@@ -118,7 +126,7 @@ def deltas(obj, keys, idx):
             D[:, j] += (a.reshape(-1, 3)[idx] - B).ravel()
     return D
 
-def solve(P0, D, L, wts, lam, iters=6, x0=None, lo=None):
+def solve(P0, D, L, wts, lam, iters=6, x0=None, lo=None, hi=None):
     """alternate similarity pose and bounded LSQ. P0: model points (n,3); L: target points (n,3) in any frame."""
     from scipy.optimize import lsq_linear
     w = np.zeros(D.shape[1]) if x0 is None else np.array(x0, float)
@@ -129,9 +137,9 @@ def solve(P0, D, L, wts, lam, iters=6, x0=None, lo=None):
         Wr = np.sqrt(wts).ravel()
         A = np.vstack([D * Wr[:, None], math.sqrt(lam) * np.eye(D.shape[1])])
         b = np.concatenate([((Lm - P0).ravel()) * Wr, np.zeros(D.shape[1])])
-        hi = float(os.environ.get("FIT_MAX", 0.9))
-        lo_ = np.zeros(D.shape[1]) if lo is None else np.maximum(lo, -hi)
-        w = lsq_linear(A, b, bounds=(lo_, np.full(D.shape[1], hi)), lsmr_tol="auto", max_iter=300).x
+        hi_ = np.full(D.shape[1], float(os.environ.get("FIT_MAX", 0.9))) if hi is None else np.asarray(hi, float)
+        lo_ = np.zeros(D.shape[1]) if lo is None else np.maximum(lo, -hi_)
+        w = lsq_linear(A, b, bounds=(lo_, hi_), lsmr_tol="auto", max_iter=300).x
     P = P0 + (D @ w).reshape(-1, 3)
     s, R, t = umeyama(P, L, wts[:, 0])
     err = np.sqrt((((s * P @ R.T + t) - L) ** 2).sum(1)).mean() / s
@@ -182,17 +190,18 @@ def fit(obj, F, TargetService=None):
     wts[CONTOUR] *= 0.6
     bs = lm.get("blendshapes", {})
     expr = max(bs.get("mouthSmileLeft", 0), bs.get("mouthSmileRight", 0), bs.get("jawOpen", 0))
-    if expr > 0.3: wts[LIPS] *= 0.25                             # smiling photo: don't bake the smile into the face
+    wts[LIPS] *= 0.25 if expr > 0.3 else 0.5                    # lip outlines match loosely; a smile must not bake in
     s0, R0, t0 = umeyama(P0, L)
     Lm = ((L - t0) @ R0) / s0                                    # photo points in model units
     lam = float(F.get("lam", 2e-5)) / max(0.05, float(F.get("strength", 1.0)))
     # pass 1: each opposing pair is one signed slider (pos - neg) / 2
     D1 = np.stack([(Dt[:, col[pz]] - (Dt[:, col[ng]] if ng else 0)) / (2.0 if ng else 1.0) for _, ng, pz in sliders], 1)
-    w1, _, _ = solve(P0, D1, Lm, wts, lam, lo=np.array([-1.0 if ng else 0.0 for _, ng, _ in sliders]))
+    caps = np.array([cap_of(n) for n, _, _ in sliders])
+    w1, _, _ = solve(P0, D1, Lm, wts, lam, lo=np.array([-1.0 if ng else 0.0 for _, ng, _ in sliders]), hi=caps)
     # pass 2: the side each slider landed on, exact target, 0..1
     chosen = [(pz if x >= 0 else ng) for (n, ng, pz), x in zip(sliders, w1)]
     D2 = np.stack([Dt[:, col[c]] for c in chosen], 1)
-    w2, pose, err = solve(P0, D2, Lm, wts, lam, lo=np.zeros(len(chosen)), x0=np.abs(w1))
+    w2, pose, err = solve(P0, D2, Lm, wts, lam, lo=np.zeros(len(chosen)), hi=caps, x0=np.abs(w1))
     keys = {c: keys[c] for c in chosen}; w = w2
     kb = obj.data.shape_keys.key_blocks
     out = {}
