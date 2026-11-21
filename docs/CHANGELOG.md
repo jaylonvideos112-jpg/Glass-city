@@ -1,5 +1,12 @@
 # Changelog
 
+## Bully look and 3D grass (2026-11-21)
+* Art direction is now "4K upscaled Bully" on modern geometry: hand-painted texture set (`textures_bully/`,
+  `make_bully_textures.py`), `scripts/look.gd` switch (`source_data/look.json`, `--look=classic`), warm soft lighting.
+* **3D grass** (`scripts/grass.gd`, `shaders/grass.gdshader`): instanced blade clumps on every lawn within 46 m,
+  wind sway, distance fade, snow. Test `grass_grows_on_lawns`.
+* Character creator (MPFB2): photo face fitting, stylized mode; EASTGATE theater marquee; README is the complete brief.
+
 ## Smartphone (2026-11-15)
 * **Phone (`scripts/phone.gd`):** Tab opens it; arrows move, Enter opens, Backspace goes back. Apps:
   * **Maps** - a map of the whole island (`textures/phone_map.png` from `make_phone_map.py`), 13 categories of

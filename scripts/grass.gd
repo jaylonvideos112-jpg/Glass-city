@@ -1,0 +1,144 @@
+extends Node3D
+## 3D grass (owner, 2026-11-21): real blades on every lawn, park and grass area near the camera.
+## Each streamed chunk keeps its grass triangles (meta "grass_tris", from city_streamer.gd). Around the camera the
+## grass is split into 8 m cells; cells within RADIUS get a MultiMeshInstance3D of blade clumps scattered over the
+## grass triangles (area-weighted, seeded per cell so it never changes), denser close to the camera. Cells are
+## children of their chunk, so they move with origin rebasing and vanish with the chunk. shaders/grass.gdshader
+## sways and fades the blades. Off with --no-grass.
+
+const CELL := 8.0
+const RADIUS := 46.0
+const NEAR_DENSITY := 7.0      # clumps per m2 within 15 m
+const FAR_DENSITY := 2.2       # clumps per m2 at the edge
+const MAX_PER_CELL := 520
+
+var main: Node = null
+var enabled := true
+var _mesh: ArrayMesh = null
+var _mat: ShaderMaterial = null
+var _chunks := {}              # chunk root -> {cell key: PackedVector3Array (local tris)}
+var _live := {}                # [root, key] string -> MultiMeshInstance3D
+var _t := 0.0
+
+func _ready() -> void:
+	enabled = not OS.get_cmdline_user_args().has("--no-grass")
+	_mesh = _clump_mesh()
+	_mat = ShaderMaterial.new(); _mat.shader = load("res://shaders/grass.gdshader")
+	_mat.set_shader_parameter("fade_start", RADIUS - 12.0); _mat.set_shader_parameter("fade_end", RADIUS)
+
+## One clump: 9 tapered blades, each 4 segments with a forward curve, 0.16-0.34 m tall (a mowed-but-lush lawn).
+func _clump_mesh() -> ArrayMesh:
+	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rng := RandomNumberGenerator.new(); rng.seed = 7
+	for b in 9:
+		var a := rng.randf() * TAU
+		var r := rng.randf() * 0.09
+		var base := Vector3(cos(a) * r, 0.0, sin(a) * r)
+		var yaw := rng.randf() * TAU
+		var dir := Vector3(cos(yaw), 0.0, sin(yaw))
+		var side := Vector3(-dir.z, 0.0, dir.x)
+		var hgt := rng.randf_range(0.16, 0.34)
+		var w := rng.randf_range(0.012, 0.02)
+		var lean := rng.randf_range(0.05, 0.16)
+		var pts: Array[Vector3] = []; var ws: Array[float] = []; var vs: Array[float] = []
+		for i in 5:
+			var t := float(i) / 4.0
+			pts.append(base + dir * lean * t * t + Vector3(0.0, hgt * t, 0.0))
+			ws.append(w * (1.0 - t * 0.92)); vs.append(t)
+		var n := dir.cross(side).normalized()
+		for i in 4:
+			var p0 := pts[i]; var p1 := pts[i + 1]
+			var a0 := p0 - side * ws[i]; var b0 := p0 + side * ws[i]
+			var a1 := p1 - side * ws[i + 1]; var b1 := p1 + side * ws[i + 1]
+			for q in [[a0, vs[i]], [b0, vs[i]], [b1, vs[i + 1]], [a0, vs[i]], [b1, vs[i + 1]], [a1, vs[i + 1]]]:
+				st.set_normal(n); st.set_uv(Vector2(0.5, q[1])); st.add_vertex(q[0])
+	return st.commit()
+
+## city_streamer.gd calls this when a chunk is built: bin its grass triangles into cells.
+func add_chunk(root: Node3D, tris: PackedVector3Array) -> void:
+	if not enabled or tris.size() < 3: return
+	var cells := {}
+	for i in range(0, tris.size() - 2, 3):
+		var c := (tris[i] + tris[i + 1] + tris[i + 2]) / 3.0
+		var key := Vector2i(floori(c.x / CELL), floori(c.z / CELL))
+		if not cells.has(key): cells[key] = PackedVector3Array()
+		var arr: PackedVector3Array = cells[key]
+		arr.append(tris[i]); arr.append(tris[i + 1]); arr.append(tris[i + 2])
+		cells[key] = arr
+	_chunks[root] = cells
+
+func _process(dt: float) -> void:
+	if not enabled or main == null: return
+	_t -= dt
+	if _t > 0.0: return
+	_t = 0.25
+	var cam := get_viewport().get_camera_3d()
+	if cam == null: return
+	var cp := cam.global_position
+	var keep := {}
+	for root in _chunks.keys():
+		if not is_instance_valid(root):
+			_chunks.erase(root); continue
+		var r3: Node3D = root
+		var ro := r3.global_position
+		# skip whole chunks that are far away
+		var csz := 200.0
+		var cc := ro + Vector3(csz * 0.5, 0.0, -csz * 0.5)
+		if Vector2(cc.x - cp.x, cc.z - cp.z).length() > RADIUS + csz * 0.75: continue
+		var cells: Dictionary = _chunks[root]
+		for key in cells:
+			var centre := ro + Vector3((key.x + 0.5) * CELL, 0.0, (key.y + 0.5) * CELL)
+			var d := Vector2(centre.x - cp.x, centre.z - cp.z).length()
+			if d > RADIUS + CELL: continue
+			var id := "%d|%d|%d" % [root.get_instance_id(), key.x, key.y]
+			keep[id] = true
+			if not _live.has(id):
+				var mmi := _build_cell(r3, cells[key], key, d)
+				if mmi: _live[id] = mmi
+	for id in _live.keys():
+		if not keep.has(id):
+			var n = _live[id]
+			if is_instance_valid(n): n.queue_free()
+			_live.erase(id)
+
+func _build_cell(root: Node3D, tris: PackedVector3Array, key: Vector2i, dist: float) -> MultiMeshInstance3D:
+	var areas := PackedFloat32Array(); var total := 0.0
+	for i in range(0, tris.size() - 2, 3):
+		var a := (tris[i + 1] - tris[i]).cross(tris[i + 2] - tris[i]).length() * 0.5
+		total += a; areas.append(total)
+	if total < 0.5: return null
+	var dens := lerpf(NEAR_DENSITY, FAR_DENSITY, clampf((dist - 15.0) / (RADIUS - 15.0), 0.0, 1.0))
+	var n := mini(int(total * dens), MAX_PER_CELL)
+	if n <= 0: return null
+	var rng := RandomNumberGenerator.new(); rng.seed = hash(Vector3i(key.x, key.y, root.get_instance_id() & 0xffff))
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_custom_data = true
+	mm.mesh = _mesh; mm.instance_count = n
+	for i in n:
+		var x := rng.randf() * total
+		var lo := 0; var hi := areas.size() - 1
+		while lo < hi:
+			var mid := (lo + hi) >> 1
+			if areas[mid] < x: lo = mid + 1
+			else: hi = mid
+		var t0 := tris[lo * 3]; var t1 := tris[lo * 3 + 1]; var t2 := tris[lo * 3 + 2]
+		var u := rng.randf(); var v := rng.randf()
+		if u + v > 1.0: u = 1.0 - u; v = 1.0 - v
+		var p := t0 + (t1 - t0) * u + (t2 - t0) * v
+		var s := rng.randf_range(0.75, 1.3)
+		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.85, 1.2), s))
+		mm.set_instance_transform(i, Transform3D(b, p + Vector3(0, 0.01, 0)))
+		mm.set_instance_custom_data(i, Color(rng.randf(), 0, 0, 0))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.multimesh = mm; mmi.material_override = _mat
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(mmi)
+	return mmi
+
+## Number of grass clumps currently shown (tests, perf overlay).
+func clump_count() -> int:
+	var c := 0
+	for id in _live:
+		var n = _live[id]
+		if is_instance_valid(n): c += (n as MultiMeshInstance3D).multimesh.instance_count
+	return c

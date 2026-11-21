@@ -83,6 +83,7 @@ func _run() -> void:
 		["weapons_shoot_reload_store_grenade_police", t_weapons],
 		["on_foot_feel_metrics", t_foot_feel],
 		["emergency_responds_with_siren", t_dispatch],
+		["grass_grows_on_lawns", t_grass],
 	]
 	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
 		if a.begins_with("--only="): tests = tests.filter(func(t): return a.substr(7) in t[0])
@@ -1726,3 +1727,12 @@ func t_weapons() -> Array:
 	if stars_after < 1: return [false, "shooting someone gave no stars"]
 	if not locked: return [false, "no lock-on target"]
 	return [true, "walk-in store: bought pistol + suppressor; lock-on; weapon wheel; bought + equipped pistol, hit at 8 m, ammo counted, auto-reload, grenade floored a bystander, police %d stars" % stars_after]
+
+func t_grass() -> Array:
+	await _tr_reset_to_spawn()
+	var g = main.grass
+	if g == null: return [false, "no grass system"]
+	await _frames(90)
+	var n: int = g.clump_count()
+	if n <= 0: return [false, "no grass clumps near the player (%d grass chunks known)" % g._chunks.size()]
+	return [true, "%d grass clumps near the player in %d cells" % [n, g._live.size()]]

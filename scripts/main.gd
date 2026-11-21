@@ -20,6 +20,7 @@ var cars: Array = []
 var current_car: VehicleBody3D = null
 var camera: Camera3D
 var hud: CanvasLayer
+var grass: Node = null
 var world_offset := Vector3.ZERO   # world coords = local coords + world_offset
 
 var cam_yaw := 0.0
@@ -62,7 +63,8 @@ func _ready() -> void:
 	_setup_environment()
 	world = Node3D.new(); world.name = "World"; add_child(world)
 	bars = Bars.new(); bars.name = "Bars"; bars.main = self; add_child(bars)
-	streamer = Streamer.new(); streamer.name = "City"; streamer.bars = bars; world.add_child(streamer)
+	grass = preload("res://scripts/grass.gd").new(); grass.name = "Grass"; grass.main = self; add_child(grass)
+	streamer = Streamer.new(); streamer.name = "City"; streamer.bars = bars; streamer.grass = grass; world.add_child(streamer)
 	_build_outskirts()
 	var sp: Array = streamer.manifest["spawn"]
 	var spawn := Vector3(sp[0], 0, sp[1])

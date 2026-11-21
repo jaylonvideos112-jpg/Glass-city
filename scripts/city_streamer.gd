@@ -53,6 +53,7 @@ var bars: Node = null   # bars.gd: builds bar exteriors and handles enter/exit
 const Hlod := preload("res://scripts/hlod.gd")
 const ModelLib := preload("res://scripts/model_lib.gd")
 const StreetFurniture := preload("res://scripts/street_furniture.gd")
+var grass: Node = null   # grass.gd: 3D grass blades on lawns near the camera (set by main.gd)
 var hlod: Node3D = null   # far-distance low-detail city (hlod.gd); off with --no-hlod
 
 func _ready() -> void:
@@ -384,7 +385,9 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		aerial_mat.set_shader_parameter("aerial", ImageTexture.create_from_image(d["aerial_img"]))
 		aerial_mat.set_shader_parameter("detail", _detail_tex)
 		aerial_mat.set_shader_parameter("chunk_size", chunk_size)
+	var grass_tris := PackedVector3Array()
 	for layer in d["layers"]:
+		if grass != null and (layer["mat"] == "lawn" or layer["mat"] == "grass"): grass_tris.append_array(layer["v"])
 		var arrays := []
 		arrays.resize(Mesh.ARRAY_MAX)
 		arrays[Mesh.ARRAY_VERTEX] = layer["v"]
@@ -427,6 +430,7 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
 		root.add_child(mi)
+	if grass != null and grass_tris.size() > 0: grass.add_chunk(root, grass_tris)
 	var col: PackedVector3Array = d["col"]
 	if col.size() >= 3:
 		var body := StaticBody3D.new()

@@ -28,7 +28,11 @@ It is the owner's passion project for his own city.
   - colour textures load from `textures_bully/`, made by `tools/pipeline/make_bully_textures.py`: edge-preserving smoothing that removes photo grain but keeps brick courses, siding laps and cracks; a cleaner, warmer, more saturated palette; greener grass;
   - normal maps at 0.45 strength;
   - lighting preset in `main.gd` / `time_of_day.gd`: filmic tonemap, saturation 1.12, soft bloom, warm sun, 35% more ambient, softer shadow edges (sun angular size 0.9; 1.6 was too slow on the CPU renderer);
-  - characters: the stylized mode of the character creator (section 7).
+  - characters: the stylized mode of the character creator (section 7);
+  - **3D grass** (owner, 2026-11-21): `scripts/grass.gd` + `shaders/grass.gdshader`. Real blade clumps (9 curved blades each) on every lawn and grass area within 46 m of the camera.
+    - Grass is split into 8 m cells per chunk and scattered area-weighted with a fixed seed: 7 clumps/m² close up, 2.2 at the edge, capped at 520 per cell.
+    - Blades sway in a gusty wind, shrink into the ground at the radius edge (no popping), and take snow.
+    - Instanced (MultiMesh), no shadows. `--no-grass` turns it off. Test: `grass_grows_on_lawns`.
 
 ---
 
@@ -301,6 +305,7 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
   - per-family slider caps;
   - the texture-based lip recolour is off: its mask caught the chin.
 - **Next:**
+  - check the 3D grass in screenshots and tune its density and colour;
   - stylized trees;
   - hand-made Bully-style textures for key materials if the automatic pass isn't enough;
   - caricature proportions for every pedestrian;
