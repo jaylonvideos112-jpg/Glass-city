@@ -2250,6 +2250,8 @@ def _do_building(e, g, cp, is_part):
             # county story count -> least believable eave for the main body (LiDAR's low percentile catches porch roofs)
             e["_hw_eave"] = {1: 2.7, 1.3: 2.9, 1.5: 3.4, 2: 5.5, 2.5: 5.8, 3: 8.3}.get(st_, 0.0) if st_ else 0.0
     bl = BLOOKS.get(key) if cls not in ("house", "garage") and not lm and not exact and not is_part else None
+    if bl and mat.startswith("brick") and cls in ("retail", "commercial") and bl["cls"] in ("light", "grey"):
+        bl = None    # old brick shop blocks: a "light" photo reading is shop glass, white trim or sky, not the wall
     if bl and not mat.startswith(("h_", "hsid", "hbrk")):
         wc = bl["cls"]
         if wc == "brick": mat = mat if mat.startswith("brick") else "brick_red"

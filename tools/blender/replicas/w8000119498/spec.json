@@ -1,7 +1,7 @@
 {
  "name": "Eastwood Theater, 815 E Broadway St (1919)",
  "refs": "Lucas County Auditor parcel 07046021 photos",
- "notes": "Neighbourhood movie house: two-storey painted brick front with five tall round-arched windows, a pressed-metal parapet with urns and a raised centre, a projecting marquee with the EASTWOOD name over the entrance doors; long plain brick auditorium behind.",
+ "notes": "Neighbourhood movie house: two-storey painted brick front with five tall round-arched windows, a pressed-metal parapet with urns and a raised centre, a projecting marquee with the EASTWOOD name over the entrance doors; long plain brick auditorium behind. Front repainted light grey (latest county photos); yellow marquee with red EASTGATE letters (in-game parody name), white letter boards on its ends.",
  "materials": {
   "base": "precast",
   "body": "brick_red",
@@ -58,7 +58,13 @@
    "roof": {
     "type": "flat"
    },
-   "style": "solid"
+   "style": "solid",
+   "mat_over": {
+    "body": "paint_white",
+    "solid": "paint_white",
+    "parapet": "paint_white",
+    "pier": "paint_white"
+   }
   },
   {
    "rect": [
@@ -74,12 +80,13 @@
      "n": 1,
      "h": 4.0,
      "kind": "storefront",
-     "glass_h": 0.75
+     "glass_h": 0.6
     },
     {
      "n": 1,
      "h": 4.6,
-     "arched": true
+     "arched": true,
+     "wh": 0.55
     }
    ],
    "parapet": 1.2,
@@ -99,13 +106,32 @@
     "panel": false
    },
    "window": {
-    "w": 0.55,
-    "h": 0.7,
+    "w": 0.68,
+    "h": 0.62,
     "group": 1,
-    "depth": 0.15,
-    "mull": "vertical",
-    "sill_frac": 0.35
-   }
+    "depth": 0.18,
+    "mull": "cross",
+    "sill_frac": 0.25
+   },
+   "mat_over": {
+    "body": "paint_white",
+    "pier": "paint_white",
+    "parapet": "paint_white",
+    "solid": "paint_white"
+   },
+   "marquees": [
+    {
+     "edge": 3,
+     "a0": 1.0,
+     "a1": 15.0,
+     "z0": 3.7,
+     "z1": 4.9,
+     "out": 2.8,
+     "text": "EASTGATE",
+     "text_h": 0.8,
+     "boards": false
+    }
+   ]
   }
  ]
 }

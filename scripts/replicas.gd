@@ -81,6 +81,8 @@ const MAT := {
 	"paint_cream": ["", Color(0.9, 0.85, 0.68), 0.75, 0.0, 1.0],
 	"paint_green": ["", Color(0.12, 0.38, 0.27), 0.6, 0.0, 1.0],
 	"paint_red": ["", Color(0.55, 0.1, 0.08), 0.6, 0.0, 1.0],
+	"paint_yellow": ["", Color(0.86, 0.66, 0.22), 0.6, 0.0, 1.0],
+	"neon_red": ["", Color(0.85, 0.22, 0.2), 0.45, 0.0, 1.0],
 	"paint_white": ["white_stucco", Color(1.12, 1.1, 1.05), 0.7, 0.0, 3.0],
 	"slate_red": ["box_profile_metal_sheet", Color(0.55, 0.22, 0.16), 0.7, 0.1, 1.5],
 	"slate": ["box_profile_metal_sheet", Color(0.32, 0.33, 0.37), 0.75, 0.1, 1.5],

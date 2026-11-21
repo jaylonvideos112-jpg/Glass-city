@@ -87,7 +87,7 @@ def window(o, t, n, a0, a1, z0, z1, depth, frame, glass, mull, wid):
         ring = [(cx + math.cos(math.pi * k / seg) * r, z1 + math.sin(math.pi * k / seg) * r) for k in range(seg + 1)]
         for k in range(seg):
             (u0, w0), (u1, w1) = ring[k], ring[k + 1]
-            P0 = o + t * cx + n * (-depth - 0.01) + Vector((0, 0, z1)); P1 = o + t * u0 + n * (-depth - 0.01) + Vector((0, 0, w0)); P2 = o + t * u1 + n * (-depth - 0.01) + Vector((0, 0, w1))
+            P0 = o + t * cx + n * 0.015 + Vector((0, 0, z1)); P1 = o + t * u0 + n * 0.015 + Vector((0, 0, w0)); P2 = o + t * u1 + n * 0.015 + Vector((0, 0, w1))   # fan sits on the wall face (the spandrel wall would hide a recessed one)
             face([P0, P1, P2], glass, [(cx, z1), (u0, w0), (u1, w1)], wid)
             # voussoirs: ring band 0.25 m wide just proud of the wall
             Q0 = o + t * u0 + n * 0.03 + Vector((0, 0, w0)); Q1 = o + t * u1 + n * 0.03 + Vector((0, 0, w1))
@@ -285,6 +285,7 @@ def facade(a, b, z0, z1, fl):
                 c0 = corner + i * bw; c1 = c0 + bw
                 quad_on(o, t, n, c0, c0 + pil / 2, fz0, fz1, 0, body); quad_on(o, t, n, c1 - pil / 2, c1, fz0, fz1, 0, body)
                 box_on(o, t, n, c0 - pil / 2 + (0 if i else pil / 2), c0 + pil / 2, fz0, fz1, 0, 0.12, body) if i else None
+                S["_arch_now"] = False
                 gz1 = fz0 + fh * f.get("glass_h", 0.82)
                 quad_on(o, t, n, c0 + pil / 2, c1 - pil / 2, gz1, fz1, 0, body)
                 quad_on(o, t, n, c0 + pil / 2, c1 - pil / 2, fz0, fz0 + 0.45, 0, body)
@@ -604,6 +605,7 @@ def build_part(pt):
                     oo = Vector((A.x, A.y, 0)); box_on(oo, Vector((tt.x, tt.y, 0)), Vector((nn.x, nn.y, 0)), a0, a1, top + S["parapet"], top + S["parapet"] + 0.7, -0.4, 0.05, mats.get("parapet", mats["body"]))
         sweep(poly, profile("coping", 1.0, 1.0), top + S["parapet"], mats["trim"])
     if pt.get("portal"): portal(poly, pt["portal"], mats)
+    for MQ in pt.get("marquees", []): marquee(poly, MQ)
     for C_ in pt.get("chimneys", []): chimney(C_, mats)
     rf = pt.get("roof", {"type": "flat"})
     if rf.get("roof_z"): top = rf["roof_z"]
@@ -626,6 +628,53 @@ def build_part(pt):
                 A, Bv = Vector((*sq[i], top)), Vector((*sq[(i + 1) % 4], top))
                 face([A, Bv, Bv + Vector((0, 0, tu["h"])), A + Vector((0, 0, tu["h"]))], mats["body"])
             pitched(sq, top + tu["h"], {"type": "pyramid", "h": tu.get("cap", 2.0), "mat": tu.get("mat", "slate"), "overhang": 0.05}, mats["body"])
+
+def sign_text(txt, o, t, n, a_mid, z_mid, h, d, mat, depth=0.08):
+    """raised block letters (Blender font -> mesh) laid on a facade plane, centred at a_mid along t, z_mid up."""
+    cu = bpy.data.curves.new("sign", "FONT"); cu.body = txt; cu.extrude = depth / 2; cu.align_x = "CENTER"; cu.align_y = "CENTER"
+    cu.size = h * 1.35
+    ob = bpy.data.objects.new("sign", cu); bpy.context.collection.objects.link(ob)
+    dg = bpy.context.evaluated_depsgraph_get(); tm = ob.evaluated_get(dg).to_mesh()
+    vmap = {}
+    for v in tm.vertices:
+        p = o + t * (a_mid + v.co.x) + n * (d + depth / 2 + v.co.z) + Vector((0, 0, z_mid + v.co.y))
+        vmap[v.index] = bm.verts.new(p)
+    for pg in tm.polygons:
+        try:
+            f = bm.faces.new([vmap[i] for i in pg.vertices]); f.material_index = mi(mat)
+            for l in f.loops: l[uvl].uv = (l.vert.co.x + l.vert.co.y, l.vert.co.z); l[uv2].uv = (0.0, 0.0)
+        except ValueError: pass
+    ob.evaluated_get(dg).to_mesh_clear(); bpy.data.objects.remove(ob); bpy.data.curves.remove(cu)
+
+def marquee(poly, MQ):
+    """theatre marquee: a box projecting from facade edge MQ["edge"] (a0..a1 along it, z0..z1, out metres), soffit
+    lit underneath, optional block-letter name on its front and short letter boards on its ends."""
+    i = MQ.get("edge", 0)
+    A, Bv = Vector(poly[i]), Vector(poly[(i + 1) % len(poly)]); L = (Bv - A).length
+    tt = (Bv - A) / L; nn = Vector((tt.y, -tt.x))
+    o = Vector((A.x, A.y, 0)); T3 = Vector((tt.x, tt.y, 0)); N3 = Vector((nn.x, nn.y, 0))
+    a0 = MQ.get("a0", 0.0); a1 = MQ.get("a1", L); z0, z1 = MQ["z0"], MQ["z1"]; out = MQ.get("out", 2.5)
+    if a0 < 0: a0 += L
+    if a1 <= 0: a1 += L
+    box_on(o, T3, N3, a0, a1, z0, z1, 0.0, out, MQ.get("mat", "paint_yellow"))
+    quad_on(o, T3, N3, a0 + 0.1, a1 - 0.1, z0 - 0.02, z0 - 0.02, 0, MQ.get("soffit", "paint_white"))
+    if MQ.get("text"):
+        sign_text(MQ["text"], o, T3, N3, (a0 + a1) / 2, (z0 + z1) / 2, MQ.get("text_h", (z1 - z0) * 0.6), out, MQ.get("text_mat", "neon_red"))
+    if MQ.get("boards"):          # white changeable-letter boards on the marquee ends
+        for a in (a0, a1):
+            s = -1 if a == a0 else 1
+            for k in (0, 1):
+                d0, d1 = 0.4 + k * 0.0, out - 0.3
+                pa = o + T3 * (a + s * 0.03)
+                pts = [pa + N3 * d0 + Vector((0, 0, z0 + 0.15)), pa + N3 * d1 + Vector((0, 0, z0 + 0.15)),
+                       pa + N3 * d1 + Vector((0, 0, z1 - 0.15)), pa + N3 * d0 + Vector((0, 0, z1 - 0.15))]
+                if s > 0: pts = [pts[1], pts[0], pts[3], pts[2]]
+                face(pts, "paint_white"); break
+    for rod in range(2 if MQ.get("rods", True) else 0):    # tie rods up to the wall
+        a = a0 + (a1 - a0) * (0.2 + 0.6 * rod)
+        pa = o + T3 * a + N3 * (out - 0.2) + Vector((0, 0, z1)); pb = o + T3 * a + N3 * 0.05 + Vector((0, 0, z1 + 3.0))
+        dvec = (pb - pa).normalized(); side = T3 * 0.03
+        face([pa - side, pa + side, pb + side, pb - side], "metal_dark")
 
 # --------------------------------------------------------------------------- classical primitives
 def column(c, r, z0, z1, mat, seg=12):

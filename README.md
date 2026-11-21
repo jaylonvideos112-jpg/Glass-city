@@ -1,128 +1,349 @@
-# GLASS CITY
+# GLASS CITY — complete project brief
 
-An open-world action game set in a near 1:1 Toledo, Ohio, and the surrounding region. Built first in **Godot 4**,
-with an Unreal Engine 5 rebuild planned later. The design source of truth is
-[`docs/GLASS_CITY_Development_Bible_v1.0.pdf`](docs/GLASS_CITY_Development_Bible_v1.0.pdf).
+> **Read this first.** This file is the single source of truth for anyone (human or AI) picking up the project.
+> It is updated with every change to the repo (see "Keeping this file current" at the bottom).
+> Last updated: **2026-11-21**, East Toledo accuracy phase plus the art-style test and the character creator.
 
-**Docs:** [Build](docs/BUILD.md) · [Architecture](docs/ARCHITECTURE.md) · [Data sources & licences](docs/DATA_SOURCES.md) ·
-[Performance budgets](docs/PERF_BUDGETS.md) · [Coding standards](docs/CODING_STANDARDS.md) · [Changelog](docs/CHANGELOG.md)
+---
 
-The current map is a 20.8 km × 17.8 km area (41.571–41.731 N, 83.70–83.45 W): every Toledo neighbourhood, plus
-the parts of Ottawa Hills, Sylvania Township, Maumee, Rossford, Northwood and Oregon that fall inside it.
+## 1. What the game is
 
-## Run it
-1. Install **Godot 4.3** or newer (standard build).
-2. Open Godot, click **Import**, pick `project.godot`, and press **F5**.
-   The first open takes a minute or two while textures import.
+**GLASS CITY** is a GTA-style open-world game set in a near 1:1 recreation of **Toledo, Ohio** and its suburbs.
+It is the owner's passion project for his own city.
+- **Owner / creative lead:** Jay, a student. He decides names, story and direction. He will write the story and do the voice acting himself.
+- **Builder:** an AI coding assistant (Claude) writes the code, data pipeline and models in small tasks. The owner uses ChatGPT as a "creative director" to plan; the plan lives in `docs/GLASS_CITY_Development_Bible_v1.0.pdf`.
+- **Engine:** **Godot 4.3** (GDScript) now. A full visual rebuild in **Unreal Engine 5** is planned later, so the data pipeline is engine-neutral.
+- **Owner's PC:** GTX 1080 Ti (11 GB), the reference machine for performance budgets.
+- **Tone and genre:** GTA IV/V-style life sim and crime sandbox: driving, on-foot, fighting, guns, police, jobs, businesses, homes, needs. **No missions yet**; the owner said to build the world and systems first.
 
-You start downtown at **Summit St & Madison Ave** next to five parked cars.
+### Art direction (open decision as of 2026-11-21)
+- So far the target was a realistic, GTA-like look, with buildings as close to real life as possible.
+- **2026-11-21:** the owner proposed going **"realistic but slightly cartoonish, like Bully"** instead of photoreal GTA 6. Claude agreed it fits better:
+  - it avoids uncanny faces;
+  - it suits Godot and the 1080 Ti;
+  - it ages better.
+- The city geometry stays 1:1 and accurate. The stylisation lives in the characters (slightly bigger heads and hands, exaggerated faces, painted skin), the painted textures, and a warm, soft grade.
+- **A style test is in progress** (section 9). The owner decides after seeing it. Until he does, both looks exist:
+  - **current look:** default;
+  - **test look:** `--style=painted`.
 
-## Controls
-| | On foot | In a car |
+---
+
+## 2. The map
+
+- **The island:** a GTA V-style island (`source_data/island.json`). The real Toledo region sits in the middle. Around it is 2–6 km of invented countryside (farms, woodlots, four villages: Marsh Landing, Harbor Bend, Heron Point, Walleye Cove) out to a coast on "Lake Glassmere". A coastal **Lakeshore Parkway** loops the island. The island is about 1,440 km².
+- **Real area covered:** Toledo, Sylvania, Holland, Ottawa Hills, Maumee, Perrysburg, Rossford, Northwood, Walbridge, Oregon (to Maumee Bay State Park) and Millbury.
+- **Parody names** (owner's picks, `source_data/place_names.json`):
+
+| Real place | In-game name |
+|---|---|
+| Toledo | Glass City |
+| Sylvania | Pinewick |
+| Perrysburg | Kingsferry |
+| Maumee | Stonebridge |
+| Oregon | Eastshore |
+| Northwood | Gatesboro |
+| Rossford | Furnace Hill |
+| Holland | Windmill Park |
+| Ottawa Hills | Velvet Ridge |
+| Walbridge | Switchyard |
+| Millbury | Harvest Mill |
+| Point Place | Gull Shores |
+| Maumee River | Stone Ridge River |
+| Maumee Bay | Stone Ridge Bay |
+| Ottawa River | Northfork River |
+| Swan Creek | Mallard Creek |
+| Lake Erie | Lake Glassmere |
+| Crane Creek | Egret Creek |
+
+- **Streets:** every street has a parody sound-alike name (`source_data/street_names.json`, from `make_street_names.py`; hand picks go under `_fixed`).
+- **Schools:** 184 named individually (`source_data/school_names.json`). University of Toledo is **University of Glass City** (teams: Glass City Flight).
+- **Businesses, brands, banks, cars, sports teams, media:** always made-up parody names. **Every real business gets a non-copyrighted variant.** Real names are used only internally, for placement.
+  - The owner wants to be **asked** to pick names, given a few options with one marked as recommended.
+  - Examples: the Eastwood Theater is **EASTGATE**; the baseball team is the Glass City Swamp Hens; the payment app is "GlassPay" (placeholder).
+  - Bar brands: Shot Clock, The Salty Hull, Cardboard Club, Easy Pour, Velvet Mile, Erie Tiki, Neon Coyote, Alligator Club, plus cheap dives.
+
+### Map accuracy campaign (owner's order, 2026-11-20)
+Each phase starts with a fresh prompt from Claude and a detailed study of the area first. "No excuses": everything as close to real life as possible, terrain included.
+
+1. **East Toledo**, starting at Waite High School. **In progress** (section 8).
+2. Downtown overhaul.
+3. North Toledo.
+4. West Toledo.
+5. South Toledo.
+6. Oregon / Northwood.
+7. Everything else.
+
+---
+
+## 3. Running and testing
+
+- Open `project.godot` in **Godot 4.3** and press F5. `data/` (city chunks) is generated and not in git; build it with `tools/build.sh city`.
+- **Tests:** `GODOT=/path/to/godot sh tools/run_tests.sh`. This runs:
+  - Python data tests;
+  - a compile check of every script;
+  - 58 in-game headless tests.
+  
+  **All 58 pass** as of 2026-11-21. One test: `godot --headless --path . -- --test=res://tests/out/r.json --only=<substring>`.
+- **Screenshots:** `godot --path . --rendering-driver vulkan --resolution 1280x720 -- --demo=shots --out=DIR --shotlist=FILE.json`
+  - Shotlist entries: `["@cam", [x, y, z], [look_x, look_y, look_z], "name"]`, in world coords (z = −plan y).
+  - The camera y must include terrain height. The build box renders on the CPU, about 10 min per shot.
+- **Other demo modes:** `--demo=drive|walk|fly|tour|bars`, `--at=x,z`, `--hour=H`, `--style=painted` (art test).
+- **Benchmark:** `godot --path . -- --benchmark=user://benchmark.json` (see `docs/PERF_BUDGETS.md`).
+
+### Controls
+
+| Key | Action |
+|---|---|
+| WASD / arrows | Move, or throttle and steer |
+| Shift | Sprint |
+| Space | Jump, or handbrake |
+| E | Use / interact (bars, ATMs, jobs, signs, stealing a stopped car) |
+| F | Get in or out of a car |
+| R | Flip car, or deposit / rent |
+| V | Car camera views |
+| Tab | Phone |
+| I | Inventory |
+| T | Activity at a place |
+| B | Buy |
+| G | Garage |
+| J | Job board |
+| K | Dealer |
+| P / C / U | Repair / respray / upgrade at auto shops |
+| H | Help |
+| F3 | Performance overlay |
+| F6 | Time ×60 (testing) |
+| F7 | Next weather (testing) |
+
+---
+
+## 4. Repository layout
+
+```
+project.godot            Godot project
+scripts/                 game code (GDScript), one responsibility per file
+shaders/                 facade, aerial ground, sky, car paint, pedestrians, far-city (hlod), painted (art test) ...
+scenes/                  main scene
+assets/models/           .glb models from Blender (cars, props, guns, people, building replicas bld_<key>.glb)
+textures/                procedural + Poly Haven CC0 PBR textures
+source_data/             hand-authored / generated JSON the game reads (names, economy, police, vehicles, replicas ...)
+data/                    GENERATED city (git-ignored): manifest.json, chunks/X_Z.bin, aerial/, terrain.bin
+tools/build.sh           city build entry point
+tools/pipeline/          Python data pipeline (OSM, LiDAR, county records, photos -> chunks)
+tools/blender/           Blender (bpy 5.0 module) model builders; charcreator/ = character creator
+tests/                   test_runner.gd (in-game tests), test_data.py
+docs/                    ARCHITECTURE, BUILD, DATA_SOURCES (licences), DECISIONS, PERF_BUDGETS, CODING_STANDARDS,
+                         CHANGELOG, the Development Bible PDF
+```
+
+**Work folder** (outside git, next to the repo, `GLASSCITY_WORK`; on the build box `/home/claude`):
+
+| Path | Contents |
+|---|---|
+| `osm/` | OSM tiles and the county join |
+| `lidar/` | LiDAR products |
+| `lidar/dem/` | 4 m terrain grid |
+| `lidar/*.json` | photo looks and parcels |
+| `county/` | Lucas County footprints, parcels, AREIS records |
+| `dl/parcel_photos*` | county photos: **reference only, never shipped** |
+| `dl/mpfb_src/` | MPFB2 add-on source |
+| `dl/mhpack/` | MakeHuman asset packs |
+| `dl/facefit/` | face landmark model and canonical face |
+| `tools/Godot_v4.3...` | Godot binary |
+| `bpyenv/` | Python env with the `bpy` (Blender 5.0) module, plus scipy, pillow, matplotlib |
+
+---
+
+## 5. How the world is built (data pipeline)
+
+`tools/build.sh city` runs `tools/pipeline/build_city.py`, which takes about 60 min on the 2-CPU, 7 GB build box. It turns the raw data into 200 m chunks.
+
+**Coordinates:**
+- Plan coords are metres around downtown (41.6528 N, −83.5379 W), with x east and y north.
+- Game coords: x = plan x, z = −plan y, y = up. Chunks are 200 m; regions are 1 km.
+- Origin rebasing keeps the player near (0,0,0). Anything stored across frames must use world coords.
+
+### Sources (licences in `docs/DATA_SOURCES.md`)
+- **OpenStreetMap (ODbL):** streets, water, parks, rail, POIs, footprints outside the county.
+- **Lucas County:**
+  - building footprints for the whole county;
+  - AREIS records (wall material, storeys, year, land use, structure type);
+  - parcel photos from the iCare viewer. The photos are reference only: only derived colours and labels ship.
+- **USGS 3DEP LiDAR (public domain):**
+  - every building's height, roof shape and stepped tiers;
+  - exact downtown massing;
+  - **terrain**: the 4 m DEM (`dem.py`); water pinned to 174.4 m; game datum 176 m.
+- **Ohio OSIP aerial imagery:** the ground texture, plus lawn and grass detection.
+- **Poly Haven (CC0)** materials and props. **MakeHuman / MPFB2 (CC0 assets)** people.
+
+### What the build does
+- **Roads:** buffered to real widths; sidewalks, lane lines, lamps; bridges with ramps; intersection controls.
+- **Terrain:** buildings sit level on their lowest footprint ground point. Ground surfaces drape over the DEM. Water and bridges use absolute heights. `data/terrain.bin` (16 m grid, `scripts/terrain.gd`) lets the game query ground height.
+- **Houses:**
+  - county wall type and era give the siding or brick;
+  - **real paint and trim colours** are measured from county photos (`house_looks.py`: segmentation and k-means);
+  - **hand labels** for porch, dormer, shutters, roof and awning (`source_data/house_photo_labels.json`, 400+ houses);
+  - 3D porches, steps, doors, windows and shutters (`tools/blender/house_parts.py`);
+  - houses face the street of their address, with front walks;
+  - height is capped by the storey count, because street trees inflate the LiDAR height.
+- **Demolished houses:** county vacant-land records (land use 500, no building) remove about 1,000 houses that are gone in real life (`vacant_keys.py`).
+- **Non-house buildings:** real wall colour from photos (`bld_looks_apply.py`).
+  - Neighbourhood commercial strips (Main St, Starr Ave) are brick storefronts.
+  - AREIS structure type 12 on a non-residential parcel is an old brick shop block, not a house (fixed 2026-11-21).
+- **Landmark replicas:** hand-specced buildings made in Blender (`tools/blender/replica.py`, specs in `tools/blender/replicas/<key>/spec.json`).
+  - The exact LiDAR footprint and tiers come from `replica_add.py`.
+  - Features: facades, arches, cornices, porticos, domes, towers, rose windows, Gothic portals, chimneys, and now **theatre marquees with 3D letters**.
+  - About 40 so far: downtown towers, the Courthouse, the Museum of Art, and 27 in East Toledo.
+- **HLOD:** merged far-city meshes, one per 400 m region.
+
+---
+
+## 6. Game systems (runtime, `scripts/`)
+
+| System | File | Summary |
 |---|---|---|
-| W A S D / arrows | move | throttle / brake-reverse / steer |
-| Mouse | look (click to capture) | look around |
-| Shift | sprint | |
-| Space | jump | handbrake |
-| E or F | get in nearest car / enter or leave a bar | get out |
-| R | | flip car upright |
-| Wheel | zoom camera | |
-| H | toggle help | |
-| F3 | performance overlay | |
-| F6 | time ×60 (testing) | |
-| F7 | next weather (testing) | |
-| Esc | free mouse | |
+| Streaming | `city_streamer.gd`, `hlod.gd` | Loads 200 m chunks on threads; far city as merged meshes |
+| Player and camera | `main.gd`, `player.gd` | On foot, camera rig, respawn, origin rebasing |
+| Cars | `car.gd`, `vehicles.gd` | 18 made-up models from 10 made-up makes; owning, buying (41 dealers), stealing, damage, repair, upgrades, camera views |
+| Traffic | `traffic.gd` | Road graph from chunks (nodes at terrain height); signals; IDM car following; buses; emergency responders |
+| Pedestrians | `pedestrians.gd`, `humans.gd` | Sidewalk walking and crossing; daily schedules by role; umbrellas |
+| Time and weather | `time_of_day.gd`, `weather.gd`, `sky.gdshader` | 1 game day = 60 real minutes; seasons; rain, snow, fog, storms; wet roads |
+| Police | `police.gd` | Wanted stars; traffic stops and tickets; chases; helicopter at 4+ stars; busted = one night in jail |
+| Combat | `combat.gd`, `weapons.gd`, `gunstore.gd` | Melee with blocks, takedowns and AI that adapts; guns with lock-on, attachments and gun stores |
+| Economy and life | `money.gd`, `jobs.gd`, `business.gd`, `homes.gd`, `needs.gd`, `inventory.gd`, `activities.gd` | Cash plus "GlassPay" app and ATMs; 11 job types at 706 workplaces; businesses; renting and buying homes; hunger, stamina, fitness, weight; eating, gym, bowling, baseball, cinema, fishing |
+| Phone | `phone.gd` | Maps with GPS, wallet, jobs, messages, contacts, news, camera (photo mode) |
+| Saving | `world_state.gd` | `user://world_state.json`, one section per system |
+| Audio | `audio.gd` | Procedural engine, rain, wind, city, sirens |
 
-Drive into the Maumee or the lake and you respawn ("WASTED").
+Data tables for all of these live in `source_data/*.json`.
 
-## What's new in v0.3: real-looking Toledo
-* **Every building measured from LiDAR.** Heights come from the USGS 2016 Lower Maumee laser scan
-  (`USGS_LPC_OH_LowerMaumee_B16_2016`): 145,527 buildings got their real measured height. The scan also detects
-  roof shapes (gable, cross-gable, hip, flat) for about 57,000 buildings, and its 3 m height grid turns big
-  buildings into stepped tiers (towers, setbacks, wings).
-* **Skyline landmarks with real heights and materials:**
-  * One SeaGate (125 m glass)
-  * Tower on the Maumee (122 m, dark International Style)
-  * PNC Bank Building (112 m Art Deco limestone on black granite, with setbacks and a stepped pyramid crown)
-  * Government Center (100 m, Yamasaki narrow-window facade)
-  * Riverfront Apartments, Edison Plaza, the Nicholas, Ohio and Spitzer buildings, Four SeaGate, Pythian Castle
-    and more
-* **Civic landmarks:** the Lucas County Courthouse with its dome and copper roofs, the Toledo Museum of Art with
-  its marble colonnade, and the Main Library.
-* **Anthony Wayne Bridge.** A suspension bridge rebuilt to its real numbers: 239 m main span, sky-blue X-braced
-  towers 61 m above the river, deck 32 m up, and main cables with paired suspenders every 20 ft.
-* **Veterans' Glass City Skyway.** A single 122 m pylon with a glowing glass top, one plane of fan stays over two
-  187 m spans, and the deck 40 m above the Maumee on long approach viaducts.
-* **Ballparks and stadiums.** Fifth Third Field and 15 other stadiums get tiered seating bowls and light towers.
-* **Neighborhoods:**
-  * front porches facing the street on most houses
-  * gable and hip roofs from LiDAR or OSM tags
-  * storefront ground floors with awnings downtown and on commercial strips
-  * OSM roof colors and shapes honored (copper green, domes and so on)
+---
 
-## What changed in v0.2 (whole city)
-* **Whole city.** The generator now works region by region (1 km at a time), so the full city builds in about
-  2 minutes on a normal PC.
-* **Neighborhood styling.**
-  * Houses get pitched shingle roofs and clapboard siding in 6 tints, with some brick.
-  * The **Old West End** gets taller Victorian houses in darker siding and brick.
-  * Industrial areas get metal-sided buildings and gravel yards.
-  * Residential streets get street trees. Woods, cemeteries, golf courses and parks are filled in.
-* **Real neighborhood names** on the HUD, from OSM place data (Old West End, Point Place, Library Village,
-  Five Points, Birmingham, Westgate and more).
-* **Large-world fix.** The 1 km origin re-centering now handles newly streamed chunks correctly. It was tested by
-  teleporting to six spots across the city, up to 13 km from downtown.
-* **Compressed chunks.** City data is about 160 MB on disk instead of about 600 MB.
+## 7. Characters
 
-## How the city is built
-`tools/` holds the generator pipeline (Python 3 + shapely + numpy + pillow). The raw OpenStreetMap download
-for this build is included in `osm/city/` (25 tiles), so you can tweak the generator and rebuild offline:
+**Current game people:** 8 MakeHuman-based body variants (`tools/blender/people.py`, `rigged_people.py`).
+- They use a 53-bone `game_engine` skeleton with Unreal-mannequin bone names, and CMU motion-capture animations.
+- Pedestrians use a cheap shader-animated version (`humans.gd`, `pedestrian.gdshader`).
 
-```
-tools\regenerate_city.bat          (Windows: rebuild data from osm\city + lidar\buildings.pkl, ~2 min)
-tools\regenerate_city.bat fresh    (re-download Toledo from OpenStreetMap first)
-```
-or by hand:
-```
-pip install -r tools/requirements.txt
-python tools/build_city.py osm/city data 41.575 -83.700 41.735 -83.450
-```
+### Character creator (in progress, started 2026-11-21)
+The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face sliders, and "send a photo, get a good-looking model of that person". **Standing rule: when the owner asks for character models, build them with this creator on the MPFB2 add-on.**
 
-* **1:1 scale:** lat/lon are projected to meters around downtown (41.6528, -83.5379); +X is east, -Z is north.
-* **Roads** are buffered to real-ish widths and merged, so intersections are clean. Sidewalks run along city
-  streets, arterials get double-yellow lines, and street lamps line the roads.
-* **Bridges and overpasses** become elevated decks with ramps solved across connected bridge segments, plus
-  railings, fascia and pillars. Rivers and the lake are lowered basins with seawalls.
-* **Buildings** use OSM `height`, `building:levels`, `min_height` and `building:part` where present. Otherwise
-  height is estimated from building type, footprint and neighborhood.
-* **Names:** real street names show on the HUD and radar. Business and brand names on buildings are parodies
-  (e.g. "Huntingdon Centre", "The Toledo Edge", "ProMedix", "Jeepers Assembly").
+**MPFB2 setup:**
+- MPFB2 (MakeHuman Plugin For Blender, GPL code, CC0 assets) is installed as a Blender extension for the bpy module: the folder `~/.config/blender/5.0/extensions/user_default/mpfb` links to `dl/mpfb_src/mpfb2/src/mpfb`.
+- The asset packs are linked into MPFB's user data dir.
 
-## Engine side
-* `scripts/city_streamer.gd` streams 200 m chunks around you. Decompression and decoding run on worker
-  threads, mesh building is time-budgeted on the main thread, and chunks unload past about 1.1 km.
-* **Large-world precision:** everything lives under a `World` node that re-centers (origin rebasing) whenever you
-  get more than 1 km from the origin, so physics and rendering stay precise anywhere in the 21 km map.
-* `scripts/demo.gd` holds scripted test and capture modes:
-  `godot --path . -- --demo=drive|walk|fly|shots|tour [--at=x,z] [--seconds=N] [--out=dir]`
-  `--demo=tour` is the large-world stress test.
+**`tools/blender/charcreator/make_character.py SPEC.json OUT.glb [PREVIEW.png]`** builds a full person.
+- **Spec fields:**
+  - `phenotype`: gender, age, muscle, weight, height, ethnicity mix;
+  - face and body `targets`: 272 face sliders are available;
+  - `skin`, `eyes`, `eyebrows`, `hair`, `clothes`;
+  - `hair_color`;
+  - `style`;
+  - `fit`.
+- **Output:** the `game_engine` rig, exported as `.glb`.
+- **Preview:** a front face, three-quarter and full-body render. `QUICK=1` renders the front face only.
 
-## Rebuilding with LiDAR
-```
-python tools/lidar_fetch.py 41.575 -83.700 41.735 -83.450 8 lidar     # ~1.5 GB of USGS EPT point data
-python tools/lidar_process.py lidar/laz osm/city lidar/buildings.pkl   # measures every building (~4 min)
-LIDAR=lidar/buildings.pkl python tools/build_city.py osm/city data 41.575 -83.700 41.735 -83.450
-```
-(On Windows: `set LIDAR=lidar\buildings.pkl` before the last command.) The measured result is included as
-`lidar/buildings.pkl`, so you can rebuild without downloading the point cloud.
+**Photo to face:**
+1. `tools/pipeline/face_landmarks.py PHOTO OUT.json` runs the MediaPipe Face Landmarker: 478 points, plus the skin, iris, hair, brow and lip colours, and the photo's expression.
+2. `charcreator/facefit.py` maps MediaPipe's 468 points to MakeHuman vertices. The map is cached in `mp_to_mh.json`.
+3. It then solves about 45 curated symmetric face sliders. This is a signed two-pass bounded least-squares solve with pose alignment.
+4. It can project the photo onto the skin texture.
 
-## Known gaps / next up
-* Facades are still per-style textures, not each building's real facade. Smaller landmarks (the zoo, the
-  Jeep plant, churches) still use generic styles.
-* No traffic or pedestrians yet. Trees and lamps have no collision yet.
-* Land outside the box is flat placeholder ground.
+**Stylized mode** (`style`: `exaggerate`, `head_scale`, `hand_scale`, `painted`; `charcreator/stylize.py`) applies the Bully-like look: caricatured sliders, bigger head and hands, and painted skin re-toned to the photo.
+
+**Known issues (2026-11-21):**
+- A pale blob shows below the lower lip after fitting. Being diagnosed; it is suspected to be the teeth proxy (`"teeth": false` spec option added to test).
+- Likeness is still weak.
+- The skin re-tone runs too orange in warm photos.
+- Photo projection showed lighting seams.
+- Not yet: a Blender UI panel with sliders, and plugging creator models into the game.
+
+**Test photos:** GAN-generated faces (not real people) from the NVIDIA StyleGAN2 repo, in `dl/facetest/`.
+
+---
+
+## 8. Current state: East Toledo phase (2026-11-20 → now)
+
+**Done:**
+- Terrain everywhere; all buildings, roads and water sit on it.
+- 9,167 East Toledo house photos analysed into real colours, plus hand labels.
+- About 1,000 demolished houses removed.
+- 27 East Toledo landmark replicas:
+  - **schools:** Waite HS (main building and gym), Navarre, Oakdale, Eagle Academy, Early Childhood Center, St Thomas Aquinas;
+  - **churches:** St Mark's, St Stephen, Holy Rosary, St Louis, Calvin UCC, Martin Luther, Euclid UMC, Memorial UCC, Salem UMC, New Life Tabernacle;
+  - **others:** the Family Center, the Birmingham and Locke libraries, Fire Station 13, the Hungarian Club, the EASTGATE (Eastwood) Theater, the Sports Center, the Museum of the Great Lakes, Marina Lofts, Franklin, and the Front St row.
+- Traffic graph follows the terrain; tests reset to the spawn point.
+- Commits through `9608c15`.
+
+**Not yet done:**
+- **Main St:** the last screenshot showed modern white buildings with big glass. The real buildings are 1890s–1920s brown and red brick storefronts.
+  - The fix is in code: light photo colours are no longer trusted on brick shops.
+  - It needs a rebuild. Plan: a fast bbox build of the Main St area (lat 41.6402–41.6501, lon −83.5259 to −83.5115), with only those chunk files copied into `data/chunks`.
+- The theater front (EASTGATE marquee) is rebuilt but not yet seen in-game. Its earlier screenshot was taken from the back; it faces E Broadway.
+- The riverbank screenshot needs redoing.
+- Uncommitted:
+  - EASTGATE theater (`replica.py` marquee and sign text);
+  - `paint_yellow` and `neon_red` materials;
+  - the brick-shop colour fix;
+  - the art-style test;
+  - the character creator.
+- After East Toledo: send the owner a fresh prompt for the **downtown overhaul**.
+
+## 9. Art-style test (Bully-like), in progress
+
+- **Street:** `shaders/painted.gdshader`, a full-screen pass enabled by `--style=painted` (`main.gd`).
+  - A Kuwahara filter makes painted brush areas while keeping edges.
+  - Warm, saturated grade with lifted shadows.
+  - Softer filmic tonemap; more ambient light, less AO.
+  - Test shots: Freedom St, Waite, Freedom St from above → `/tmp/cap_style/`.
+- **Character:** the stylized creator mode (section 7).
+- **Next:** show the owner before and after, and he decides the direction.
+
+---
+
+## 10. Owner's standing preferences (how to work with Jay)
+
+- **Accuracy:** be as accurate to real Toledo as possible. Study each place first, and take the time it needs.
+- **Results:** show progress with **screenshots only, no videos**. Test before sending.
+- **Names:** never choose business, bar or brand names yourself. Ask with options and mark a recommended one. Every real business gets a parody / non-copyrighted name.
+- **Look:** realistic, "not like Roblox". (The new direction may be Bully-like stylized; see 1 and 9.)
+- **Skipped for now:** fishing polish and missions.
+- **Tool calls:** keep them short. The owner often interrupts to redirect; pause when asked.
+- **Character models:** build them with the MPFB2-based character creator.
+- **Unreal:** a UE5 setup will be done later via the desktop app on the owner's PC.
+- **Security and etiquette:**
+  - never put the owner's email in HTTP headers; use the UA `GlassCityBuilder/0.3 (game reference research)`;
+  - don't create accounts or use other apps' tokens;
+  - rate-limit the county server;
+  - county photos are never shipped.
+- **Commits** end with:
+  ```
+  Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+  Claude-Session: https://claude.ai/code/session_011Bwej3HJhEZdbminfnQFYa
+  ```
+
+## 11. Decisions log (short; full table in `docs/DECISIONS.md`)
+
+| Date | Decision |
+|---|---|
+| 2026-11-14 | 1 game day = 60 real minutes. Build the game close to finished in Godot, then do the visual upgrade in UE5. |
+| 2026-11-15 | Island map with invented countryside; parody names for towns, rivers, streets and schools; made-up car makes; "GlassPay" placeholder; no missions yet. |
+| 2026-11-20 | Area-by-area accuracy campaign (section 2). |
+| 2026-11-21 | Every business has a parody name (Eastwood Theater = EASTGATE). Bully-like stylized look proposed and being tested. Character creator on MPFB2. This README must be kept current. |
+
+## 12. Deeper docs
+`docs/ARCHITECTURE.md` (chunk format, modules), `docs/BUILD.md`, `docs/DATA_SOURCES.md` (every source and licence),
+`docs/PERF_BUDGETS.md`, `docs/CODING_STANDARDS.md`, `docs/CHANGELOG.md` (every feature, dated), the Bible PDF.
 
 ## Credits
-Map data © OpenStreetMap contributors, available under the Open Database License (ODbL): https://www.openstreetmap.org/copyright
-Elevation data: U.S. Geological Survey 3D Elevation Program (3DEP), Lower Maumee 2016 LiDAR (public domain).
-Landmark heights: CTBUH Skyscraper Center and Wikipedia's list of tallest buildings in Toledo.
+Map data © OpenStreetMap contributors (ODbL) · Elevation: USGS 3D Elevation Program · Building records: Lucas
+County Auditor (AREIS) · Aerial imagery: Ohio Statewide Imagery Program · Textures/models: Poly Haven (CC0) ·
+People: MakeHuman / MPFB2 assets (CC0) · Motion capture: CMU Graphics Lab · Face landmarks: Google MediaPipe (Apache-2.0).
+
+---
+
+## Keeping this file current
+**Rule (owner, 2026-11-21):** every change to the project updates this README in the same commit: new systems,
+data, decisions, names, current state, known issues and next steps. Update the "Last updated" line at the top
+and section 8/9 status. Details can also go in `docs/CHANGELOG.md`, but this file must alone be enough for another
+AI to understand and continue the project.

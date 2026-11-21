@@ -708,6 +708,16 @@ func _setup_environment() -> void:
 	env.adjustment_contrast = 1.04
 	env.adjustment_saturation = 1.05
 	env.adjustment_color_correction = _grade_lut()        # filmic warm-highlights / cool-shadows grade (GTA-style)
+	if OS.get_cmdline_user_args().has("--style=painted"):
+		# Bully-style test look: softer light, gentler shading, then a painted post filter
+		env.tonemap_mode = Environment.TONE_MAPPER_FILMIC; env.tonemap_white = 5.0
+		env.ambient_light_energy = 1.25
+		env.ssao_intensity = 1.2; env.ssil_intensity = 1.4
+		env.adjustment_contrast = 0.97; env.adjustment_saturation = 1.0
+		var pl := CanvasLayer.new(); pl.layer = -1; add_child(pl)
+		var pr := ColorRect.new(); pr.set_anchors_preset(Control.PRESET_FULL_RECT); pr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var psm := ShaderMaterial.new(); psm.shader = load("res://shaders/painted.gdshader"); pr.material = psm
+		pl.add_child(pr)
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
