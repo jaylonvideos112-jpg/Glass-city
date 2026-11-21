@@ -11,7 +11,8 @@ uniform float tint_mix = 0.0;        // 0 = photo colour, 1 = fully tinted (keep
 uniform float brightness = 1.0;
 uniform float normal_strength = 1.0;
 uniform float break_tiling = 1.0;    // 0 for regular patterns (paving slabs) where rotation would show
-uniform float wear = 0.0;            // asphalt streets: repair patches, crack networks, tar snakes (lived-in look)
+uniform float wear = 0.0;
+uniform int wear_mode = 0;           // 0 asphalt streets, 1 concrete sidewalks (cracks, gum, dirt, weeds)            // asphalt streets: repair patches, crack networks, tar snakes (lived-in look)
 global uniform float wetness;
 global uniform float snow_cover;
 varying vec2 plan;
@@ -42,7 +43,26 @@ void fragment() {
 	a = mix(a, tint * l * 2.0, tint_mix);
 	float macro = vn(plan * 0.02) * 0.6 + vn(plan * 0.007 + 3.0) * 0.4;
 	a *= brightness * mix(0.86, 1.1, macro);
-	if (wear > 0.0) {
+	if (wear > 0.0 && wear_mode == 1) {
+		// concrete sidewalks: hairline cracks, black gum spots, dirt drifted to the edges, weeds in the cracks
+		vec2 g = wpl / 2.2; vec2 gi = floor(g); vec2 gf = fract(g);
+		float d1 = 9.0, d2 = 9.0;
+		for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+			vec2 o = vec2(float(x), float(y));
+			vec2 pnt = o + vec2(h2(gi + o), h2(gi + o + 17.0)) - gf;
+			float dd2 = dot(pnt, pnt);
+			if (dd2 < d1) { d2 = d1; d1 = dd2; } else if (dd2 < d2) d2 = dd2;
+		}
+		float edge = sqrt(d2) - sqrt(d1);
+		float crack = (1.0 - smoothstep(0.0, 0.025, edge)) * smoothstep(0.45, 0.6, vn(wpl * 0.08 + 4.0));
+		a *= 1.0 - crack * 0.6 * wear;
+		float weed = crack * smoothstep(0.7, 0.8, vn(wpl * 0.7));
+		a = mix(a, vec3(0.2, 0.32, 0.1), weed * wear);
+		float gum = step(0.985, h2(floor(wpl * 7.0))) * step(length(fract(wpl * 7.0) - 0.5), 0.3);
+		a = mix(a, vec3(0.12, 0.12, 0.11), gum * 0.8 * wear);
+		a *= mix(1.0, 0.85, smoothstep(0.55, 0.8, vn(wpl * 0.35 + 9.0)) * wear);     // dirt drifts
+	}
+	if (wear > 0.0 && wear_mode == 0) {
 		// repair patches: one in ~6 cells of 7 m gets a rotated rectangle of darker, smoother fresh asphalt
 		vec2 cell = floor(wpl / 7.0); vec2 f = fract(wpl / 7.0) - 0.5;
 		float pr = h2(cell + 3.1);

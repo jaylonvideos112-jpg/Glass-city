@@ -7,6 +7,7 @@
 * Road wear (patches, cracks, tar snakes, oil), manholes and storm drains. East Toledo chunks rebuilt.
 * Back-yard fences (chain-link / wood, instanced panels) and Toledo-style trash and clutter: 30 models, 5 per kind of
   place (litter, residential bulk, alley, business, parking, industrial) on gutters, sidewalks, grass strips, paths, lots.
+* Sidewalk wear (cracks, weeds, gum, dirt) and lived-in cars (grime, faded beaters with rust).
 * 20-minute work backups (`tools/backup.py`).
 
 ## Bully look and 3D grass (2026-11-21)

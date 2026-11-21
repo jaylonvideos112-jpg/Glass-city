@@ -51,6 +51,7 @@ It is the owner's passion project for his own city.
     - tests: `utility_poles_and_wires`, `house_windows_lived_in`.
   - **Road wear and street hardware:**
     - `ground_pbr.gdshader` `wear` (on for the asphalt in Bully look): rotated repair patches with tar rims (about 1 in 6 cells of 7 m), alligator cracking in tired zones (voronoi edges masked by slow noise), glossy tar snakes, and oil blots, all in world space;
+    - the same shader with `wear_mode = 1` on sidewalks: hairline cracks, weeds in some cracks, black gum spots and dirt drifts;
     - cast-iron `manhole` covers near the centreline every 72 m, and `storm_grate` drains at both curbs every 55 m (`util_poles.py`; build job `mdl`, kept only where they land on the road surface, 0.08 m road height).
   - **Back-yard fences** (`build_city.py` `yard_fence()` / `emit_fence()`): about 80% of houses get one, 55% chain-link and 25% wood privacy.
     - The fence leaves each side wall 35–55% of the way back, runs out to half the gap to the neighbour (probed against the other buildings), back to the alley (or about 10 m past the house) and across.
@@ -70,6 +71,7 @@ It is the owner's passion project for his own city.
     - alleys every 10 m (50%), and beside footpaths every 10 m (35%);
     - parking lots one item per 260 m², industrial yards one per 420 m²;
     - an item must land on the road (gutter) or off it, as intended, and never inside a building.
+  - **Lived-in cars** (`shaders/car_paint.gdshader`): road grime creeps up the lower body, the clear coat dulls there, and the lower glass is dusty. About 28% of cars (seeded by paint colour, so a car keeps its look while it drives) are faded beaters with rust round the arches and rockers.
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
   - **Parked cars:** `scripts/parked_cars.gd`. Cars line residential (class 5) and tertiary (class 4) streets that have sidewalks, within 170 m of the camera.
