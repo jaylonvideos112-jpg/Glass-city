@@ -52,6 +52,24 @@ It is the owner's passion project for his own city.
   - **Road wear and street hardware:**
     - `ground_pbr.gdshader` `wear` (on for the asphalt in Bully look): rotated repair patches with tar rims (about 1 in 6 cells of 7 m), alligator cracking in tired zones (voronoi edges masked by slow noise), glossy tar snakes, and oil blots, all in world space;
     - cast-iron `manhole` covers near the centreline every 72 m, and `storm_grate` drains at both curbs every 55 m (`util_poles.py`; build job `mdl`, kept only where they land on the road surface, 0.08 m road height).
+  - **Back-yard fences** (`build_city.py` `yard_fence()` / `emit_fence()`): about 80% of houses get one, 55% chain-link and 25% wood privacy.
+    - The fence leaves each side wall 35–55% of the way back, runs out to half the gap to the neighbour (probed against the other buildings), back to the alley (or about 10 m past the house) and across.
+    - It's clipped per region off streets, sidewalks, walks, water and buildings. A garage breaks the fence; the gap at the house wall is the gate.
+    - Drawn as instanced 2.4 m panels `fence_chain` / `fence_wood` (`util_poles.py fence_panel`, textures from `tools/pipeline/make_fence_textures.py`), so they cost no chunk geometry. Building them as chunk geometry doubled the vertex count, so that approach was dropped.
+  - **Trash and clutter** (owner: "like real Toledo, every section about 5 variants, on sidewalks and grass near streets and walkways"). Models come from `tools/blender/clutter.py`, five per kind of place:
+    - litter clusters `litter_a`–`e`: cans, cups, chip bags, bottles, butts, napkins, newspaper, flyers;
+    - residential bulk trash `res_couch`, `res_mattress`, `res_tv`, `res_bags`, `res_chair`;
+    - alley junk `alley_tires`, `alley_pallet`, `alley_bags`, `alley_mattress`, `alley_junk`;
+    - business strips `com_boxes`, `com_cart`, `com_news`, `com_drink`, `com_bags`;
+    - parking lots `lot_cart`, `lot_cart_tipped`, `lot_tire`, `lot_cone`, `lot_litter`;
+    - industrial yards `ind_pallets`, `ind_drums`, `ind_tires`, `ind_scrap`, `ind_crates`.
+
+    Placement (`build_city.py clutter_along()`, job `clut`):
+    - streets: every 5.5 m on business streets (75% chance) and every 8 m on residential streets (55%), split between the gutter (on the road), the sidewalk and the grass strip or yard edge;
+    - bulk trash at the residential curb (16% of grass-strip spots);
+    - alleys every 10 m (50%), and beside footpaths every 10 m (35%);
+    - parking lots one item per 260 m², industrial yards one per 420 m²;
+    - an item must land on the road (gutter) or off it, as intended, and never inside a building.
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
   - **Parked cars:** `scripts/parked_cars.gd`. Cars line residential (class 5) and tertiary (class 4) streets that have sidewalks, within 170 m of the camera.

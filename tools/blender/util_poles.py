@@ -81,3 +81,40 @@ def storm_grate():
 
 if __name__ == "__main__":
     manhole(); storm_grate()
+
+
+def fence_panel(name, kind):
+    """2.4 m back-yard fence panel centred on the origin along X, front = +Y. chain: 1.22 m galvanized posts, top
+    rail, wire mesh (alpha texture chainlink.png, UV 0.6 m tiles); wood: 1.83 m privacy boards (fence_wood.png)
+    with rails on the back. Instanced per chunk (build_city.py yard fences), so fences cost no chunk geometry."""
+    reset()
+    import bmesh
+    if kind == "chain":
+        H, tex, tile = 1.22, "chainlink", 0.6
+        pm = mat("fence_metal", (0.62, 0.64, 0.63), metal=0.6, rough=0.45)
+        cyl(0.025, H + 0.05, (1.2, 0, (H + 0.05) / 2), pm, verts=8)
+        box((2.4, 0.035, 0.035), (0, 0, H - 0.01), pm, bevel=0)
+    else:
+        H, tex, tile = 1.83, "fence_wood", 1.8
+        pm = mat("fence_post", (0.42, 0.33, 0.24), rough=0.95)
+        box((0.09, 0.09, H + 0.05), (1.2, -0.06, (H + 0.05) / 2), pm, bevel=0)
+        for z in (0.3, 1.5):
+            box((2.4, 0.04, 0.09), (0, -0.04, z), pm, bevel=0)
+    im = mat(tex, (1, 1, 1), rough=0.5 if kind == "chain" else 0.95)
+    nt = im.node_tree; ti = nt.nodes.new("ShaderNodeTexImage")
+    ti.image = bpy.data.images.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "textures", tex + ".png"))
+    nt.links.new(ti.outputs["Color"], nt.nodes["Principled BSDF"].inputs["Base Color"])
+    if kind == "chain":
+        nt.links.new(ti.outputs["Alpha"], nt.nodes["Principled BSDF"].inputs["Alpha"]); im.blend_method = "CLIP"
+    me = bpy.data.meshes.new("panel"); b = bmesh.new()
+    vs = [b.verts.new(v) for v in ((-1.2, 0, 0.02), (1.2, 0, 0.02), (1.2, 0, H), (-1.2, 0, H))]
+    f = b.faces.new(vs); uvl = b.loops.layers.uv.new()
+    vt = H / tile if kind == "chain" else 1.0
+    for lp, uv in zip(f.loops, ((0, 0), (2.4 / tile, 0), (2.4 / tile, vt), (0, vt))): lp[uvl].uv = uv
+    b.to_mesh(me); b.free()
+    o = bpy.data.objects.new("panel", me); bpy.context.collection.objects.link(o); me.materials.append(im)
+    export(name)
+
+
+if __name__ == "__main__":
+    fence_panel("fence_chain", "chain"); fence_panel("fence_wood", "wood")

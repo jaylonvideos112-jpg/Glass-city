@@ -52,6 +52,24 @@ It is the owner's passion project for his own city.
   - **Road wear and street hardware:**
     - `ground_pbr.gdshader` `wear` (on for the asphalt in Bully look): rotated repair patches with tar rims (about 1 in 6 cells of 7 m), alligator cracking in tired zones (voronoi edges masked by slow noise), glossy tar snakes, and oil blots, all in world space;
     - cast-iron `manhole` covers near the centreline every 72 m, and `storm_grate` drains at both curbs every 55 m (`util_poles.py`; build job `mdl`, kept only where they land on the road surface, 0.08 m road height).
+  - **Back-yard fences** (`build_city.py` `yard_fence()` / `emit_fence()`): about 80% of houses get one, 55% chain-link and 25% wood privacy.
+    - The fence leaves each side wall 35–55% of the way back, runs out to half the gap to the neighbour (probed against the other buildings), back to the alley (or about 10 m past the house) and across.
+    - It's clipped per region off streets, sidewalks, walks, water and buildings. A garage breaks the fence; the gap at the house wall is the gate.
+    - Drawn as instanced 2.4 m panels `fence_chain` / `fence_wood` (`util_poles.py fence_panel`, textures from `tools/pipeline/make_fence_textures.py`), so they cost no chunk geometry. Building them as chunk geometry doubled the vertex count, so that approach was dropped.
+  - **Trash and clutter** (owner: "like real Toledo, every section about 5 variants, on sidewalks and grass near streets and walkways"). Models come from `tools/blender/clutter.py`, five per kind of place:
+    - litter clusters `litter_a`–`e`: cans, cups, chip bags, bottles, butts, napkins, newspaper, flyers;
+    - residential bulk trash `res_couch`, `res_mattress`, `res_tv`, `res_bags`, `res_chair`;
+    - alley junk `alley_tires`, `alley_pallet`, `alley_bags`, `alley_mattress`, `alley_junk`;
+    - business strips `com_boxes`, `com_cart`, `com_news`, `com_drink`, `com_bags`;
+    - parking lots `lot_cart`, `lot_cart_tipped`, `lot_tire`, `lot_cone`, `lot_litter`;
+    - industrial yards `ind_pallets`, `ind_drums`, `ind_tires`, `ind_scrap`, `ind_crates`.
+
+    Placement (`build_city.py clutter_along()`, job `clut`):
+    - streets: every 5.5 m on business streets (75% chance) and every 8 m on residential streets (55%), split between the gutter (on the road), the sidewalk and the grass strip or yard edge;
+    - bulk trash at the residential curb (16% of grass-strip spots);
+    - alleys every 10 m (50%), and beside footpaths every 10 m (35%);
+    - parking lots one item per 260 m², industrial yards one per 420 m²;
+    - an item must land on the road (gutter) or off it, as intended, and never inside a building.
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
   - **Parked cars:** `scripts/parked_cars.gd`. Cars line residential (class 5) and tertiary (class 4) streets that have sidewalks, within 170 m of the camera.
@@ -928,6 +946,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/pipeline/make_bus_routes.py` | Bus routes for Glass City Transit (made up: the area's real route data could not be downloaded, 2026-11-15). usage: make_bus_routes.py <osm tiles dir> <countryside.json> <out bus_routes.json> Each route runs from the downtown hub to one town centre and back along the road network, preferring big roads and obeying one-way streets (outbound and inbound are found separately). Stops every ~350 m, at road nodes, so the game can place them on the traffic graph (nodes are OSM node ids, the same ids traffic.gd uses). |
 | `tools/pipeline/make_countryside.py` | Made-up countryside between the real-data box and the island coast (owner decision 2026-11-15). usage: make_countryside.py <island.json> <osm tiles dir> <out.json> Writes OSM-style elements (ways with inline geometry, tag "fictional"="yes") that build_city.py reads like any tile: * every real road that leaves the real box continues outward and ends on a coast road that loops the island * farmsteads (house, barn, sometimes a silo) along the country roads, with driveways * woodlots, and a few small lakeside villages with a street grid, houses, a church and a general store All randomness is seeded, so the same inputs always give the same land. |
 | `tools/pipeline/make_facades.py` | Rebuild the tiling facade textures with photo-scanned wall materials (CC0 Poly Haven, textures/pbr/). For every facade texture the window layout of the original (textures/_orig/<name>.png, windows found from the glossy mask <name>_rough.png or by darkness) is kept, and everything else is redrawn at real-world scale: wall = a photo wall material tiled at its real size, tinted toward the original's wall colour windows = frame, glass with a sky-to-ground reflection gradient, a room behind it (blinds, curtains or dark), a mullion on wide windows, a stone sill and a shadowed recess at the top Writes <name>.png (colour), <name>_nor.png (normal, OpenGL), <name>_rough.png (R roughness, G metallic). … |
+| `tools/pipeline/make_fence_textures.py` | Fence textures for back-yard fences (build_city.py fences): textures/chainlink.png (RGBA galvanized diamond wire, one tile = 0.6 m x 0.6 m, alpha-tested) and textures/fence_wood.png (weathered vertical privacy boards, one tile = 1.8 m wide x 1.8 m tall, a few boards replaced / darker, stains at the bottom). usage: python3 tools/pipeline/make_fence_textures.py |
 | `tools/pipeline/make_homes.py` | Homes for rent or sale (scripts/homes.gd). usage: make_homes.py <osm tiles dir> <island.json> <out homes.json> Picks ~220 real houses and apartment buildings spread over the real area (at least 250 m apart) and lists each for rent and/or sale. Price comes from the footprint area and the neighbourhood (nicer near the river and the west side, pricier downtown for apartments). Addresses are made up. |
 | `tools/pipeline/make_island.py` | Island outline around the real-data area (owner decisions 2026-11-15): the real map stays whole; a band of made-up countryside (2-6 km) surrounds it out to a natural coastline; real Lake Erie / Maumee Bay stays open to the lake. usage: make_island.py <erie.json> <out island.json> Writes {"real": [S, W, N, E], "ring": [[lat, lon], ...], "islets": [...]} in lat/lon. |
 | `tools/pipeline/make_phone_map.py` | The phone's map (scripts/phone.gd Maps app): a styled map of the whole island with the real road network, water, parks, the made-up countryside and town/river labels. usage: make_phone_map.py <out png> [width px] (bounds are written next to it as phone_map.json) |
@@ -951,6 +970,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/blender/bully_trees.py` | Bully-style trees (Blender): full, rounded canopies of painted leaf clusters on a sturdy trunk and branches. Two shapes (round maple-like, tall oval elm-like) x two sizes, to replace the photo-scan tree impostors in the Bully look. The canopy is made of a few overlapping lobes; each lobe is covered with leaf cards that carry a painted leaf-cluster texture (generated here: soft, stylised leaves in a few greens). Card normals point out from the canopy centre, so the crown lights as one soft rounded mass, like Bully's trees. Exported as .glb for tools/dbg/bake_impostor.gd, which bakes the billboards into textures_bully/trees/ (same names as textures/trees/). usage: bpyenv/bin/python … |
 | `tools/blender/bvh_fk.py` | Tiny BVH reader + forward kinematics (numpy). Returns per-frame global joint positions and rotations. Used by rigged_people.py to retarget CMU motion capture (cgspeed BVH conversion, free for any use). |
 | `tools/blender/cars.py` | Blender (bpy) procedural car bodies for GLASS CITY. One .glb per body type into OUT/car_<body>.glb. Body = lofted cross-section rings along the length -> Catmull-Clark subdivision -> wheel-arch booleans -> faces classified into paint / glass / trim by region -> lights, grille, bumpers, mirrors, handles and plates placed by raycasting onto the finished surface. Wheels are NOT included (the game adds its own wheel meshes). Material names are a contract with scripts/traffic.gd: paint, glass, chrome, trim, head, tail. Axes: Blender +Y = car front (= Godot -Z), +Z up. Origin: ground under the body centre. usage: bpyenv/bin/python tools/blender/cars.py OUTDIR [body ...] |
+| `tools/blender/clutter.py` | Blender (bpy) street trash and clutter for GLASS CITY (owner, 2026-11-21: "trash and clutter in streets like real Toledo, with every section having like 5 different variants ... on sidewalks and grass near streets and walkways too"). Placed by tools/pipeline/build_city.py (clutter jobs), five or more variants per kind of place: litter_a..e small litter clusters (gutters, sidewalks, grass strips, path edges, lots): cans, cups, chip bags, bottles, napkins, butts, newspaper and flyers res_* residential curb / tree lawn bulk trash: couch, mattress, CRT TV, bag pile, chair + boxes alley_* alleys: tire stack, broken pallet, bag pile, leaning mattress, junk pile com_* business strips: flattened … |
 | `tools/blender/decimate_scan.py` | Blender (bpy) script: import a high-poly CC0 scan (glTF), decimate it to a triangle budget, keep its PBR textures, set its origin to the base centre, and export a game-ready .glb (optionally with a lower LOD). usage: bpyenv/bin/python tools/blender/decimate_scan.py IN.gltf OUT.glb TRIS [LOD1_TRIS] |
 | `tools/blender/guns.py` | Blender (bpy) weapon models for GLASS CITY: bevelled, smooth-shaded parts with real detail (slide serrations, ejection port, beavertail, rounded grips with stippled panels, trigger + guard, rails, ribbed pump, curved mag...). One .glb per weapon and per attachment (gun_<id>.glb, att_<mod>_<id>.glb) into OUT. Material names are the contract with scripts/gun_models.gd: fin (finish colour), poly, wood, steel, lens. Coordinates are written in GODOT space (x right, y up, -z forward, grip hand at the origin) and converted here. usage: bpyenv/bin/python tools/blender/guns.py OUTDIR |
 | `tools/blender/house_parts.py` | Blender (bpy) house parts placed on every house wall by tools/pipeline/build_city.py: double-hung windows with real casings/sills/sashes, attic windows, panel front doors, porch posts, porch railings, front steps. Origin = on the wall plane, bottom centre; Blender +Y = out of the wall (Godot -Z = the prop's front). usage: bpyenv/bin/python tools/blender/house_parts.py OUTDIR |
@@ -999,7 +1019,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/dbg/helpers/study.sh` | usage: study.sh KEY ASSR [bands] |
 | `tools/dbg/helpers/tz.py` | — |
 
-Also: `tools/blender/replicas/<key>/{spec,massing}.json` (97 landmark specs), `tools/blender/mh/` (MakeHuman base mesh, targets, rig and weights; see its SOURCE.md), `assets/models/` (190 .glb models), `textures/` (procedural + Poly Haven PBR), `scenes/`, `fonts/`, `assets_src/` (source models, not shipped).
+Also: `tools/blender/replicas/<key>/{spec,massing}.json` (97 landmark specs), `tools/blender/mh/` (MakeHuman base mesh, targets, rig and weights; see its SOURCE.md), `assets/models/` (222 .glb models), `textures/` (procedural + Poly Haven PBR), `scenes/`, `fonts/`, `assets_src/` (source models, not shipped).
 
 ## 19. Data files (`source_data/`) and every name in them
 
@@ -2988,8 +3008,6 @@ In-game tests (`tests/test_runner.gd`, 62): `manifest_and_world_bounds`, `chunk_
 
 Data tests (`tests/test_data.py`, 0): 
 
-Last recorded run: 2026-11-21T14:58:31, 59 passed, 1 failed.
-
 ## 21. Build script and settings
 
 ```sh
@@ -3374,6 +3392,8 @@ Changes to the development bible made by the project owner. The latest explicit 
   (`shaders/window_interior.gdshader`). Own character system started (`tools/blender/glasshuman/`), then paused.
 * Wooden utility poles (3 variants) with sagging overhead wires along alleys and alley-less residential streets.
 * Road wear (patches, cracks, tar snakes, oil), manholes and storm drains. East Toledo chunks rebuilt.
+* Back-yard fences (chain-link / wood, instanced panels) and Toledo-style trash and clutter: 30 models, 5 per kind of
+  place (litter, residential bulk, alley, business, parking, industrial) on gutters, sidewalks, grass strips, paths, lots.
 * 20-minute work backups (`tools/backup.py`).
 
 #### Bully look and 3D grass (2026-11-21)

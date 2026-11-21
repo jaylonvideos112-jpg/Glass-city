@@ -183,6 +183,19 @@ func _make_materials() -> void:
 	gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; gm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	gm.roughness = 1.0; gm.cull_mode = BaseMaterial3D.CULL_BACK; gm.render_priority = 1
 	materials["grime_base"] = gm
+	# back-yard fences (build_city.py emit_fence): galvanized chain-link (alpha-tested) and weathered privacy boards
+	var cl := StandardMaterial3D.new()
+	cl.albedo_texture = load("res://textures/chainlink.png"); cl.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	cl.alpha_scissor_threshold = 0.5; cl.cull_mode = BaseMaterial3D.CULL_DISABLED; cl.metallic = 0.5; cl.roughness = 0.5
+	cl.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	materials["chainlink"] = cl
+	var fw := StandardMaterial3D.new()
+	fw.albedo_texture = load(Look.t("res://textures/fence_wood.png")); fw.cull_mode = BaseMaterial3D.CULL_DISABLED; fw.roughness = 0.95
+	materials["fence_wood"] = fw
+	var fmt := StandardMaterial3D.new(); fmt.albedo_color = Color(0.62, 0.64, 0.63); fmt.metallic = 0.6; fmt.roughness = 0.45
+	materials["fence_metal"] = fmt
+	var fpo := StandardMaterial3D.new(); fpo.albedo_color = Color(0.42, 0.33, 0.24); fpo.roughness = 0.95
+	materials["fence_post"] = fpo
 	materials["sand"] = ground_mat("coast_sand_01", 2.5)   # island beaches
 	var trim := StandardMaterial3D.new(); trim.albedo_color = Color(0.88, 0.87, 0.83); trim.roughness = 0.7
 	materials["trim_white"] = trim                                  # fascia, soffits, rake boards

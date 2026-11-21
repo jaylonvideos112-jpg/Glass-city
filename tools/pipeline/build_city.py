@@ -570,6 +570,51 @@ def utility_line(pts, w, is_alley):
             d += step
         d -= L
 
+LITTER = ["litter_a", "litter_b", "litter_c", "litter_d", "litter_e"]
+RES_BULK = ["res_couch", "res_mattress", "res_tv", "res_bags", "res_chair"]
+ALLEY_JUNK = ["alley_tires", "alley_pallet", "alley_bags", "alley_mattress", "alley_junk"]
+COM_JUNK = ["com_boxes", "com_cart", "com_news", "com_drink", "com_bags"]
+LOT_JUNK = ["lot_cart", "lot_cart_tipped", "lot_tire", "lot_cone", "lot_litter"]
+IND_JUNK = ["ind_pallets", "ind_drums", "ind_tires", "ind_scrap", "ind_crates"]
+crng = random.Random(1907)
+def clutter_along(x0, y0, x1, y1, w, hw, drivable, is_alley):
+    """Trash and clutter like real Toledo streets (tools/blender/clutter.py models, 5 variants per kind of place):
+    litter in the gutters, on the sidewalks and in the grass strips; curb bulk trash on residential streets;
+    junk in alleys; boxes, carts and spilled drinks on business strips; litter beside footpaths.
+    Jobs ("clut", model, x, y, fx, fy, where) where = "road" (must land on the road) or "off" (must not)."""
+    L = math.hypot(x1 - x0, y1 - y0)
+    if L < 0.5: return
+    dx, dy = (x1 - x0) / L, (y1 - y0) / L
+    com = hw in ("primary", "secondary", "tertiary", "trunk")
+    street = drivable and hw in SIDEWALK_ON
+    path = not drivable and hw in ("footway", "path", "pedestrian", "cycleway")
+    if not (street or path or is_alley): return
+    step = 10.0 if (is_alley or path) else 5.5 if com else 8.0
+    chance = 0.5 if is_alley else 0.35 if path else 0.75 if com else 0.55
+    d = crng.uniform(0, step)
+    while d < L:
+        if crng.random() < chance:
+            side = crng.choice((-1, 1)); r = crng.random(); a = crng.uniform(0, 6.283)
+            fx, fy = math.cos(a), math.sin(a)
+            if is_alley:
+                off, where = w / 2 + crng.uniform(0.3, 1.0), "off"
+                name = crng.choice(ALLEY_JUNK) if r < 0.45 else crng.choice(LITTER)
+            elif path:
+                off, where, name = w / 2 + crng.uniform(0.3, 1.4), "off", crng.choice(LITTER)
+            elif r < 0.33:       # gutter
+                off, where, name = w / 2 - crng.uniform(0.15, 0.45), "road", crng.choice(LITTER)
+            elif r < 0.7:        # sidewalk
+                off, where = w / 2 + crng.uniform(0.6, 2.3), "off"
+                name = crng.choice(COM_JUNK) if com and crng.random() < 0.3 else crng.choice(LITTER)
+            else:                # grass strip / yard edge near the street
+                off, where = w / 2 + crng.uniform(3.0, 5.2), "off"
+                if not com and crng.random() < 0.16:
+                    name = crng.choice(RES_BULK); off = w / 2 + crng.uniform(3.2, 3.9); fx, fy = -dy * side, dx * side
+                else: name = crng.choice(LITTER)
+            px, py = x0 + dx * d - dy * off * side, y0 + dy * d + dx * off * side
+            seg_jobs[rkey(px, py)].append(("clut", name, px, py, fx, fy, where))
+        d += step * crng.uniform(0.6, 1.4)
+
 rng = random.Random(42)
 for e in els:
     t = tags(e)
@@ -604,6 +649,7 @@ for e in els:
         rk = rkey(mx, my)
         if center: seg_jobs[rk].append(("cl", x0, y0, x1, y1))
         if name: seg_jobs[rk].append(("st", name, x0, y0, x1, y1))
+        if YARD_LIFE: clutter_along(x0, y0, x1, y1, w, hw, drivable, hw == "service" and t.get("service") == "alley")
         if not (drivable and hw in SIDEWALK_ON): continue
         dx, dy = (x1 - x0) / L, (y1 - y0) / L
         d = lamp_step / 2 - acc_l
@@ -1550,6 +1596,8 @@ def yard_life(c, p, fe, st, porch_span, rnd, hsh):
     city trash carts beside the house, and now and then a bike, a grill, patio chairs on the porch or a kids'
     slide. Deterministic per house. Nothing is placed inside the house."""
     if not YARD_LIFE or fe is None: return
+    try: yard_fence(p, fe, hsh)
+    except Exception as ex_: log("fence skipped", ex_)
     x0, y0, ux, uy, nx, ny, L = fe
     inside = lambda x, y: p.buffer(0.35).contains(Point(x, y))
     def put(name, x, y, fx, fy, z=None):
@@ -1587,7 +1635,62 @@ def yard_life(c, p, fe, st, porch_span, rnd, hsh):
         bx_, by_ = (x0, y0) if side < 0 else (x0 + ux * L, y0 + uy * L)
         put("yard_slide", bx_ + ux * side * 2.4 - nx * 4.0, by_ + uy * side * 2.4 - ny * 4.0, ux, uy)
 
+REGION_FENCES = []      # (kind, LineString) back-yard fences planned by yard_fence(), realized per region
+def yard_fence(p, fe, hsh):
+    """Back-yard fence (lived-in East Toledo: most back yards are fenced). Chain-link 55%, wood privacy 25%,
+    none 20%. The fence leaves the house's side walls ~40% back, runs out to half the gap to the neighbour,
+    back to the alley (or ~10 m past the house) and across. Clipped later against streets, walks, water and
+    buildings (garages break it), so neighbouring fences meet instead of overlapping."""
+    r = hsh(fe[0], fe[1], 21.0)
+    if r < 0.2: return
+    kind = "chain" if r < 0.75 else "wood"
+    x0, y0, ux, uy, nx, ny, L = fe
+    cs = list(p.exterior.coords)
+    us = [(vx - x0) * ux + (vy - y0) * uy for vx, vy in cs]
+    ds = [-((vx - x0) * nx + (vy - y0) * ny) for vx, vy in cs]       # depth behind the front wall
+    u0, u1, dh = min(us), max(us), max(ds)
+    if dh < 4.0 or u1 - u0 < 3.0: return
+    P = lambda u, d: (x0 + ux * u - nx * d, y0 + uy * u - ny * d)
+    def side_gap(sgn):
+        u_ = u0 - 0.2 if sgn < 0 else u1 + 0.2
+        probe = LineString([P(u_, dh * 0.5), P(u_ + sgn * 14.0, dh * 0.5)])
+        best = 14.0
+        if _btree is not None:
+            for i in _btree.query(probe):
+                g_ = buildings[i][1]
+                if g_.equals(p) or g_.contains(p.representative_point()): continue
+                it = probe.intersection(g_)
+                if not it.is_empty: best = min(best, Point(P(u_, dh * 0.5)).distance(it))
+        return max(0.5, min(best / 2.0, 6.0))
+    gl, gr = side_gap(-1), side_gap(1)
+    D = dh + 10.0
+    if ALLEY_LINES:
+        if ALLEY_TREE[0] is None: ALLEY_TREE[0] = shapely.STRtree(ALLEY_LINES)
+        back = Point(P((u0 + u1) / 2, dh + 4.0))
+        al = ALLEY_LINES[ALLEY_TREE[0].nearest(back)]
+        da = al.distance(Point(P((u0 + u1) / 2, dh)))
+        if da < 30.0: D = dh + max(2.0, da - 2.6)
+    d0 = dh * (0.35 + 0.2 * hsh(x0, y0, 22.0))
+    pts = [P(u0, d0), P(u0 - gl, d0), P(u0 - gl, D), P(u1 + gr, D), P(u1 + gr, d0), P(u1, d0)]
+    REGION_FENCES.append((kind, LineString(pts)))
+
+def emit_fence(kind, line):
+    """instanced 2.4 m panels (tools/blender/util_poles.py fence_panel) along a clipped fence line; the last panel
+    of a run overlaps its neighbour, nudged 1 cm off the line so the two never z-fight"""
+    model = "fence_chain" if kind == "chain" else "fence_wood"
+    cs = list(line.coords)
+    for (ax, ay), (bx, by) in zip(cs, cs[1:]):
+        L = math.hypot(bx - ax, by - ay)
+        if L < 0.6: continue
+        ux, uy = (bx - ax) / L, (by - ay) / L; nx, ny = uy, -ux
+        n = max(1, int(math.ceil(L / 2.4 - 0.15)))
+        for k in range(n):
+            t = min(1.2 + k * 2.4, L - 1.2) if L >= 2.4 else L / 2
+            o_ = 0.01 * (k % 2)
+            _model(model, ax + ux * t + nx * o_, ay + uy * t + ny * o_, nx, ny)
+
 REGION_WALKS = []
+REGION_WALKS_DONE = [False]
 def house_detail(c, p, wl, rnd, want_porch, mat, addr=None, look=None):
     """Real-looking house skin: 3D double-hung windows on every wall and floor, attic windows in the gables, a panel
     front door facing the street, corner boards, and a front porch (posts, railings, steps, shed roof)."""
@@ -2518,6 +2621,18 @@ for ri in range(rx0, rx1 + 1):
         water_p = shapely.prepared.prep(water_r)
         hard = shapely.prepared.prep(unary_union([roads_r.buffer(0.5), water_r, side_r]))
         lamp_bad = shapely.prepared.prep(unary_union([roads_r.buffer(0.2), water_r]))   # lamps stand ON the sidewalk
+        side_p = shapely.prepared.prep(side_r)
+        if YARD_LIFE:          # parking lots and industrial yards: carts, tires, cones, litter / pallets, drums, scrap
+            for g_, dens, pool, zz in ((parking_r, 260.0, LOT_JUNK + LITTER, 0.02), (ind_r, 420.0, IND_JUNK + IND_JUNK + LITTER, 0.01)):
+                for pg in polys_of(g_):
+                    n_ = int(pg.area / dens + crng.random()); x0_, y0_, x1_, y1_ = pg.bounds
+                    pp_ = shapely.prepared.prep(pg.buffer(-1.0)); tries = 0
+                    while n_ > 0 and tries < n_ * 6 + 6:
+                        tries += 1
+                        x_, y_ = crng.uniform(x0_, x1_), crng.uniform(y0_, y1_)
+                        if not pp_.contains(Point(x_, y_)): continue
+                        a_ = crng.uniform(0, 6.283); n_ -= 1
+                        c = chunk_at(x_, y_); c.props.append(["m:" + crng.choice(pool), round(x_ - c.ox, 2), round(-(y_ - c.oy), 2), zz, round(a_, 3)])
         # real trees from LiDAR; the random scatter below only fills regions the LiDAR didn't cover
         lt = LTREES.get((ri, rj), [])
         for tx, ty, th, trd in lt:
@@ -2560,6 +2675,14 @@ for ri in range(rx0, rx1 + 1):
                 pt = Point(j[1], j[2])
                 if BBOX_P.contains(pt) and not lamp_bad.contains(pt):
                     c = chunk_at(j[1], j[2]); c.props.append(["lamp", j[1] - c.ox, -(j[2] - c.oy), 0.0, j[3]])
+            elif k == "clut":
+                pt = Point(j[2], j[3])
+                if not BBOX_P.contains(pt) or water_p.contains(pt) or rkey(j[2], j[3]) != (ri, rj): continue
+                on_road = lamp_bad.contains(pt)
+                if (j[6] == "road") != on_road: continue
+                if _btree is not None and any(buildings[i][1].contains(pt) for i in _btree.query(pt)): continue
+                z_ = 0.08 if on_road else 0.05 if side_p.contains(pt) else 0.0
+                c = chunk_at(j[2], j[3]); c.props.append(["m:" + j[1], round(j[2] - c.ox, 2), round(-(j[3] - c.oy), 2), z_, round(_yaw(j[4], j[5]), 3)])
             elif k == "mdl":       # small road model (manhole, storm grate): must sit on the road surface
                 pt = Point(j[2], j[3])
                 if BBOX_P.contains(pt) and lamp_bad.contains(pt) and not water_p.contains(pt):
@@ -2597,11 +2720,24 @@ for ri in range(rx0, rx1 + 1):
         for (e, g, cp, is_part) in bjobs.get((ri, rj), []):
             try: do_building(e, g, cp, is_part)
             except Exception as ex: print("bldg fail", e["id"], ex)
+        wk = None; REGION_WALKS_DONE[0] = bool(REGION_WALKS)
         if REGION_WALKS:      # front walks laid by house_detail, from each real door out to the street
             wk = safe(lambda a, b: a.difference(b), unary_union(REGION_WALKS), unary_union([roads_r, side_r, water_r]))
             wk = safe(lambda a, b: a.intersection(b), wk, Rg)
             if not wk.is_empty: add_area(wk, "drive", 0.035, 3.0)
             REGION_WALKS.clear()
+        if REGION_FENCES:     # back-yard fences: clipped off streets, sidewalks, walks, water and buildings
+            cut = unary_union([roads_r.buffer(0.6), side_r.buffer(0.3), water_r] + ([wk] if REGION_WALKS_DONE[0] and wk is not None else []))
+            for kind, ln in REGION_FENCES:
+                g_ = safe(lambda a, b: a.difference(b), ln, cut)
+                g_ = safe(lambda a, b: a.intersection(b), g_, Rg)
+                if _btree is not None and g_ is not None and not g_.is_empty:
+                    near = [buildings[i][1].buffer(0.25) for i in _btree.query(g_)]
+                    if near: g_ = safe(lambda a, b: a.difference(b), g_, unary_union(near))
+                if g_ is None or g_.is_empty: continue
+                for part in (getattr(g_, "geoms", None) or [g_]):
+                    if part.geom_type == "LineString" and part.length > 0.8: emit_fence(kind, part)
+            REGION_FENCES.clear()
         flush_region()
         if done % 20 == 0: log(f"region {done}/{nreg} chunks {len(manifest_chunks)} verts {total_v}")
 

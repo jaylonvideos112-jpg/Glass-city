@@ -5,6 +5,8 @@
   (`shaders/window_interior.gdshader`). Own character system started (`tools/blender/glasshuman/`), then paused.
 * Wooden utility poles (3 variants) with sagging overhead wires along alleys and alley-less residential streets.
 * Road wear (patches, cracks, tar snakes, oil), manholes and storm drains. East Toledo chunks rebuilt.
+* Back-yard fences (chain-link / wood, instanced panels) and Toledo-style trash and clutter: 30 models, 5 per kind of
+  place (litter, residential bulk, alley, business, parking, industrial) on gutters, sidewalks, grass strips, paths, lots.
 * 20-minute work backups (`tools/backup.py`).
 
 ## Bully look and 3D grass (2026-11-21)
