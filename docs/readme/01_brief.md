@@ -290,9 +290,7 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 - After East Toledo: send the owner a fresh prompt for the **downtown overhaul**.
 
 ## 9. Art-style test (Bully-like), in progress
-- **Street:** `shaders/painted.gdshader`, a full-screen pass enabled by `--style=painted` (`main.gd`).
-  - A Kuwahara "brush" filter plus a warm, saturated grade with lifted shadows; softer tonemap, more ambient light, less AO.
-  - It is too slow to render on the CPU-only build box. For previews, `tools/dbg/helpers/paint_post.py` applies the same filter to normal screenshots. The before/after sheets of Waite and Freedom St were shown to the owner on 2026-11-21.
+- **Street:** a post-process "painted" filter was tried and **rejected by the owner (2026-11-21: "I never said do an oil filter")**. It was removed. A Bully look must come from the art itself (textures, proportions, lighting, colour), not a screen filter.
 - **Character (stylized creator mode):** with no photo fit, the painted skin looks clean. With a photo fit, the mouth goes wrong: the lower lip droops and a pale patch shows below it.
   - It is not teeth, helper geometry or proxy refit; tested.
   - The cause is the face fit pulling the lip and nose sliders. Unreliable lip and nose correspondences have been partly tamed by per-family slider caps (mouth 0.35, nose 0.5).

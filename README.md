@@ -290,9 +290,7 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 - After East Toledo: send the owner a fresh prompt for the **downtown overhaul**.
 
 ## 9. Art-style test (Bully-like), in progress
-- **Street:** `shaders/painted.gdshader`, a full-screen pass enabled by `--style=painted` (`main.gd`).
-  - A Kuwahara "brush" filter plus a warm, saturated grade with lifted shadows; softer tonemap, more ambient light, less AO.
-  - It is too slow to render on the CPU-only build box. For previews, `tools/dbg/helpers/paint_post.py` applies the same filter to normal screenshots. The before/after sheets of Waite and Freedom St were shown to the owner on 2026-11-21.
+- **Street:** a post-process "painted" filter was tried and **rejected by the owner (2026-11-21: "I never said do an oil filter")**. It was removed. A Bully look must come from the art itself (textures, proportions, lighting, colour), not a screen filter.
 - **Character (stylized creator mode):** with no photo fit, the painted skin looks clean. With a photo fit, the mouth goes wrong: the lower lip droops and a pale patch shows below it.
   - It is not teeth, helper geometry or proxy refit; tested.
   - The cause is the face fit pulling the lip and nose sliders. Unreliable lip and nose correspondences have been partly tamed by per-family slider caps (mouth 0.35, nose 0.5).
@@ -781,7 +779,6 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `shaders/ground_pbr.gdshader` | Photo-scanned ground (CC0 Poly Haven sets: colour, normal, roughness), planar-mapped from the chunk-local position so tiles line up across chunks. Two rotated/offset samples blended by low-frequency noise hide the tiling; a broad tone variation adds wear. Wet / snow looks come from the global parameters (time_of_day.gd). |
 | `shaders/hlod.gdshader` | Far-distance city (scripts/hlod.gd): vertex-coloured merged meshes. COLOR.rgb = surface colour (sRGB), COLOR.a = 1 on building walls (get lit windows at night), 0 elsewhere. night / occupancy are set by time_of_day.gd like the facade shader. |
 | `shaders/lamp_pool.gdshader` | Fake light pool on the ground under a street lamp: additive radial glow, only at night. |
-| `shaders/painted.gdshader` | "Painted" look (Bully-style test): a 4-sector Kuwahara filter turns photo noise into flat brush areas while keeping edges crisp, then a warm, saturated grade with lifted shadows. Full-screen ColorRect under the HUD. |
 | `shaders/pedestrian.gdshader` | Low-poly pedestrian, one draw call. Parts are tagged in UV2.x (0 body, 1/2 legs, 3/4 arms, 5 umbrella) with the joint height in UV2.y; the walk cycle swings legs and arms in the vertex shader from per-instance parameters. |
 | `shaders/replica_glass.gdshader` | Window glass on hand-made replicas: dark reflective panes; at night a share of windows (per-window id in UV2.x) glow with warm interior light, shop windows more so. |
 | `shaders/sky.gdshader` | GLASS CITY sky: single-scattering-style atmosphere (deep zenith, bright hazy horizon, warm forward-scatter glow around the sun), sun disc with limb darkening, two cloud decks drifting on the wind - sunlit cumulus with self-shadowed bases and silver linings, and high cirrus streaks - plus stars and a moon at night. Driven by scripts/time_of_day.gd (palette, weather cover/darkness, night) and the Sun/Moon lights. |
@@ -889,7 +886,6 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/dbg/helpers/facing.py` | — |
 | `tools/dbg/helpers/getphotos.py` | — |
 | `tools/dbg/helpers/grp.sh` | usage: grp.sh out.jpg key:assr ... |
-| `tools/dbg/helpers/paint_post.py` | Offline preview of shaders/painted.gdshader: Kuwahara filter + warm grade applied to a screenshot. usage: python3 paint_post.py IN.png OUT.png [radius] |
 | `tools/dbg/helpers/street.py` | — |
 | `tools/dbg/helpers/study.sh` | usage: study.sh KEY ASSR [bands] |
 | `tools/dbg/helpers/tz.py` | — |
@@ -2920,7 +2916,7 @@ echo "done: $1"
 
 ```
 
-Demo shot keywords in `scripts/demo.gd`: `@aim`, `@bowling`, `@bus`, `@cam`, `@carshow`, `@chase`, `@closeup`, `@fight`, `@fishing`, `@heli`, `@homesign`, `@incar`, `@pause`, `@phone`, `@phonehome`, `@pinned`, `@play`, `@props`, `@replica`, `@responder`, `@roster`, `@sky`, `@store`, `@storefloor`, `@title`, `@wheel`, `@worksign`. Command-line flags read by the game: `--at=`, `--bar=`, `--bench-scale=`, `--benchmark`, `--cam=`, `--demo`, `--demo=`, `--fly=`, `--hlod-std`, `--hour=`, `--load-world`, `--mute`, `--no-hlod`, `--no-menu`, `--no-peds`, `--no-save`, `--no-traffic`, `--only=`, `--out=`, `--perf`, `--seconds=`, `--shotlist=`, `--snowcover=`, `--style=`, `--test`, `--test=`, `--time=`, `--timescale=`, `--weather=`, `--wet=`
+Demo shot keywords in `scripts/demo.gd`: `@aim`, `@bowling`, `@bus`, `@cam`, `@carshow`, `@chase`, `@closeup`, `@fight`, `@fishing`, `@heli`, `@homesign`, `@incar`, `@pause`, `@phone`, `@phonehome`, `@pinned`, `@play`, `@props`, `@replica`, `@responder`, `@roster`, `@sky`, `@store`, `@storefloor`, `@title`, `@wheel`, `@worksign`. Command-line flags read by the game: `--at=`, `--bar=`, `--bench-scale=`, `--benchmark`, `--cam=`, `--demo`, `--demo=`, `--fly=`, `--hlod-std`, `--hour=`, `--load-world`, `--mute`, `--no-hlod`, `--no-menu`, `--no-peds`, `--no-save`, `--no-traffic`, `--only=`, `--out=`, `--perf`, `--seconds=`, `--shotlist=`, `--snowcover=`, `--test`, `--test=`, `--time=`, `--timescale=`, `--weather=`, `--wet=`
 
 ## 22. Architecture (`docs/ARCHITECTURE.md`, inlined)
 
