@@ -296,6 +296,20 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 
 **Test photos:** GAN-generated faces (not real people) from the NVIDIA StyleGAN2 repo, in `dl/facetest/`.
 
+### GLASS CITY's own human system (owner, 2026-11-21: "don't use MakeHuman, make your own")
+All game characters, NPCs and other humans will come from our own generator in `tools/blender/glasshuman/`, in Bully style. **MakeHuman/MPFB2 is no longer used for game people**; the older creator code stays only as reference.
+- **Head** (`glasshuman/head.py`, in progress): parametric and built from scratch. A quad grid over spherical angles around the head centre, with a skull shape plus facial features as smooth displacement fields.
+  - The eye sockets are almond-shaped dents the eyeballs show through.
+  - Brow ridge, nose (bridge, tip, wings, base), cheekbones, lips with a mouth slit, philtrum, chin and jaw.
+  - About 45 named face parameters. A face slider is exactly one parameter, so its blend shape is `head(P + 1) - head(P)`.
+- **Planned:**
+  - body and hands built the same way, with Bully proportions;
+  - our own skeleton with the game's bone names and computed skin weights;
+  - painted skin laid out in the head's angular UV space;
+  - 500 face presets per gender, as slider vectors plus skin tone, eye colour and brows;
+  - 200 generated hairstyles;
+  - our own clothes.
+- **Animations stay:** the CMU motion capture (`tools/blender/rigged_people.py` retarget) is free mocap data, not MakeHuman. The owner approved keeping it.
 ---
 
 ## 8. Current state: East Toledo phase (2026-11-20 → now)
@@ -362,6 +376,7 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
   - don't create accounts or use other apps' tokens;
   - rate-limit the county server;
   - county photos are never shipped.
+- **Backups every 20 minutes of work** (owner, 2026-11-21): run `python3 tools/backup.py "<what's being worked on>"`, update the README, and send the zip to the owner. It holds all source plus everything changed since the last backup; zips go to `../backups/`.
 - **Commits** end with:
   ```
   Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>

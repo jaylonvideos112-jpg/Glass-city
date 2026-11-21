@@ -296,6 +296,20 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 
 **Test photos:** GAN-generated faces (not real people) from the NVIDIA StyleGAN2 repo, in `dl/facetest/`.
 
+### GLASS CITY's own human system (owner, 2026-11-21: "don't use MakeHuman, make your own")
+All game characters, NPCs and other humans will come from our own generator in `tools/blender/glasshuman/`, in Bully style. **MakeHuman/MPFB2 is no longer used for game people**; the older creator code stays only as reference.
+- **Head** (`glasshuman/head.py`, in progress): parametric and built from scratch. A quad grid over spherical angles around the head centre, with a skull shape plus facial features as smooth displacement fields.
+  - The eye sockets are almond-shaped dents the eyeballs show through.
+  - Brow ridge, nose (bridge, tip, wings, base), cheekbones, lips with a mouth slit, philtrum, chin and jaw.
+  - About 45 named face parameters. A face slider is exactly one parameter, so its blend shape is `head(P + 1) - head(P)`.
+- **Planned:**
+  - body and hands built the same way, with Bully proportions;
+  - our own skeleton with the game's bone names and computed skin weights;
+  - painted skin laid out in the head's angular UV space;
+  - 500 face presets per gender, as slider vectors plus skin tone, eye colour and brows;
+  - 200 generated hairstyles;
+  - our own clothes.
+- **Animations stay:** the CMU motion capture (`tools/blender/rigged_people.py` retarget) is free mocap data, not MakeHuman. The owner approved keeping it.
 ---
 
 ## 8. Current state: East Toledo phase (2026-11-20 → now)
@@ -362,6 +376,7 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
   - don't create accounts or use other apps' tokens;
   - rate-limit the county server;
   - county photos are never shipped.
+- **Backups every 20 minutes of work** (owner, 2026-11-21): run `python3 tools/backup.py "<what's being worked on>"`, update the README, and send the zip to the owner. It holds all source plus everything changed since the last backup; zips go to `../backups/`.
 - **Commits** end with:
   ```
   Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
@@ -920,6 +935,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | file | what it is |
 |---|---|
 | `tools/blender/charcreator/facefit.py` | Face fitting for the character creator (runs inside Blender with MPFB2). 1. Correspondence (built once, cached in mp_to_mh.json): every one of MediaPipe's 468 face-mesh landmarks is tied to a vertex of the MakeHuman base mesh. MediaPipe's canonical face is aligned to the base head on the eyes and nose tip, then nearest-vertex matching is refined 3 times while the MakeHuman face sliders are fitted to the canonical face (so the match is made between two faces of the same shape). 2. Fit: photo landmarks (tools/pipeline/face_landmarks.py) -> alternate (a) similarity pose of the model face onto the photo points and (b) bounded linear least squares for the face slider weights. MakeHuman targets … |
+| `tools/blender/charcreator/library.py` | NPC library base characters (character creator, Bully style): one rigged, animated base per gender whose face and body are driven by blend shapes, so 500 face presets per gender cost nothing at runtime. Built with MPFB2 like every creator character: * neutral base: average age/weight/muscle/height, ethnicity 1/3 each, Bully proportions (head x1.1, hands x1.15) * face blend shapes "f_<target>": ~70 MakeHuman face sliders (nose, mouth, eyes, brows, chin, jaw, cheeks, forehead, head shape, ears); left/right twins are merged into one symmetric shape * ethnicity shapes "r_african/r_asian/r_caucasian" and body shapes "b_heavy/b_thin/b_muscle/b_slim/b_tall/b_short" (differences of whole MakeHuman … |
 | `tools/blender/charcreator/make_character.py` | GLASS CITY character creator (Blender + the MPFB2 add-on, MakeHuman CC0 assets). Builds one person from a character spec (JSON): MakeHuman body (gender/age/muscle/weight/height/ethnicity macros), up to ~270 face/body detail sliders (MakeHuman targets: nose, mouth, eyes, brows, cheeks, chin, jaw, head shape, ears, neck, torso ...), skin, eyes, brows, lashes, teeth, hair and clothes, skinned to MPFB2's 53-bone 'game_engine' skeleton (Unreal-mannequin bone names; same skeleton as tools/blender/rigged_people.py). Optional "fit" block: face landmarks from a photo (tools/pipeline/face_landmarks.py) -> the face sliders are solved so the model's face matches (bounded least squares; see … |
 | `tools/blender/charcreator/preview_face.py` | Studio render of a character: full body + face close-up side by side (EEVEE). |
 | `tools/blender/charcreator/stylize.py` | Stylized ('painted', Bully-like) look for creator characters. - proportions: head and hands scaled up about their joints (weights from the skin, so every attached mesh - hair, brows, eyes, clothes - moves with the body) - painted skin: the MakeHuman skin texture smoothed into soft brush areas and re-toned to the photo skin colour; normal maps flattened so pores don't fight the painted look |
@@ -928,6 +944,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 
 | file | what it is |
 |---|---|
+| `tools/backup.py` | Working backup (owner, 2026-11-21: "every 20 minutes that you are working, make a backup of what you're working on, update the readme and send it"). Writes backups/glasscity_backup_<date>_<time>.zip with: * all source: scripts, shaders, scenes, tests, tools, source_data, docs, README.md, CLAUDE.md, project.godot * every file changed since the last backup (models, textures ... anything that isn't generated city data), so the work in progress is always in it * BACKUP_NOTE.txt: the git commit, what changed, and what's being worked on Generated data (data/, .godot/) and unchanged big art are left out (they're in git / rebuilt by tools/build.sh). usage: python3 tools/backup.py [note] |
 | `tools/build.sh` | GLASS CITY data pipeline. Raw inputs (OSM tiles, LiDAR, county records) live in a work folder outside git (default: the folder that contains this repo; override with GLASSCITY_WORK). Hand-authored inputs live in source_data/ inside the repo. Output goes to data/ (git-ignored, regenerable).  tools/build.sh city        rebuild data/ from the existing intermediates (about 3 minutes) tools/build.sh downtown    rebuild only the downtown test box into data/ (about 20 seconds) tools/build.sh massing     recompute exact downtown LiDAR massing + hand overrides, then city tools/build.sh textures    regenerate procedural textures tools/build.sh fetch       re-download OSM tiles (slow; Overpass) Full … |
 | `tools/make_readme.py` | Assemble README.md: the complete GLASS CITY brief, in one file. Hand-written parts live in docs/readme/*.md (brief, bible summary, know-how); everything that can be read from the repo is generated here: a file-by-file index (from each file's header comment/docstring), every data file and its names (cars, bars, banks, dealers, workplaces, schools, places, bus routes, homes ...), the full test list, the landmark replica list, build settings, demo shot names, the other docs inlined in full, and the street-name table. Run after every change (owner's rule): python3 tools/make_readme.py usage: python3 tools/make_readme.py [REPO] |
 | `tools/run_benchmark.bat` | — |

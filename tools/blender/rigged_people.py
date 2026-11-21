@@ -18,7 +18,10 @@ from mathutils import Vector, Matrix, Quaternion
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import bvh_fk, mhclo
 
-OUT, BVH, RIGF, WF = sys.argv[1:5]; ONLY = sys.argv[5:]
+if __name__ == "__main__":
+    OUT, BVH, RIGF, WF = sys.argv[1:5]; ONLY = sys.argv[5:]
+else:      # imported by charcreator/make_character.py for the mocap retarget (it sets BVH)
+    OUT = RIGF = WF = None; BVH = os.environ.get("BVH_DIR", "/home/claude/dl/bvh"); ONLY = []
 D = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mh")
 SYS = os.environ.get("MHSYS", "/home/claude/dl/mhpack/sys")     # MakeHuman system assets (CC0)
 # body targets, skin, outfit, hair, shoes, eyebrows, eyes, height (m)
@@ -120,6 +123,16 @@ def tex(path, size=1024, alpha=False, delogo=False):
             if a > 60 and max(w, h) < size * 0.3: keep[lab == k] = 255
         keep = cv2.dilate(keep, np.ones((15, 15), np.uint8))
         im[:, :, :3] = cv2.inpaint(bgr, keep, 9, cv2.INPAINT_TELEA)
+    base = os.path.basename(path).lower()
+    if BULLY and not alpha and im.ndim == 3 and "normal" not in base:
+        rgb = im[:, :, :3]
+        if "skins" in path:      # painted skin: pores and blotches smoothed into soft tones
+            rgb = cv2.edgePreservingFilter(rgb, flags=1, sigma_s=30, sigma_r=0.2)
+        elif "eye" in base:      # irises keep their colour; the whites stop glowing
+            rgb = (rgb.astype(np.float32) * 0.78).astype(np.uint8)
+        else:                    # clothes: lighter pass, the fabric weave stays
+            rgb = cv2.addWeighted(cv2.edgePreservingFilter(rgb, flags=1, sigma_s=12, sigma_r=0.12), 0.7, rgb, 0.3, 0)
+        im = rgb if im.shape[2] == 3 else np.dstack([rgb, im[:, :, 3]])
     out = os.path.join(TMP, os.path.basename(path).rsplit(".", 1)[0] + ("_a.png" if alpha else ".jpg"))
     if alpha: cv2.imwrite(out, im)
     else: cv2.imwrite(out, im[:, :, :3] if im.ndim == 3 else im, [cv2.IMWRITE_JPEG_QUALITY, 88])
@@ -173,12 +186,72 @@ def mesh_obj(name, verts, faces, uvs, mats):
     o = bpy.data.objects.new(name, me); bpy.context.collection.objects.link(o)
     return o
 
+# ---------------------------------------------------------------- Bully style (art direction 2026-11-21)
+# Each person gets a caricatured face (a handful of MakeHuman face sliders pushed hard, seeded by the variant, so
+# everyone looks distinct and readable from across the street), a slightly bigger head and bigger hands, painted
+# skin (pores and photo noise smoothed into soft tones) and eyes that aren't bright white. BULLY=0 builds the
+# earlier realistic people.
+BULLY = os.environ.get("BULLY", "1") == "1"
+FACE_T = os.environ.get("MH_FACE_TARGETS", "/home/claude/dl/mpfb_src/mpfb2/src/mpfb/data/targets")
+FACE_SLIDERS = [("nose", ["nose-scale-horiz-incr", "nose-scale-horiz-decr", "nose-scale-vert-incr", "nose-point-width-incr",
+                          "nose-hump-incr", "nose-trans-down", "nose-flaring-incr", "nose-scale-depth-incr"]),
+                ("chin", ["chin-prominent-incr", "chin-width-incr", "chin-height-incr", "chin-jaw-drop-incr", "chin-cleft-incr"]),
+                ("mouth", ["mouth-scale-horiz-incr", "mouth-lowerlip-volume-incr", "mouth-upperlip-volume-incr", "mouth-scale-horiz-decr"]),
+                ("eyes", ["l-eye-scale-incr", "l-eye-trans-up", "l-eye-height2-decr", "l-eye-trans-in", "l-eye-trans-out"]),
+                ("cheek", ["l-cheek-bones-incr", "l-cheek-volume-incr", "l-cheek-volume-decr"]),
+                ("head", ["head-square", "head-oval", "head-round", "head-fat-incr", "head-invertedtriangular"]),
+                ("brows", ["eyebrows-trans-down", "eyebrows-angle-up", "eyebrows-angle-down"]),
+                ("ears", ["r-ear-scale-incr", "r-ear-flap-incr"])]
+
+def _face_file(name):
+    for sub in ("nose", "chin", "mouth", "eyes", "cheek", "head", "eyebrows", "ears", "forehead"):
+        f = os.path.join(FACE_T, sub, name + ".target.gz")
+        if os.path.exists(f): return f
+    return None
+
+def caricature(V, var):
+    """push 5-7 face features hard (deterministic per variant); l-/r- sliders are applied to both sides"""
+    import random
+    rng = random.Random("glasscity-" + var)
+    picks = []
+    fams = FACE_SLIDERS[:]; rng.shuffle(fams)
+    for fam, opts in fams[:rng.randint(5, 7)]:
+        picks.append((rng.choice(opts), rng.uniform(0.45, 0.9)))
+    V = V.copy()
+    for name, w in picks:
+        names = [name] + (["r-" + name[2:]] if name.startswith("l-") else ["l-" + name[2:]] if name.startswith("r-") else [])
+        for n in names:
+            f = _face_file(n)
+            if not f: continue
+            for line in gzip.open(f, "rt"):
+                if not line.strip() or line[0] == "#": continue
+                a = line.split(); V[int(a[0])] += w * np.array([float(a[1]), float(a[2]), float(a[3])])
+    print("  caricature", var, [(n, round(w, 2)) for n, w in picks])
+    return V
+
+def scale_parts(V, groups, W, parts):
+    """scale skin-weighted regions about a joint (MakeHuman space, before proxies are fitted so clothes, hair and
+    eyes follow): parts = [(bones, joint group, factor)]"""
+    V = V.copy()
+    for bones, joint, k in parts:
+        piv = V[list(groups[joint])].mean(axis=0)
+        wv = np.zeros(len(V))
+        for b in bones:
+            for vi, w in W.get(b, []): wv[vi] += w
+        wv = np.clip(wv, 0, 1)
+        V += (V - piv) * ((k - 1.0) * wv)[:, None]
+    return V
+
 def build_body(var, rig, W):
     targets, skin, suit, hair, shoes, brows, eyes, H = VARIANTS[var]
     V0, UV, F, G = load_base()
     V = apply_targets(V0, targets)
     groups = {}
     for g, f in zip(G, F): groups.setdefault(g, set()).update(f[0])
+    if BULLY:
+        V = caricature(V, var)
+        fingers = lambda sd: ["hand_" + sd] + ["%s_%02d_%s" % (f, i, sd) for f in ("thumb", "index", "middle", "ring", "pinky") for i in (1, 2, 3)]
+        V = scale_parts(V, groups, W, [(["head"], "joint-head", 1.1), (fingers("l"), "joint-l-hand", 1.15), (fingers("r"), "joint-r-hand", 1.15)])
     body_ids = np.array(sorted(groups["body"])); N = int(body_ids.max()) + 1
     P0 = to_blender(V)
     floor = P0[body_ids, 2].min(); P0[:, 2] -= floor
@@ -501,5 +574,6 @@ def build(var):
     tri = sum(len(p.vertices) - 2 for o in objs for p in o.data.polygons)
     print("built char_%s: %d tris, %d bones" % (var, tri, len(order)))
 
-for v in (ONLY or VARIANTS.keys()):
-    build(v)
+if __name__ == "__main__":
+    for v in (ONLY or VARIANTS.keys()):
+        build(v)

@@ -100,6 +100,38 @@ def tint(obj_pred, rgb):
 if S.get("hair_color"): tint(lambda n: "hair" in n or "brow" in n, S["hair_color"])
 if S.get("skin_tint"): tint(lambda n: n == basemesh.name.lower() or "body" in n, S["skin_tint"])
 
+# ---- Bully style preset (art direction 2026-11-21): every game person is built this way unless the spec says otherwise
+BULLY_STYLE = {"exaggerate": 1.25, "head_scale": 1.1, "hand_scale": 1.15, "painted": True}
+if S.get("style", "bully") == "bully": S["style"] = dict(BULLY_STYLE)
+elif S.get("style") == "realistic": S["style"] = {}
+# ---- caricature for people made without a photo: a handful of face sliders pushed hard, seeded by the name
+if S.get("caricature", not S.get("fit")):
+    import random, facefit
+    rng = random.Random("glasscity-" + str(S.get("caricature_seed", S.get("name", "x"))))
+    fams = [["nose-scale-horiz-incr", "nose-scale-horiz-decr", "nose-scale-vert-incr", "nose-point-width-incr", "nose-hump-incr",
+             "nose-trans-down", "nose-flaring-incr"],
+            ["chin-prominent-incr", "chin-width-incr", "chin-height-incr", "chin-jaw-drop-incr"],
+            ["mouth-scale-horiz-incr", "mouth-lowerlip-volume-incr", "mouth-upperlip-volume-incr", "mouth-scale-horiz-decr"],
+            ["l-eye-scale-incr", "l-eye-trans-up", "l-eye-height2-decr", "l-eye-trans-in", "l-eye-trans-out"],
+            ["l-cheek-bones-incr", "l-cheek-volume-incr", "l-cheek-volume-decr"],
+            ["head-square", "head-oval", "head-round", "head-fat-incr", "head-invertedtriangular"],
+            ["eyebrows-trans-down", "eyebrows-angle-up", "eyebrows-angle-down"],
+            ["r-ear-scale-incr", "r-ear-flap-incr"]]
+    rng.shuffle(fams)
+    root = svc("locationservice").LocationService.get_mpfb_data("targets")
+    import glob as _g
+    files = {os.path.basename(f)[:-len(".target.gz")]: f for f in _g.glob(os.path.join(root, "*", "*.target.gz"))}
+    picks = {}
+    for fam in fams[:rng.randint(5, 7)]:
+        n = rng.choice(fam); w = rng.uniform(0.45, 0.9)
+        for k in (n, ("r-" + n[2:]) if n.startswith("l-") else ("l-" + n[2:]) if n.startswith("r-") else None):
+            if k and k in files: picks[k] = w
+    keys = facefit.load_slider_keys(basemesh, {k: [files[k]] for k in picks})
+    for k, ks in keys.items():
+        for kk in ks: basemesh.data.shape_keys.key_blocks[kk].value = picks[k]
+    HumanService.refit(basemesh)
+    print("caricature:", {k: round(v, 2) for k, v in picks.items()})
+
 # ---- export: armature + every mesh parented to it, shape keys baked
 for o in bpy.data.objects:
     if o.type == "MESH" and o.data.shape_keys:
@@ -121,11 +153,39 @@ ST = S.get("style", {})
 if ST:
     import stylize
     stylize.apply(basemesh, ST, S)
+# ---- motion capture: the same CMU clips as the game's people (tools/blender/rigged_people.py), retargeted onto
+# this character's game_engine skeleton. The retarget works facing +Y, MakeHuman faces -Y: turn the whole
+# character 180 degrees first (rest pose and meshes), so the exported model faces Godot -Z like the old cast.
+ANIM = bool(S.get("animate", True))
+arm = next((o for o in bpy.data.objects if o.type == "ARMATURE"), None)
+if ANIM and arm is not None:
+    sys.path.insert(0, os.path.dirname(HERE))
+    import rigged_people as RP
+    import math as _m
+    for x in bpy.context.selected_objects: x.select_set(False)
+    arm.rotation_euler[2] += _m.pi
+    for o in [arm] + [c for c in arm.children_recursive]: o.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    order = []
+    def _visit(b):
+        order.append(b.name)
+        for c in b.children: _visit(c)
+    for b in arm.data.bones:
+        if b.parent is None: _visit(b)
+    ok = 0
+    for name, code, mode, win, extra in RP.CLIPS:
+        try: RP.retarget(arm, order, code, mode, win, extra, name); ok += 1
+        except Exception as ex: print("  clip", name, "FAILED", ex)
+    print("animations: %d of %d clips" % (ok, len(RP.CLIPS)))
 os.makedirs(os.path.dirname(os.path.abspath(OUT)), exist_ok=True)
-bpy.ops.export_scene.gltf(filepath=OUT, export_format="GLB", export_skins=True, export_animations=False,
+for o in bpy.context.scene.objects: o.select_set(True)
+bpy.ops.export_scene.gltf(filepath=OUT, export_format="GLB", export_skins=True, export_animations=ANIM,
+                          export_animation_mode="ACTIONS", export_extras=True, export_force_sampling=True,
+                          export_frame_range=False, export_anim_slide_to_zero=True,
                           export_morph=False, export_image_format="AUTO")
 print("built", OUT, "objects:", [o.name for o in bpy.data.objects])
 
 if PREVIEW:
     import preview_face
-    preview_face.render(basemesh, PREVIEW, S.get("preview", {}))
+    preview_face.render(basemesh, PREVIEW, dict(S.get("preview", {}), flip=ANIM and arm is not None))

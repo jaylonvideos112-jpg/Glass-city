@@ -2,13 +2,20 @@
 import bpy, math, os
 from mathutils import Vector
 
+FLIP = [1.0]
 def _cam(loc, look, lens):
+    loc = (loc[0] * FLIP[0], loc[1] * FLIP[0], loc[2])
     cd = bpy.data.cameras.new("c"); cd.lens = lens
     c = bpy.data.objects.new("c", cd); bpy.context.collection.objects.link(c)
     c.location = loc; d = Vector(look) - Vector(loc); c.rotation_euler = d.to_track_quat("-Z", "Y").to_euler()
     return c
 
 def render(basemesh, out, opt):
+    FLIP[0] = -1.0 if opt.get("flip") else 1.0     # animated characters were turned to face +Y
+    for a in bpy.data.objects:
+        if a.type == "ARMATURE":
+            if a.animation_data: a.animation_data.action = None
+            for pb in a.pose.bones: pb.matrix_basis.identity()
     import os as _os
     quick = _os.environ.get("QUICK")
     if _os.environ.get("CLAY"):
