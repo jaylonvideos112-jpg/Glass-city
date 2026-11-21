@@ -23,7 +23,7 @@ static func bully() -> bool:
 static func t(path: String) -> String:
 	if bully() and path.begins_with("res://textures/"):
 		var q := path.replace("res://textures/", "res://textures_bully/")
-		if ResourceLoader.exists(q): return q
+		if ResourceLoader.exists(q) or FileAccess.file_exists(q): return q
 	return path
 
 ## Normal-map strength multiplier (painted surfaces carry their relief in the colour, not in fine bumps).

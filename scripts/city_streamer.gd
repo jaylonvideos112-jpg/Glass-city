@@ -385,9 +385,11 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		aerial_mat.set_shader_parameter("aerial", ImageTexture.create_from_image(d["aerial_img"]))
 		aerial_mat.set_shader_parameter("detail", _detail_tex)
 		aerial_mat.set_shader_parameter("chunk_size", chunk_size)
-	var grass_tris := PackedVector3Array()
+	var grass_tris := PackedVector3Array(); var grass_block := PackedVector3Array()
 	for layer in d["layers"]:
-		if grass != null and (layer["mat"] == "lawn" or layer["mat"] == "grass"): grass_tris.append_array(layer["v"])
+		if grass != null:
+			if layer["mat"] == "lawn" or layer["mat"] == "grass": grass_tris.append_array(layer["v"])
+			elif layer["mat"] in ["drive", "lot", "parking", "plaza", "pavement", "concrete_dk", "sidewalk"]: grass_block.append_array(layer["v"])   # walks/drives laid over the lawn
 		var arrays := []
 		arrays.resize(Mesh.ARRAY_MAX)
 		arrays[Mesh.ARRAY_VERTEX] = layer["v"]
@@ -430,7 +432,7 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = mesh
 		root.add_child(mi)
-	if grass != null and grass_tris.size() > 0: grass.add_chunk(root, grass_tris)
+	if grass != null and grass_tris.size() > 0: grass.add_chunk(root, grass_tris, grass_block)
 	var col: PackedVector3Array = d["col"]
 	if col.size() >= 3:
 		var body := StaticBody3D.new()
@@ -563,7 +565,7 @@ var _tree_meshes := {}
 ## tools/dbg/bake_impostor.gd). Normals bend outward from the crown so the canopy shades like a volume.
 func _tree_mesh(variant := 0) -> ArrayMesh:
 	if _tree_meshes.has(variant): return _tree_meshes[variant]
-	var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://textures/trees/meta.json"))
+	var meta: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Look.t("res://textures/trees/meta.json")))
 	var views: Array = [["tree_small_02_a", "tree_small_02_b"], ["island_tree_02_c", "island_tree_02_d"]][variant]
 	var height: float = [9.0, 7.0][variant]
 	var am := ArrayMesh.new()

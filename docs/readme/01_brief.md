@@ -22,13 +22,26 @@ It is the owner's passion project for his own city.
   - warm, soft, sunny light with gentle bloom;
   - slightly caricatured people (bigger heads and hands, strong features).
 - The city geometry stays modern-detailed and 1:1 accurate; only surfaces, lighting and characters change.
+- **Not Agefield High** (owner, 2026-11-21). Agefield High: Rock the School (Refugium Games, UE5, 2026) is a poorly received Bully-inspired game with a generic, clean, plastic store-asset look and empty streets. GLASS CITY must look hand-crafted and lived-in instead:
+  - textures keep their grime, stains and weathering;
+  - streets are full: parked cars, props, people;
+  - lighting is warm but keeps shadow depth;
+  - yards are real and patchy, not perfect carpets.
 - **Rejected:** a full-screen "painted"/oil filter. The owner never asked for that. The look comes from the art, not a screen filter.
 - **How it works:**
   - `source_data/look.json` `"style": "bully"` (default; `--look=classic` gives the old look) drives `scripts/look.gd`;
-  - colour textures load from `textures_bully/`, made by `tools/pipeline/make_bully_textures.py`: edge-preserving smoothing that removes photo grain but keeps brick courses, siding laps and cracks; a cleaner, warmer, more saturated palette; greener grass;
+  - colour textures load from `textures_bully/`, made by `tools/pipeline/make_bully_textures.py`: a light edge-preserving pass that tames photo grain but keeps the grime (30% of the original detail blended back), plus seamless large soft stains so nothing looks factory-clean; a warmer, richer palette; healthy but uneven green grass;
   - normal maps at 0.45 strength;
   - lighting preset in `main.gd` / `time_of_day.gd`: filmic tonemap, saturation 1.12, soft bloom, warm sun, 35% more ambient, softer shadow edges (sun angular size 0.9; 1.6 was too slow on the CPU renderer);
   - characters: the stylized mode of the character creator (section 7);
+  - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
+    - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
+  - **Parked cars:** `scripts/parked_cars.gd`. Cars line residential (class 5) and tertiary (class 4) streets that have sidewalks, within 170 m of the camera.
+    - Spots are hashed from each street's node ids, so the same cars are there every visit.
+    - 7.5 m slots, 42% filled, none within 11 m of a corner.
+    - Roster models and paints; static colliders on layer 2.
+    - `--no-parked` turns it off. Test: `parked_cars_line_side_streets`.
+  - **Scenery shots** (`@cam`) hide passers-by within 12 m of the camera.
   - **3D grass** (owner, 2026-11-21): `scripts/grass.gd` + `shaders/grass.gdshader`. Real blade clumps (9 curved blades each) on every lawn and grass area within 46 m of the camera.
     - Grass is split into 8 m cells per chunk and scattered area-weighted with a fixed seed: 7 clumps/m² close up, 2.2 at the edge, capped at 520 per cell.
     - Blades sway in a gusty wind, shrink into the ground at the radius edge (no popping), and take snow.

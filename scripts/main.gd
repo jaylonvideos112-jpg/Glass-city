@@ -21,6 +21,7 @@ var current_car: VehicleBody3D = null
 var camera: Camera3D
 var hud: CanvasLayer
 var grass: Node = null
+var parked: Node = null
 var world_offset := Vector3.ZERO   # world coords = local coords + world_offset
 
 var cam_yaw := 0.0
@@ -64,6 +65,7 @@ func _ready() -> void:
 	world = Node3D.new(); world.name = "World"; add_child(world)
 	bars = Bars.new(); bars.name = "Bars"; bars.main = self; add_child(bars)
 	grass = preload("res://scripts/grass.gd").new(); grass.name = "Grass"; grass.main = self; add_child(grass)
+	parked = preload("res://scripts/parked_cars.gd").new(); parked.name = "ParkedCars"; parked.main = self; add_child(parked)
 	streamer = Streamer.new(); streamer.name = "City"; streamer.bars = bars; streamer.grass = grass; world.add_child(streamer)
 	_build_outskirts()
 	var sp: Array = streamer.manifest["spawn"]
@@ -711,12 +713,13 @@ func _setup_environment() -> void:
 	env.adjustment_saturation = 1.05
 	env.adjustment_color_correction = _grade_lut()        # filmic warm-highlights / cool-shadows grade (GTA-style)
 	if Look.bully():
-		# Bully look (2026-11-21): warm and soft - gentle contrast, richer colour, a soft bloom on bright areas,
-		# lighter contact shadows. Lighting and grade only; the hand-painted look itself is in textures_bully/.
-		env.tonemap_mode = Environment.TONE_MAPPER_FILMIC; env.tonemap_white = 6.0
-		env.adjustment_contrast = 1.0; env.adjustment_saturation = 1.12
-		env.glow_intensity = 0.6; env.glow_bloom = 0.12; env.glow_hdr_threshold = 0.95
-		env.ssao_intensity = 1.1; env.ssil_intensity = 1.3
+		# Bully look (2026-11-21): bright, clean, saturated sunny afternoon with clear (not harsh) shadows and a gentle
+		# bloom. Lighting and grade only; the painted surfaces are in textures_bully/.
+		env.tonemap_mode = Environment.TONE_MAPPER_ACES; env.tonemap_white = 6.0; env.tonemap_exposure = 1.08
+		env.adjustment_contrast = 1.07; env.adjustment_saturation = 1.2
+		env.glow_intensity = 0.4; env.glow_bloom = 0.06; env.glow_hdr_threshold = 1.0
+		env.ssao_intensity = 1.5; env.ssil_intensity = 1.2
+		env.fog_density = 0.00012
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"

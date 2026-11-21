@@ -84,6 +84,7 @@ func _run() -> void:
 		["on_foot_feel_metrics", t_foot_feel],
 		["emergency_responds_with_siren", t_dispatch],
 		["grass_grows_on_lawns", t_grass],
+		["parked_cars_line_side_streets", t_parked],
 	]
 	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
 		if a.begins_with("--only="): tests = tests.filter(func(t): return a.substr(7) in t[0])
@@ -1736,3 +1737,12 @@ func t_grass() -> Array:
 	var n: int = g.clump_count()
 	if n <= 0: return [false, "no grass clumps near the player (%d grass chunks known)" % g._chunks.size()]
 	return [true, "%d grass clumps near the player in %d cells" % [n, g._live.size()]]
+
+func t_parked() -> Array:
+	await _tr_reset_to_spawn()
+	var pk = main.parked
+	if pk == null: return [false, "no parked-car system"]
+	await _frames(120)
+	var n: int = pk.count()
+	if n <= 0: return [false, "no parked cars near the player (%d edges)" % main.traffic.edges.size()]
+	return [true, "%d parked cars on %d blocks near the player" % [n, pk._edges.size()]]

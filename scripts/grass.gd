@@ -7,16 +7,17 @@ extends Node3D
 ## sways and fades the blades. Off with --no-grass.
 
 const CELL := 8.0
-const RADIUS := 46.0
-const NEAR_DENSITY := 7.0      # clumps per m2 within 15 m
-const FAR_DENSITY := 2.2       # clumps per m2 at the edge
-const MAX_PER_CELL := 520
+const RADIUS := 40.0
+const NEAR_DENSITY := 18.0     # clumps per m2 within 12 m: a full lawn, not tufts
+const FAR_DENSITY := 5.0       # clumps per m2 at the edge
+const MAX_PER_CELL := 1600
 
 var main: Node = null
 var enabled := true
 var _mesh: ArrayMesh = null
 var _mat: ShaderMaterial = null
 var _chunks := {}              # chunk root -> {cell key: PackedVector3Array (local tris)}
+var _blocks := {}              # chunk root -> {cell key: PackedVector3Array (walk/drive tris over the lawn)}
 var _live := {}                # [root, key] string -> MultiMeshInstance3D
 var _t := 0.0
 
@@ -26,27 +27,27 @@ func _ready() -> void:
 	_mat = ShaderMaterial.new(); _mat.shader = load("res://shaders/grass.gdshader")
 	_mat.set_shader_parameter("fade_start", RADIUS - 12.0); _mat.set_shader_parameter("fade_end", RADIUS)
 
-## One clump: 9 tapered blades, each 4 segments with a forward curve, 0.16-0.34 m tall (a mowed-but-lush lawn).
+## One clump: 7 tapered blades, each 3 segments with a forward curve, 0.09-0.2 m tall (a mowed, lush lawn).
 func _clump_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rng := RandomNumberGenerator.new(); rng.seed = 7
-	for b in 9:
+	for b in 7:
 		var a := rng.randf() * TAU
-		var r := rng.randf() * 0.09
+		var r := rng.randf() * 0.07
 		var base := Vector3(cos(a) * r, 0.0, sin(a) * r)
 		var yaw := rng.randf() * TAU
 		var dir := Vector3(cos(yaw), 0.0, sin(yaw))
 		var side := Vector3(-dir.z, 0.0, dir.x)
-		var hgt := rng.randf_range(0.16, 0.34)
-		var w := rng.randf_range(0.012, 0.02)
-		var lean := rng.randf_range(0.05, 0.16)
+		var hgt := rng.randf_range(0.09, 0.2)
+		var w := rng.randf_range(0.009, 0.015)
+		var lean := rng.randf_range(0.03, 0.09)
 		var pts: Array[Vector3] = []; var ws: Array[float] = []; var vs: Array[float] = []
-		for i in 5:
-			var t := float(i) / 4.0
+		for i in 4:
+			var t := float(i) / 3.0
 			pts.append(base + dir * lean * t * t + Vector3(0.0, hgt * t, 0.0))
 			ws.append(w * (1.0 - t * 0.92)); vs.append(t)
 		var n := dir.cross(side).normalized()
-		for i in 4:
+		for i in 3:
 			var p0 := pts[i]; var p1 := pts[i + 1]
 			var a0 := p0 - side * ws[i]; var b0 := p0 + side * ws[i]
 			var a1 := p1 - side * ws[i + 1]; var b1 := p1 + side * ws[i + 1]
@@ -55,8 +56,25 @@ func _clump_mesh() -> ArrayMesh:
 	return st.commit()
 
 ## city_streamer.gd calls this when a chunk is built: bin its grass triangles into cells.
-func add_chunk(root: Node3D, tris: PackedVector3Array) -> void:
+func add_chunk(root: Node3D, tris: PackedVector3Array, block := PackedVector3Array()) -> void:
 	if not enabled or tris.size() < 3: return
+	_chunks[root] = _bin(tris)
+	# blockers go into every cell their bounding box touches (a walk can cross a cell edge)
+	var bc := {}
+	for i in range(0, block.size() - 2, 3):
+		var a := block[i]; var b := block[i + 1]; var c := block[i + 2]
+		var x0 := floori(minf(a.x, minf(b.x, c.x)) / CELL); var x1 := floori(maxf(a.x, maxf(b.x, c.x)) / CELL)
+		var z0 := floori(minf(a.z, minf(b.z, c.z)) / CELL); var z1 := floori(maxf(a.z, maxf(b.z, c.z)) / CELL)
+		if x1 - x0 > 6 or z1 - z0 > 6: continue
+		for kx in range(x0, x1 + 1):
+			for kz in range(z0, z1 + 1):
+				var key := Vector2i(kx, kz)
+				if not bc.has(key): bc[key] = PackedVector3Array()
+				var arr: PackedVector3Array = bc[key]
+				arr.append(a); arr.append(b); arr.append(c); bc[key] = arr
+	_blocks[root] = bc
+
+func _bin(tris: PackedVector3Array) -> Dictionary:
 	var cells := {}
 	for i in range(0, tris.size() - 2, 3):
 		var c := (tris[i] + tris[i + 1] + tris[i + 2]) / 3.0
@@ -65,7 +83,15 @@ func add_chunk(root: Node3D, tris: PackedVector3Array) -> void:
 		var arr: PackedVector3Array = cells[key]
 		arr.append(tris[i]); arr.append(tris[i + 1]); arr.append(tris[i + 2])
 		cells[key] = arr
-	_chunks[root] = cells
+	return cells
+
+static func _inside(p: Vector3, blk: PackedVector3Array) -> bool:
+	for i in range(0, blk.size() - 2, 3):
+		var a := Vector2(blk[i].x, blk[i].z); var b := Vector2(blk[i + 1].x, blk[i + 1].z); var c := Vector2(blk[i + 2].x, blk[i + 2].z)
+		var q := Vector2(p.x, p.z)
+		var d1 := (q - b).cross(a - b); var d2 := (q - c).cross(b - c); var d3 := (q - a).cross(c - a)
+		if not (((d1 < 0) or (d2 < 0) or (d3 < 0)) and ((d1 > 0) or (d2 > 0) or (d3 > 0))): return true
+	return false
 
 func _process(dt: float) -> void:
 	if not enabled or main == null: return
@@ -78,7 +104,7 @@ func _process(dt: float) -> void:
 	var keep := {}
 	for root in _chunks.keys():
 		if not is_instance_valid(root):
-			_chunks.erase(root); continue
+			_chunks.erase(root); _blocks.erase(root); continue
 		var r3: Node3D = root
 		var ro := r3.global_position
 		# skip whole chunks that are far away
@@ -93,7 +119,7 @@ func _process(dt: float) -> void:
 			var id := "%d|%d|%d" % [root.get_instance_id(), key.x, key.y]
 			keep[id] = true
 			if not _live.has(id):
-				var mmi := _build_cell(r3, cells[key], key, d)
+				var mmi := _build_cell(r3, cells[key], key, d, _blocks.get(root, {}).get(key, PackedVector3Array()))
 				if mmi: _live[id] = mmi
 	for id in _live.keys():
 		if not keep.has(id):
@@ -101,7 +127,7 @@ func _process(dt: float) -> void:
 			if is_instance_valid(n): n.queue_free()
 			_live.erase(id)
 
-func _build_cell(root: Node3D, tris: PackedVector3Array, key: Vector2i, dist: float) -> MultiMeshInstance3D:
+func _build_cell(root: Node3D, tris: PackedVector3Array, key: Vector2i, dist: float, blk: PackedVector3Array) -> MultiMeshInstance3D:
 	var areas := PackedFloat32Array(); var total := 0.0
 	for i in range(0, tris.size() - 2, 3):
 		var a := (tris[i + 1] - tris[i]).cross(tris[i + 2] - tris[i]).length() * 0.5
@@ -113,7 +139,8 @@ func _build_cell(root: Node3D, tris: PackedVector3Array, key: Vector2i, dist: fl
 	var rng := RandomNumberGenerator.new(); rng.seed = hash(Vector3i(key.x, key.y, root.get_instance_id() & 0xffff))
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D; mm.use_custom_data = true
-	mm.mesh = _mesh; mm.instance_count = n
+	mm.mesh = _mesh
+	var xf: Array[Transform3D] = []; var cd: Array[Color] = []
 	for i in n:
 		var x := rng.randf() * total
 		var lo := 0; var hi := areas.size() - 1
@@ -125,10 +152,19 @@ func _build_cell(root: Node3D, tris: PackedVector3Array, key: Vector2i, dist: fl
 		var u := rng.randf(); var v := rng.randf()
 		if u + v > 1.0: u = 1.0 - u; v = 1.0 - v
 		var p := t0 + (t1 - t0) * u + (t2 - t0) * v
-		var s := rng.randf_range(0.75, 1.3)
+		var s := rng.randf_range(0.8, 1.25)
 		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.85, 1.2), s))
-		mm.set_instance_transform(i, Transform3D(b, p + Vector3(0, 0.01, 0)))
-		mm.set_instance_custom_data(i, Color(rng.randf(), 0, 0, 0))
+		# real yards: thinner, drier patches (worn spots, shade) instead of a perfect carpet
+		var wp := p + root.global_position
+		var patch := 0.5 + 0.5 * sin(wp.x * 0.23 + 1.7 * sin(wp.z * 0.17)) * cos(wp.z * 0.21 + 0.9 * sin(wp.x * 0.11))
+		if rng.randf() > 0.5 + 0.5 * patch: continue
+		var tone := clampf(rng.randf() * 0.8 + (1.0 - patch) * 0.45, 0.0, 1.0)
+		if blk.size() > 0 and _inside(p, blk): continue      # no grass on front walks and driveways
+		xf.append(Transform3D(b, p + Vector3(0, 0.005, 0))); cd.append(Color(tone, 0, 0, 0))
+	if xf.is_empty(): return null
+	mm.instance_count = xf.size()
+	for i in xf.size():
+		mm.set_instance_transform(i, xf[i]); mm.set_instance_custom_data(i, cd[i])
 	var mmi := MultiMeshInstance3D.new()
 	mmi.multimesh = mm; mmi.material_override = _mat
 	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

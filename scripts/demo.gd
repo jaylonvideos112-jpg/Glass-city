@@ -259,6 +259,9 @@ func _shots(dt: float) -> void:
 	elif s[0] == "@cam":
 		# free camera: s[1] = position, s[2] = look-at (world metres); streams the area under the camera first
 		main.hud.visible = false; main.player.visible = false
+		if main.peds:      # scenery shot: no passers-by standing in the lens
+			for pd in main.peds.peds:
+				if is_instance_valid(pd["node"]) and (pd["node"].global_position + main.world_offset).distance_to(pos) < 12.0: pd["node"].visible = false
 		pos = s[1]; look = s[2]
 		if shot_wait == 0.0:
 			main.player.global_position = Vector3(pos.x, 1.0, pos.z) - main.world_offset
