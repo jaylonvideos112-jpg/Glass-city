@@ -69,7 +69,7 @@ def layout(P=None):
     L = {"p": p}
     L["eyeZ"] = 0.010 + 0.006 * p["eye_height"]
     L["eyeX"] = 0.0315 * (1 + 0.08 * p["eye_spacing"])
-    L["eyeR"] = 0.0112 * (1 + 0.10 * p["eye_size"])
+    L["eyeR"] = 0.0118 * (1 + 0.10 * p["eye_size"])
     L["eyeY"] = 0.061 - 0.004 * p["eye_depth"]
     L["mouthZ"] = -0.060 - 0.005 * p["mouth_height"] - 0.003 * p["nose_length"]
     L["noseTip"] = np.array([0, 0.106 + 0.005 * p["nose_tip"] + 0.004 * p["nose_size"], -0.026 - 0.007 * p["nose_length"]])
@@ -118,20 +118,21 @@ def head_sdf(X, L):
     d = smin(d, ell(X, np.array([0, 0.083 + 0.002 * br, L["browZ"] - 0.002]), np.array([0.012, 0.008, 0.010])), 0.01)
     # eye sockets, eyeballs and lids
     ex, ez, er, ey = L["eyeX"], L["eyeZ"], L["eyeR"], L["eyeY"]
-    lids = None
+    # sockets dented, then a lid shell round each eyeball blended in, then the almond opening cut through the shell
+    # AFTER blending (so blending can't close it), then the eyeball itself (drawn separately) fills the opening
+    cuts, balls = [], []
     for sx in (-1, 1):
         c = np.array([sx * ex, ey, ez])
-        d = smax(d, -sph(X, c + np.array([0, 0.007, 0.002]), 0.0165), 0.010)
-        # almond opening (prism along +Y)
+        d = smax(d, -sph(X, c + np.array([0, 0.006, 0.003]), 0.0145), 0.013)
+        d = smin(d, sph(X, c, er + 0.0028), 0.006)
         lx = X[..., 0] - sx * ex; lz = X[..., 2] - ez - 0.20 * p["eye_tilt"] * (lx * sx)
-        a = er * 1.12; b = er * (0.44 + 0.12 * p["eye_open"])
+        a = er * 1.12; b = er * (0.50 + 0.12 * p["eye_open"])
         bz = b * np.clip(1 - 0.55 * (lx / a) ** 2, 0.05, 1)
         alm = (np.sqrt((lx / a) ** 2 + (lz / bz) ** 2) - 1) * min(a, b)
-        alm = np.maximum(alm, c[1] - X[..., 1])                    # only cuts in front of the eye centre
-        lid = np.maximum(sph(X, c, er + 0.0022), -alm)
-        lids = lid if lids is None else np.minimum(lids, lid)
-        d = np.minimum(d, sph(X, c, er))                            # eyeball (solid; drawn separately)
-    d = smin(d, lids, 0.004)
+        alm = np.maximum(alm, c[1] - X[..., 1])
+        cuts.append(alm); balls.append(sph(X, c, er))
+    d = smax(d, -np.minimum(cuts[0], cuts[1]), 0.0012)
+    d = np.minimum(d, np.minimum(balls[0], balls[1]))
     # nose
     ns = 1 + 0.12 * p["nose_size"]; nw = 1 + 0.15 * p["nose_width"]
     tip = L["noseTip"]; top = np.array([0, 0.083, L["eyeZ"] - 0.002])
