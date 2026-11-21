@@ -337,6 +337,7 @@ func _decode(k: Vector2i) -> void:
 	_mutex.unlock()
 
 func _process(_dt: float) -> void:
+	_update_tree_lod(_dt)
 	var built := 0
 	while built < builds_per_frame:
 		_mutex.lock()
@@ -463,8 +464,17 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 		# two species of photo-real billboard trees (baked from CC0 Poly Haven models)
 		var tA: Array = []; var tB: Array = []
 		for tp in trees: (tA if (int(absf(tp[1]) * 7.0 + absf(tp[2]) * 3.0) % 3) != 0 else tB).append(tp)
-		if not tA.is_empty(): root.add_child(_multimesh(_tree_mesh(0), tA, true))
-		if not tB.is_empty(): root.add_child(_multimesh(_tree_mesh(1), tB, true))
+		for tv in 2:
+			var items: Array = tA if tv == 0 else tB
+			if items.is_empty(): continue
+			var bb := _multimesh(_tree_mesh(tv), items, true)
+			var t3 := _tree3d(tv)
+			if t3 != null:        # Bully look: real 3D trees in chunks near the camera, billboards further out
+				var near := _multimesh(t3, items, true)
+				near.visible = false
+				root.add_child(near)
+				_tree_lod.append([root, near, bb])
+			root.add_child(bb)
 	if not lamps.is_empty():
 		root.add_child(_multimesh(_lamp_mesh(), lamps, false))
 		# night light pools on the ground + head positions for street_lights.gd
@@ -559,6 +569,57 @@ func _multimesh(mesh: Mesh, items: Array, scale_from_data: bool) -> MultiMeshIns
 
 func _merge_into(st: SurfaceTool, m: PrimitiveMesh, xf: Transform3D) -> void:
 	st.append_from(m, 0, xf)
+
+const TREE_3D_M := 240.0     # chunk centre within this: 3D trees (the chunk is 200 m, so trees up to ~380 m)
+var _tree_lod: Array = []     # [chunk root, 3D trees, billboards]
+var _tree_lod_t := 0.0
+## Swap 3D trees and billboards per chunk by the camera's distance to the chunk centre (twice a second).
+func _update_tree_lod(dt: float) -> void:
+	_tree_lod_t -= dt
+	if _tree_lod_t > 0.0 or _tree_lod.is_empty(): return
+	_tree_lod_t = 0.5
+	var cam := get_viewport().get_camera_3d()
+	if cam == null: return
+	var keep: Array = []
+	for t in _tree_lod:
+		if not is_instance_valid(t[0]): continue
+		keep.append(t)
+		var vi: VisualInstance3D = t[2]
+		var c := vi.global_transform * vi.get_aabb().get_center()
+		var d := Vector2(c.x - cam.global_position.x, c.z - cam.global_position.z).length()
+		var near := d < TREE_3D_M
+		(t[1] as Node3D).visible = near; (t[2] as Node3D).visible = not near
+	_tree_lod = keep
+var _tree3d_cache := {}
+## Bully look: the Blender tree model (tools/blender/bully_trees.py) as one mesh, scaled to the billboard height
+## of the same variant, leaves alpha-tested and lit through. null in the classic look or if the model is missing.
+func _tree3d(variant: int) -> ArrayMesh:
+	if not Look.bully(): return null
+	if _tree3d_cache.has(variant): return _tree3d_cache[variant]
+	var src := ModelLib.mesh(["bully_tree_a", "bully_tree_c"][variant])
+	var out: ArrayMesh = null
+	if src != null:
+		var k: float = [9.0 / 9.0, 7.0 / 11.0][variant]
+		out = ArrayMesh.new()
+		for si in src.get_surface_count():
+			var st := SurfaceTool.new(); st.create_from(src, si)
+			var arr := st.commit_to_arrays()
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			for i in vs.size(): vs[i] = vs[i] * k
+			arr[Mesh.ARRAY_VERTEX] = vs
+			out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+			var m0 := src.surface_get_material(si) as BaseMaterial3D
+			var m := (m0.duplicate() if m0 else StandardMaterial3D.new()) as BaseMaterial3D
+			if m.albedo_texture != null:          # leaf cards
+				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR; m.alpha_scissor_threshold = 0.4
+				m.cull_mode = BaseMaterial3D.CULL_DISABLED
+				m.backlight_enabled = true; m.backlight = Color(0.12, 0.16, 0.06)
+			else:                                 # trunk and branches: dark, matte bark
+				m.albedo_color = Color(0.2, 0.15, 0.11)
+			m.roughness = 0.9; m.metallic_specular = 0.15
+			out.surface_set_material(si, m)
+	_tree3d_cache[variant] = out
+	return out
 
 var _tree_meshes := {}
 ## A billboard tree: three crossed quads textured with renders of a real tree model (textures/trees, baked by

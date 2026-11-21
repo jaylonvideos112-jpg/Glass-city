@@ -8,9 +8,9 @@ extends Node3D
 
 const CELL := 8.0
 const RADIUS := 40.0
-const NEAR_DENSITY := 18.0     # clumps per m2 within 12 m: a full lawn, not tufts
-const FAR_DENSITY := 5.0       # clumps per m2 at the edge
-const MAX_PER_CELL := 1600
+const NEAR_DENSITY := 30.0     # clumps per m2 within 12 m: a full lawn, not tufts
+const FAR_DENSITY := 8.0       # clumps per m2 at the edge
+const MAX_PER_CELL := 2600
 
 var main: Node = null
 var enabled := true
@@ -31,14 +31,14 @@ func _ready() -> void:
 func _clump_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rng := RandomNumberGenerator.new(); rng.seed = 7
-	for b in 7:
+	for b in 10:
 		var a := rng.randf() * TAU
-		var r := rng.randf() * 0.07
+		var r := rng.randf() * 0.1
 		var base := Vector3(cos(a) * r, 0.0, sin(a) * r)
 		var yaw := rng.randf() * TAU
 		var dir := Vector3(cos(yaw), 0.0, sin(yaw))
 		var side := Vector3(-dir.z, 0.0, dir.x)
-		var hgt := rng.randf_range(0.09, 0.2)
+		var hgt := rng.randf_range(0.07, 0.15)
 		var w := rng.randf_range(0.009, 0.015)
 		var lean := rng.randf_range(0.03, 0.09)
 		var pts: Array[Vector3] = []; var ws: Array[float] = []; var vs: Array[float] = []
@@ -65,7 +65,7 @@ func add_chunk(root: Node3D, tris: PackedVector3Array, block := PackedVector3Arr
 		var a := block[i]; var b := block[i + 1]; var c := block[i + 2]
 		var x0 := floori(minf(a.x, minf(b.x, c.x)) / CELL); var x1 := floori(maxf(a.x, maxf(b.x, c.x)) / CELL)
 		var z0 := floori(minf(a.z, minf(b.z, c.z)) / CELL); var z1 := floori(maxf(a.z, maxf(b.z, c.z)) / CELL)
-		if x1 - x0 > 6 or z1 - z0 > 6: continue
+		if x1 - x0 > 30 or z1 - z0 > 30: continue
 		for kx in range(x0, x1 + 1):
 			for kz in range(z0, z1 + 1):
 				var key := Vector2i(kx, kz)

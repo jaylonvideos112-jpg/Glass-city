@@ -62,7 +62,7 @@ def tree(name, kind, height, seed):
     rng = random.Random(seed)
     for o in list(bpy.data.objects): bpy.data.objects.remove(o)
     bark = mat_bark("bark")
-    tex = os.path.join(OUT, f"{name}_leaf.png"); leaf_texture(tex, seed, base=(0.22, 0.45, 0.12) if kind == "round" else (0.2, 0.42, 0.13))
+    tex = os.path.join(OUT, f"{name}_leaf.png"); leaf_texture(tex, seed, base=(0.2, 0.34, 0.11) if kind == "round" else (0.18, 0.32, 0.12))
     leaf = mat_leaf(tex, "a_leaf")
     # trunk and main branches
     bm = bmesh.new()

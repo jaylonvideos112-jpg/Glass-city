@@ -34,6 +34,9 @@ It is the owner's passion project for his own city.
   - normal maps at 0.45 strength;
   - lighting preset in `main.gd` / `time_of_day.gd`: filmic tonemap, saturation 1.12, soft bloom, warm sun, 35% more ambient, softer shadow edges (sun angular size 0.9; 1.6 was too slow on the CPU renderer);
   - characters: the stylized mode of the character creator (section 7);
+  - **3D trees near the camera:** chunks whose centre is within 240 m show the Blender trees as real 3D meshes (`assets/models/bully_tree_a/c.glb`). Billboards are used further out. `city_streamer._update_tree_lod` swaps them per chunk twice a second.
+    - Bark is dark matte; leaves are alpha-tested and lit through.
+    - About 2k triangles per tree; the leaf count may need trimming on low-end PCs.
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
   - **Parked cars:** `scripts/parked_cars.gd`. Cars line residential (class 5) and tertiary (class 4) streets that have sidewalks, within 170 m of the camera.
@@ -922,7 +925,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/dbg/helpers/study.sh` | usage: study.sh KEY ASSR [bands] |
 | `tools/dbg/helpers/tz.py` | — |
 
-Also: `tools/blender/replicas/<key>/{spec,massing}.json` (97 landmark specs), `tools/blender/mh/` (MakeHuman base mesh, targets, rig and weights; see its SOURCE.md), `assets/models/` (175 .glb models), `textures/` (procedural + Poly Haven PBR), `scenes/`, `fonts/`, `assets_src/` (source models, not shipped).
+Also: `tools/blender/replicas/<key>/{spec,massing}.json` (97 landmark specs), `tools/blender/mh/` (MakeHuman base mesh, targets, rig and weights; see its SOURCE.md), `assets/models/` (177 .glb models), `textures/` (procedural + Poly Haven PBR), `scenes/`, `fonts/`, `assets_src/` (source models, not shipped).
 
 ## 19. Data files (`source_data/`) and every name in them
 

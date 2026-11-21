@@ -716,7 +716,7 @@ func _setup_environment() -> void:
 		# Bully look (2026-11-21): bright, clean, saturated sunny afternoon with clear (not harsh) shadows and a gentle
 		# bloom. Lighting and grade only; the painted surfaces are in textures_bully/.
 		env.tonemap_mode = Environment.TONE_MAPPER_ACES; env.tonemap_white = 6.0; env.tonemap_exposure = 1.08
-		env.adjustment_contrast = 1.07; env.adjustment_saturation = 1.2
+		env.adjustment_contrast = 1.06; env.adjustment_saturation = 1.06
 		env.glow_intensity = 0.4; env.glow_bloom = 0.06; env.glow_hdr_threshold = 1.0
 		env.ssao_intensity = 1.5; env.ssil_intensity = 1.2
 		env.fog_density = 0.00012

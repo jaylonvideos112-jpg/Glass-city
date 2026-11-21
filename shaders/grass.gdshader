@@ -3,9 +3,9 @@ render_mode cull_disabled, diffuse_lambert_wrap, specular_disabled;
 // 3D grass blades (scripts/grass.gd): tapered, curved blades in clumps, instanced on lawns and parks near the
 // camera. UV.y = 0 at the root, 1 at the tip. Sways with a gusty wind; shrinks into the ground near the edge of
 // the grass radius so nothing pops. Colours are Bully-style lively greens (dark at the root, sunlit at the tips).
-uniform vec3 root_col : source_color = vec3(0.16, 0.30, 0.07);
-uniform vec3 tip_col : source_color = vec3(0.36, 0.58, 0.16);
-uniform vec3 dry_col : source_color = vec3(0.62, 0.62, 0.30);
+uniform vec3 root_col : source_color = vec3(0.12, 0.22, 0.05);
+uniform vec3 tip_col : source_color = vec3(0.26, 0.42, 0.11);
+uniform vec3 dry_col : source_color = vec3(0.45, 0.44, 0.22);
 uniform float wind = 1.0;
 uniform float fade_start = 28.0;
 uniform float fade_end = 40.0;
