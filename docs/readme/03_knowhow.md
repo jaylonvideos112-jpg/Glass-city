@@ -141,3 +141,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 1. Copy or link `mpfb2/src/mpfb` to `~/.config/blender/<ver>/extensions/user_default/mpfb`.
 2. Link the MakeHuman asset folders (skins, hair, clothes, eyes, eyebrows, eyelashes, teeth, tongue, proxymeshes) into `~/.config/blender/<ver>/extensions/.user/user_default/mpfb/data/`.
 3. In scripts: `addon_utils.enable("bl_ext.user_default.mpfb")`.
+
+
+### Terrain grid vs. chunk ground (2026-11-21)
+`Terrain.height()` (the coarse runtime height grid) can sit 0.5–3 m BELOW the chunk ground that `build_city.py` builds with `G()` (DEM plus raised road beds). Anything placed at runtime on a road or a lawn must raycast down onto the chunk collision (layer 1) and use `Terrain.height` only as the fallback. `parked_cars.gd _ground()` does this. Parked cars were sunk to their windows before it.

@@ -68,11 +68,20 @@ func _build(tr, e: Dictionary, key: String) -> Node3D:
 				if float(v["size"][0]) < 6.0 and not String(v.get("category", "")).contains("bus"):
 					var along: float = s + rng.randf_range(-0.6, 0.6)
 					var p: Vector3 = pa + d * along + right * sd * (half_w - float(v["size"][1]) * 0.5 - 0.25)
-					p.y = Terrain.height(p)
+					p.y = _ground(p)
 					var yaw := atan2(-d.x, -d.z) + (0.0 if sd > 0.0 else PI) + rng.randf_range(-0.03, 0.03)
 					_car(holder, tr, v, p, yaw, rng)
 			s += GAP
 	return holder
+
+## the road surface under p (raycast against the chunk ground, layer 1); the coarse terrain grid alone left cars
+## sunk into raised road beds
+func _ground(p: Vector3) -> float:
+	var T := Terrain.height(p)
+	var sp: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
+	var q := PhysicsRayQueryParameters3D.create(Vector3(p.x, T + 4.0, p.z) - main.world_offset, Vector3(p.x, T - 4.0, p.z) - main.world_offset, 1)
+	var hit: Dictionary = sp.intersect_ray(q)
+	return (hit["position"] + main.world_offset).y if hit else T
 
 func _car(holder: Node3D, tr, v: Dictionary, p: Vector3, yaw: float, rng: RandomNumberGenerator) -> void:
 	var cols: Array = tr.T.get("paint", [])
