@@ -317,6 +317,7 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 - **Main St:** fixed in the East Toledo chunks.
 - **County-record gaps fixed by rules (2026-11-21):**
   - religious land use (68x) builds as a church with a gable roof even when AREIS calls it an office. 811 E Broadway, next to the theater, is a stone-and-brick church with a bell tower; it rendered as a white office.
+  - churches also ignore "light" photo colours (sky and white trim fooled the colour reader at 811 E Broadway);
   - one-storey shops and offices are capped at 5.8 m. 602 Main St is a low white block with green awnings.
 - **Known flaky test:** `peds_spawn_and_walk_on_sidewalks` sometimes fails in the full run (a person 1 m into the road) but passes on its own. the last screenshot showed modern white buildings with big glass. The real buildings are 1890s–1920s brown and red brick storefronts.
   - The fix is in code: light photo colours are no longer trusted on brick shops.
