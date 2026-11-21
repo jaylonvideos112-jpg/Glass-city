@@ -144,7 +144,7 @@ class PropList(list):
         if DEM_DIR and len(p) > 3:
             x, y = p[1] + self.ox, self.oy - p[2]
             if p[0] == "pillar": p = list(p); gz = TZ(x, y); p[3] = max(0.5, p[3] - gz); p[4] = gz     # pillar: [.., height, ground y]
-            elif p[0] in ("pool", "wire"): pass         # wire: [.., x0, z0, x1, z1] (heights at runtime)
+            elif p[0] == "pool" or str(p[0]).startswith("wire"): pass         # wire: [.., x0, z0, x1, z1] (heights at runtime)
             else: p = list(p); p[3] = p[3] + G(x, y)
         super().append(p)
 
@@ -2699,7 +2699,7 @@ for ri in range(rx0, rx1 + 1):
                     c = chunk_at(j[1], j[2]); c.props.append(["m:" + j[5], round(j[1] - c.ox, 2), round(-(j[2] - c.oy), 2), 0.0, round(_yaw(j[3], j[4]), 3)])
                 else:
                     mx, my = (j[1] + j[3]) / 2, (j[2] + j[4]) / 2
-                    c = chunk_at(mx, my); c.props.append(["wire", round(j[1] - c.ox, 2), round(-(j[2] - c.oy), 2), round(j[3] - c.ox, 2), round(-(j[4] - c.oy), 2)])
+                    c = chunk_at(mx, my); c.props.append(["wire:%.2f:%.2f" % (G(j[1], j[2]), G(j[3], j[4])), round(j[1] - c.ox, 2), round(-(j[2] - c.oy), 2), round(j[3] - c.ox, 2), round(-(j[4] - c.oy), 2)])     # pole base heights ride in the kind
             elif k == "stree":
                 if lt: continue                # LiDAR already has the real street trees here
                 pt = Point(j[1], j[2])

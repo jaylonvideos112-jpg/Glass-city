@@ -473,7 +473,7 @@ func _build(k: Vector2i, d: Dictionary) -> void:
 	var wires := []
 	for p in d["props"]:
 		if p[0] == "tree": trees.append(p)
-		elif p[0] == "wire": wires.append(p)
+		elif String(p[0]).begins_with("wire"): wires.append(p)
 		elif p[0] == "lamp": lamps.append(p)
 		elif String(p[0]).begins_with("m:"):      # Blender model prop (park equipment ...): batch per model
 			if not models.has(p[0]): models[p[0]] = []

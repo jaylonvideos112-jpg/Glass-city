@@ -28,7 +28,9 @@ static func build(wires: Array, origin: Vector3) -> MeshInstance3D:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for w in wires:
 		var a := Vector3(w[1], 0, w[2]); var b := Vector3(w[3], 0, w[4])
-		a.y = Terrain.height(a + origin); b.y = Terrain.height(b + origin)
+		var hk := String(w[0]).split(":")        # "wire:<base y0>:<base y1>" (chunk ground, = the poles' bases)
+		if hk.size() == 3: a.y = float(hk[1]); b.y = float(hk[2])
+		else: a.y = Terrain.height(a + origin); b.y = Terrain.height(b + origin)
 		var dir := b - a; dir.y = 0
 		var L := dir.length()
 		if L < 1.0: continue

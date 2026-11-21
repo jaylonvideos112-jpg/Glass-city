@@ -47,7 +47,7 @@ It is the owner's passion project for his own city.
     - `tools/pipeline/build_city.py` `utility_line()` puts a wooden pole about every 38 m along every OSM alley (`highway=service, service=alley`), 0.6 m off the edge;
     - along one side of residential streets (opposite the lamps) too, except where an alley runs within 45 m, because then the lines live in the alley;
     - models from `tools/blender/util_poles.py`: `util_pole`, `util_pole_t` (transformer can, 22%) and `util_pole_f` (flyers stapled on, 10%). Each has a cross-arm with insulators, a secondary rack, a cable clamp, step bolts and a pole tag;
-    - chunk props `["wire", x0, z0, x1, z1]` link consecutive poles. `scripts/utility_wires.gd` turns each into five sagging cables (3 primaries, the triplex secondary and a phone/cable line) as one thin-tube mesh per chunk, with terrain heights at runtime;
+    - chunk props `["wire:<y0>:<y1>", x0, z0, x1, z1]` link consecutive poles; the pole base heights (chunk ground) ride in the kind string, because the runtime terrain grid can sit metres below the chunk ground. `scripts/utility_wires.gd` turns each into five sagging cables (3 primaries, the triplex secondary and a phone/cable line) as one thin-tube mesh per chunk, with terrain heights at runtime;
     - tests: `utility_poles_and_wires`, `house_windows_lived_in`.
   - **Road wear and street hardware:**
     - `ground_pbr.gdshader` `wear` (on for the asphalt in Bully look): rotated repair patches with tar rims (about 1 in 6 cells of 7 m), alligator cracking in tired zones (voronoi edges masked by slow noise), glossy tar snakes, and oil blots, all in world space;
