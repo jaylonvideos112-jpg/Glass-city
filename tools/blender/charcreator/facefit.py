@@ -21,7 +21,8 @@ CANON = os.environ.get("MP_CANON", "/home/claude/dl/facefit/canonical_face_model
 FIT_DIRS = ["nose", "mouth", "eyes", "eyebrows", "chin", "cheek", "forehead", "head", "neck"]
 SKIP = ("head-scale", "head-trans", "head-age", "neck-trans", "neck-scale-vert")
 # per-family slider limits: the lip and nose correspondences are the least reliable, so they may move less
-CAPS = {"mouth": 0.35, "nose": 0.5, "l-eye": 0.5, "eyebrows": 0.5, "chin": 0.6, "l-cheek": 0.6}
+CAPS = {"mouth": 0.35, "nose": 0.5, "l-eye": 0.5, "eyebrows": 0.5, "chin": 0.6, "l-cheek": 0.6, "head-scale": 0.5,
+        "head-fat": 0.6, "head-": 0.35, "forehead": 0.5}
 def cap_of(name):
     for k, v in CAPS.items():
         if name.startswith(k): return v
@@ -142,7 +143,7 @@ def solve(P0, D, L, wts, lam, iters=6, x0=None, lo=None, hi=None):
         w = lsq_linear(A, b, bounds=(lo_, hi_), lsmr_tol="auto", max_iter=300).x
     P = P0 + (D @ w).reshape(-1, 3)
     s, R, t = umeyama(P, L, wts[:, 0])
-    err = np.sqrt((((s * P @ R.T + t) - L) ** 2).sum(1)).mean() / s
+    Q = s * P @ R.T + t; err = np.sqrt(((Q - L)[:, [0, 2]] ** 2).sum(1)).mean() / s      # frontal-plane error
     return w, (s, R, t), err
 
 # ------------------------------------------------------------------------------------------------- correspondence
@@ -164,10 +165,17 @@ def build_correspondence(obj):
     corr = None
     for rnd in range(4):
         Vn = mesh_coords(obj)
-        tree = cKDTree(Vn[head]); _, ii = tree.query(Cm); corr = head[ii]
+        # surface points: match on the front of the face in the frontal plane (x, z), so lip and nose landmarks land
+        # on the visible lip/nose surface and not on the inside of the mouth or under the nose; the jaw contour
+        # (silhouette points) matches in 3D
+        nrm = np.array([obj.data.vertices[i].normal[:] for i in head])
+        front = head[nrm[:, 1] < -0.35]
+        tree3 = cKDTree(Vn[head]); _, ii = tree3.query(Cm); corr = head[ii]
+        tree2 = cKDTree(Vn[front][:, [0, 2]]); _, jj = tree2.query(Cm[:, [0, 2]])
+        for k in LIPS: corr[k] = front[jj[k]]     # lips only: 3D matching put them inside the mouth / under the lip
         if rnd == 3: break
         D = deltas(obj, keys, corr); P0 = Vn[corr]
-        wts = np.ones((468, 3))
+        wts = np.ones((468, 3)); wts[LIPS, 1] = 0.1
         w, (s2, R2, t2), err = solve(P0, D, Cm, wts, lam=2e-6)
         for (n, ks), x in zip(keys.items(), w):
             for k in ks: obj.data.shape_keys.key_blocks[k].value = float(x)

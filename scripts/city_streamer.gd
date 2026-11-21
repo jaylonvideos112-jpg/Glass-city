@@ -37,7 +37,7 @@ var _pbr_cache := {}
 func pbr(set_name: String) -> Dictionary:
 	if not _pbr_cache.has(set_name):
 		var b := "res://textures/pbr/%s_" % set_name
-		_pbr_cache[set_name] = {"diff": load(b + "diff.jpg"), "nor": load(b + "nor.jpg"), "rough": load(b + "rough.jpg")}
+		_pbr_cache[set_name] = {"diff": load(Look.t(b + "diff.jpg")), "nor": load(b + "nor.jpg"), "rough": load(b + "rough.jpg")}
 	return _pbr_cache[set_name]
 func ground_mat(set_name: String, tile_m: float, tint := Color.WHITE, tint_mix := 0.0, bright := 1.0, break_tiling := 1.0) -> ShaderMaterial:
 	var t := pbr(set_name)
@@ -45,6 +45,7 @@ func ground_mat(set_name: String, tile_m: float, tint := Color.WHITE, tint_mix :
 	m.set_shader_parameter("albedo_tex", t["diff"]); m.set_shader_parameter("normal_tex", t["nor"]); m.set_shader_parameter("rough_tex", t["rough"])
 	m.set_shader_parameter("tile_m", tile_m); m.set_shader_parameter("tint", tint); m.set_shader_parameter("tint_mix", tint_mix)
 	m.set_shader_parameter("brightness", bright); m.set_shader_parameter("break_tiling", break_tiling)
+	m.set_shader_parameter("normal_strength", Look.normal_k())
 	return m
 var label_font_size := 96
 var lamp_bulb_mat: StandardMaterial3D = null
@@ -136,13 +137,13 @@ func _mat(name: String) -> Material:
 
 func _tex_mat(tex: String, tint := Color.WHITE, rough := 0.9) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
-	m.albedo_texture = load("res://textures/%s.png" % tex)
+	m.albedo_texture = load(Look.t("res://textures/%s.png" % tex))
 	m.albedo_color = tint
 	m.roughness = rough
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	var np_ := "res://textures/%s_nor.png" % tex
 	if ResourceLoader.exists(np_):
-		m.normal_enabled = true; m.normal_texture = load(np_); m.normal_scale = 1.0
+		m.normal_enabled = true; m.normal_texture = load(np_); m.normal_scale = Look.normal_k()
 	var rp := "res://textures/%s_rough.png" % tex
 	if ResourceLoader.exists(rp):
 		# windows are glossy and a little metallic, so they pick up the sky; walls stay matte
@@ -579,7 +580,7 @@ func _tree_mesh(variant := 0) -> ArrayMesh:
 				st.set_normal(n); st.set_uv(uvs[k]); st.add_vertex(v)
 		st.commit(am)
 		var m := StandardMaterial3D.new()
-		m.albedo_texture = load("res://textures/trees/%s.png" % view)
+		m.albedo_texture = load(Look.t("res://textures/trees/%s.png" % view))
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR; m.alpha_scissor_threshold = 0.45
 		m.alpha_antialiasing_mode = BaseMaterial3D.ALPHA_ANTIALIASING_ALPHA_TO_COVERAGE
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED; m.roughness = 0.9

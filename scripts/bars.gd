@@ -57,7 +57,7 @@ func _tex(name: String, tint: Color, scale: float) -> StandardMaterial3D:
 	var key := "tex|%s|%s|%.2f" % [name, tint.to_html(), scale]
 	if _mats.has(key): return _mats[key]
 	var m := StandardMaterial3D.new()
-	m.albedo_texture = load("res://textures/%s.png" % name)
+	m.albedo_texture = load(Look.t("res://textures/%s.png" % name))
 	m.albedo_color = tint
 	m.uv1_triplanar = true
 	m.uv1_scale = Vector3(scale, scale, scale)

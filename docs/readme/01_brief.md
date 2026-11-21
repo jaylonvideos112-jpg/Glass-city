@@ -16,14 +16,19 @@ It is the owner's passion project for his own city.
 - **Owner's PC:** GTX 1080 Ti (11 GB), the reference machine for performance budgets.
 - **Tone and genre:** GTA IV/V-style life sim and crime sandbox: driving, on-foot, fighting, guns, police, jobs, businesses, homes, needs. **No missions yet**; the owner said to build the world and systems first.
 
-### Art direction (open decision as of 2026-11-21)
-- So far the target was a realistic, GTA-like look, with buildings as close to real life as possible.
-- **2026-11-21:** the owner proposed going **"realistic but slightly cartoonish, like Bully"** instead of photoreal GTA 6. Claude agreed it fits better:
-  - it avoids uncanny faces;
-  - it suits Godot and the 1080 Ti;
-  - it ages better.
-- The city geometry stays 1:1 and accurate. The stylisation lives in the characters (slightly bigger heads and hands, exaggerated faces, painted skin), the painted textures, and a warm, soft grade.
-- **A style test is in progress** (section 9). The owner decides after seeing it. The current look stays until he does. A screen "painted" filter was tried and rejected, so the stylisation must come from the art itself.
+### Art direction: Bully style on modern geometry (owner decision, 2026-11-21)
+- The owner wants **"4K upscaled Bully" gameplay looks, with modern polygon counts on models**. Bully: Scholarship Edition's art style:
+  - hand-painted-looking, clean textures;
+  - warm, soft, sunny light with gentle bloom;
+  - slightly caricatured people (bigger heads and hands, strong features).
+- The city geometry stays modern-detailed and 1:1 accurate; only surfaces, lighting and characters change.
+- **Rejected:** a full-screen "painted"/oil filter. The owner never asked for that. The look comes from the art, not a screen filter.
+- **How it works:**
+  - `source_data/look.json` `"style": "bully"` (default; `--look=classic` gives the old look) drives `scripts/look.gd`;
+  - colour textures load from `textures_bully/`, made by `tools/pipeline/make_bully_textures.py`: edge-preserving smoothing that removes photo grain but keeps brick courses, siding laps and cracks; a cleaner, warmer, more saturated palette; greener grass;
+  - normal maps at 0.45 strength;
+  - lighting preset in `main.gd` / `time_of_day.gd`: filmic tonemap, saturation 1.12, soft bloom, warm sun, 35% more ambient, softer shadow edges (sun angular size 0.9; 1.6 was too slow on the CPU renderer);
+  - characters: the stylized mode of the character creator (section 7).
 
 ---
 
@@ -287,21 +292,26 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
   - the character creator.
 - After East Toledo: send the owner a fresh prompt for the **downtown overhaul**.
 
-## 9. Art-style test (Bully-like), in progress
-- **Street:** a post-process "painted" filter was tried and **rejected by the owner (2026-11-21: "I never said do an oil filter")**. It was removed. A Bully look must come from the art itself (textures, proportions, lighting, colour), not a screen filter.
-- **Character (stylized creator mode):** with no photo fit, the painted skin looks clean. With a photo fit, the mouth goes wrong: the lower lip droops and a pale patch shows below it.
-  - It is not teeth, helper geometry or proxy refit; tested.
-  - The cause is the face fit pulling the lip and nose sliders. Unreliable lip and nose correspondences have been partly tamed by per-family slider caps (mouth 0.35, nose 0.5).
-  - The lip-colour mask also catches the chin.
-  - **Next:** a better correspondence around the mouth (anchor the lip corners and centres explicitly) and a UV-based lip mask.
-- **Decision pending:** the owner chooses the direction after seeing the test.
+## 9. Bully look: status (2026-11-21)
+- **Done:** texture art pass (99 textures), the `Look` switch, the lighting preset, and a stylized character test.
+- **Character creator fixes:**
+  - helper geometry is deleted before export;
+  - white balance comes from the eye whites;
+  - lip landmarks are matched on the front of the face (this fixed the drooping lower lip);
+  - per-family slider caps;
+  - the texture-based lip recolour is off: its mask caught the chin.
+- **Next:**
+  - stylized trees;
+  - hand-made Bully-style textures for key materials if the automatic pass isn't enough;
+  - caricature proportions for every pedestrian;
+  - character eye colour from the photo.
 
 ## 10. Owner's standing preferences (how to work with Jay)
 
 - **Accuracy:** be as accurate to real Toledo as possible. Study each place first, and take the time it needs.
 - **Results:** show progress with **screenshots only, no videos**. Test before sending.
 - **Names:** never choose business, bar or brand names yourself. Ask with options and mark a recommended one. Every real business gets a parody / non-copyrighted name.
-- **Look:** realistic, "not like Roblox". (The new direction may be Bully-like stylized; see 1 and 9.)
+- **Look:** "4K upscaled Bully" art style with modern polygon counts (2026-11-21). Never "like Roblox". No screen filters.
 - **Skipped for now:** fishing polish and missions.
 - **Tool calls:** keep them short. The owner often interrupts to redirect; pause when asked.
 - **Character models:** build them with the MPFB2-based character creator.
@@ -324,7 +334,7 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 | 2026-11-14 | 1 game day = 60 real minutes. Build the game close to finished in Godot, then do the visual upgrade in UE5. |
 | 2026-11-15 | Island map with invented countryside; parody names for towns, rivers, streets and schools; made-up car makes; "GlassPay" placeholder; no missions yet. |
 | 2026-11-20 | Area-by-area accuracy campaign (section 2). |
-| 2026-11-21 | Every business has a parody name (Eastwood Theater = EASTGATE). Bully-like stylized look proposed and being tested. Character creator on MPFB2. This README must be kept current. |
+| 2026-11-21 | Every business has a parody name (Eastwood Theater = EASTGATE). Art direction: **Bully style (4K upscaled look) on modern geometry**; a screen filter was rejected. Character creator on MPFB2. This README must be kept current. |
 
 ## 12. Deeper docs
 `docs/ARCHITECTURE.md` (chunk format, modules), `docs/BUILD.md`, `docs/DATA_SOURCES.md` (every source and licence),

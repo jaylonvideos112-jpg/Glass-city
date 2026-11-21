@@ -91,7 +91,7 @@ func _box(root: Node3D, size: Vector3, pos: Vector3, m: Material, collide := fal
 
 func _pbr_mat(set_name: String, tile: Vector2, tint := Color.WHITE, rough := 1.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
-	m.albedo_texture = load("res://textures/pbr/%s_diff.jpg" % set_name); m.albedo_color = tint
+	m.albedo_texture = load(Look.t("res://textures/pbr/%s_diff.jpg" % set_name)); m.albedo_color = tint
 	m.normal_enabled = true; m.normal_texture = load("res://textures/pbr/%s_nor.jpg" % set_name)
 	m.roughness_texture = load("res://textures/pbr/%s_rough.jpg" % set_name); m.roughness = rough
 	m.uv1_scale = Vector3(tile.x, tile.y, 1)

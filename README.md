@@ -16,14 +16,19 @@ It is the owner's passion project for his own city.
 - **Owner's PC:** GTX 1080 Ti (11 GB), the reference machine for performance budgets.
 - **Tone and genre:** GTA IV/V-style life sim and crime sandbox: driving, on-foot, fighting, guns, police, jobs, businesses, homes, needs. **No missions yet**; the owner said to build the world and systems first.
 
-### Art direction (open decision as of 2026-11-21)
-- So far the target was a realistic, GTA-like look, with buildings as close to real life as possible.
-- **2026-11-21:** the owner proposed going **"realistic but slightly cartoonish, like Bully"** instead of photoreal GTA 6. Claude agreed it fits better:
-  - it avoids uncanny faces;
-  - it suits Godot and the 1080 Ti;
-  - it ages better.
-- The city geometry stays 1:1 and accurate. The stylisation lives in the characters (slightly bigger heads and hands, exaggerated faces, painted skin), the painted textures, and a warm, soft grade.
-- **A style test is in progress** (section 9). The owner decides after seeing it. The current look stays until he does. A screen "painted" filter was tried and rejected, so the stylisation must come from the art itself.
+### Art direction: Bully style on modern geometry (owner decision, 2026-11-21)
+- The owner wants **"4K upscaled Bully" gameplay looks, with modern polygon counts on models**. Bully: Scholarship Edition's art style:
+  - hand-painted-looking, clean textures;
+  - warm, soft, sunny light with gentle bloom;
+  - slightly caricatured people (bigger heads and hands, strong features).
+- The city geometry stays modern-detailed and 1:1 accurate; only surfaces, lighting and characters change.
+- **Rejected:** a full-screen "painted"/oil filter. The owner never asked for that. The look comes from the art, not a screen filter.
+- **How it works:**
+  - `source_data/look.json` `"style": "bully"` (default; `--look=classic` gives the old look) drives `scripts/look.gd`;
+  - colour textures load from `textures_bully/`, made by `tools/pipeline/make_bully_textures.py`: edge-preserving smoothing that removes photo grain but keeps brick courses, siding laps and cracks; a cleaner, warmer, more saturated palette; greener grass;
+  - normal maps at 0.45 strength;
+  - lighting preset in `main.gd` / `time_of_day.gd`: filmic tonemap, saturation 1.12, soft bloom, warm sun, 35% more ambient, softer shadow edges (sun angular size 0.9; 1.6 was too slow on the CPU renderer);
+  - characters: the stylized mode of the character creator (section 7).
 
 ---
 
@@ -287,21 +292,26 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
   - the character creator.
 - After East Toledo: send the owner a fresh prompt for the **downtown overhaul**.
 
-## 9. Art-style test (Bully-like), in progress
-- **Street:** a post-process "painted" filter was tried and **rejected by the owner (2026-11-21: "I never said do an oil filter")**. It was removed. A Bully look must come from the art itself (textures, proportions, lighting, colour), not a screen filter.
-- **Character (stylized creator mode):** with no photo fit, the painted skin looks clean. With a photo fit, the mouth goes wrong: the lower lip droops and a pale patch shows below it.
-  - It is not teeth, helper geometry or proxy refit; tested.
-  - The cause is the face fit pulling the lip and nose sliders. Unreliable lip and nose correspondences have been partly tamed by per-family slider caps (mouth 0.35, nose 0.5).
-  - The lip-colour mask also catches the chin.
-  - **Next:** a better correspondence around the mouth (anchor the lip corners and centres explicitly) and a UV-based lip mask.
-- **Decision pending:** the owner chooses the direction after seeing the test.
+## 9. Bully look: status (2026-11-21)
+- **Done:** texture art pass (99 textures), the `Look` switch, the lighting preset, and a stylized character test.
+- **Character creator fixes:**
+  - helper geometry is deleted before export;
+  - white balance comes from the eye whites;
+  - lip landmarks are matched on the front of the face (this fixed the drooping lower lip);
+  - per-family slider caps;
+  - the texture-based lip recolour is off: its mask caught the chin.
+- **Next:**
+  - stylized trees;
+  - hand-made Bully-style textures for key materials if the automatic pass isn't enough;
+  - caricature proportions for every pedestrian;
+  - character eye colour from the photo.
 
 ## 10. Owner's standing preferences (how to work with Jay)
 
 - **Accuracy:** be as accurate to real Toledo as possible. Study each place first, and take the time it needs.
 - **Results:** show progress with **screenshots only, no videos**. Test before sending.
 - **Names:** never choose business, bar or brand names yourself. Ask with options and mark a recommended one. Every real business gets a parody / non-copyrighted name.
-- **Look:** realistic, "not like Roblox". (The new direction may be Bully-like stylized; see 1 and 9.)
+- **Look:** "4K upscaled Bully" art style with modern polygon counts (2026-11-21). Never "like Roblox". No screen filters.
 - **Skipped for now:** fishing polish and missions.
 - **Tool calls:** keep them short. The owner often interrupts to redirect; pause when asked.
 - **Character models:** build them with the MPFB2-based character creator.
@@ -324,7 +334,7 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 | 2026-11-14 | 1 game day = 60 real minutes. Build the game close to finished in Godot, then do the visual upgrade in UE5. |
 | 2026-11-15 | Island map with invented countryside; parody names for towns, rivers, streets and schools; made-up car makes; "GlassPay" placeholder; no missions yet. |
 | 2026-11-20 | Area-by-area accuracy campaign (section 2). |
-| 2026-11-21 | Every business has a parody name (Eastwood Theater = EASTGATE). Bully-like stylized look proposed and being tested. Character creator on MPFB2. This README must be kept current. |
+| 2026-11-21 | Every business has a parody name (Eastwood Theater = EASTGATE). Art direction: **Bully style (4K upscaled look) on modern geometry**; a screen filter was rejected. Character creator on MPFB2. This README must be kept current. |
 
 ## 12. Deeper docs
 `docs/ARCHITECTURE.md` (chunk format, modules), `docs/BUILD.md`, `docs/DATA_SOURCES.md` (every source and licence),
@@ -741,6 +751,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `scripts/humans.gd` | Low-poly people, built in code (placeholder art until the Unreal pass, but readable as people): tapered torso and hips, rounded (8-sided) head with hair styles, eyes and brows, tapered limbs with hands and shoes, clothing variants (tee with bare forearms, long sleeves, jacket over a shirt, shorts, dress, cap). One mesh per person; parts are tagged in UV2 (x = part: 0 body, 1/2 legs, 3/4 arms, 5 umbrella; y = joint height) so shaders/pedestrian.gdshader can swing the limbs. Used by pedestrians.gd and the player. |
 | `scripts/inventory.gd` | Simple categorized inventory (Bible section 3): weapons, food/consumables, misc/essentials. No weight or volume. I opens it; in the food list a number eats that item. Saved as world-state section "inventory". |
 | `scripts/jobs.gd` | Basic jobs (Bible section 9): blue-collar and retail jobs at real workplaces (source_data/workplaces.json, made-up names), defined in source_data/jobs.json. One job at a time. * Apply in person (E at a workplace's sign) or on the job board (J; 1-6 apply to the nearest openings, 0 quits). * Shifts run on game hours. Clock in with E at the workplace sign (up to 30 min early). While clocked in you earn the hourly rate and get tasks: marked spots to go to and press E (stock shelves, load trucks, serve a table, serve the next customer, or drive a parcel to an address) - each pays a bonus. * The paycheck goes to your phone wallet at the end of the shift. Missing a shift by an hour is a strike; 2 … |
+| `scripts/look.gd` | Art direction switch (owner, 2026-11-21): "4K upscaled Bully" style on modern geometry. Reads source_data/look.json; with "style": "bully" every colour texture loads from textures_bully/ (hand-painted versions made by tools/pipeline/make_bully_textures.py) when one exists, normal maps are softened, and main.gd uses the warm, soft Bully lighting preset. Command line --look=classic / --look=bully overrides. |
 | `scripts/main.gd` | Game bootstrap: world, streaming, player/car control, camera, HUD, origin rebasing. |
 | `scripts/menu.gd` | Title screen, pause menu, settings (Bible section 13: original GLASS CITY UI). * Title: the city behind a slow camera flight, the GLASS CITY logo, Continue / New Game / Controls / Settings / Quit. * Esc in game: pause (the world stops) - Resume / Save / Controls / Settings / Quit to title. * Settings (user://settings.cfg): volume, mouse sensitivity, field of view, fullscreen, shadows, view distance. Skipped for tests, benchmarks and demos (they pass --test/--benchmark/--demo), or with --no-menu. |
 | `scripts/model_lib.gd` | Loads Blender-exported .glb models (assets/models/) as single ArrayMeshes for MultiMesh use. Every MeshInstance3D in the scene is baked into one mesh with its node transform; each source surface stays a surface with its own material. Optional `swap` maps a material name to a replacement material (e.g. the street-light "bulb" glass to the day/night-driven emissive). Returns null when the file is missing. |
@@ -819,6 +830,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/pipeline/lidar_trees.py` | LiDAR -> individual trees (position, height, crown radius). usage: lidar_trees.py <buckets dir> <buildings.pkl (key -> (name, Polygon))> <out.json> The county LiDAR has no vegetation class: trees are the first-return 'unclassified' points that stand well above the ground and are not on a building. Per 500 m bucket cell we 1. grid ground points into a 2 m DTM (min z, holes filled from neighbours), 2. grid non-ground first returns into a 1 m canopy height model (max z - DTM), 3. blank out building footprints (+1.5 m) so roofs and parapets don't become trees, 4. smooth and find local maxima (window grows with height) -> tree tops, 5. measure the crown radius as the mean distance at which the … |
 | `tools/pipeline/make_activities.py` | Activity places (scripts/activities.gd): gyms, bowling alleys, stadiums/ballparks, cinemas, fishing spots. usage: make_activities.py <osm tiles dir> <island.json> <out activities.json> Fishing spots are boat ramps, piers, docks and marked fishing places along the river and lake. Names are made up. |
 | `tools/pipeline/make_atms.py` | ATM locations for the money system (scripts/money.gd). usage: make_atms.py <osm tiles dir> <island.json> <out atms.json> Every bank/credit union in the real area gets an ATM out front (the game puts it on the nearest sidewalk). Bank names become made-up ones (no real brands). |
+| `tools/pipeline/make_bully_textures.py` | Bully-style texture art pass (owner, 2026-11-21: "4K upscaled Bully" look on modern geometry). Makes a hand-painted-looking copy of every colour (albedo) texture into textures_bully/, same names and folders: edge-preserving smoothing removes photo grain and grime while keeping brick courses, siding laps, cracks and shapes; colours get Bully's cleaner, warmer, more saturated palette; grass is pushed to a lively green. Normal / roughness / emission maps are not copied (the game keeps using the originals, at reduced normal strength). The game picks textures_bully/ automatically when source_data/look.json says "style": "bully" (scripts/look.gd). usage: python3 … |
 | `tools/pipeline/make_bus_routes.py` | Bus routes for Glass City Transit (made up: the area's real route data could not be downloaded, 2026-11-15). usage: make_bus_routes.py <osm tiles dir> <countryside.json> <out bus_routes.json> Each route runs from the downtown hub to one town centre and back along the road network, preferring big roads and obeying one-way streets (outbound and inbound are found separately). Stops every ~350 m, at road nodes, so the game can place them on the traffic graph (nodes are OSM node ids, the same ids traffic.gd uses). |
 | `tools/pipeline/make_countryside.py` | Made-up countryside between the real-data box and the island coast (owner decision 2026-11-15). usage: make_countryside.py <island.json> <osm tiles dir> <out.json> Writes OSM-style elements (ways with inline geometry, tag "fictional"="yes") that build_city.py reads like any tile: * every real road that leaves the real box continues outward and ends on a coast road that loops the island * farmsteads (house, barn, sometimes a silo) along the country roads, with driveways * woodlots, and a few small lakeside villages with a street grid, houses, a church and a general store All randomness is seeded, so the same inputs always give the same land. |
 | `tools/pipeline/make_facades.py` | Rebuild the tiling facade textures with photo-scanned wall materials (CC0 Poly Haven, textures/pbr/). For every facade texture the window layout of the original (textures/_orig/<name>.png, windows found from the glossy mask <name>_rough.png or by darkness) is kept, and everything else is redrawn at real-world scale: wall = a photo wall material tiled at its real size, tinted toward the original's wall colour windows = frame, glass with a sky-to-ground reflection gradient, a room behind it (blinds, curtains or dark), a mullion on wide windows, a stone sill and a shadowed recess at the top Writes <name>.png (colour), <name>_nor.png (normal, OpenGL), <name>_rough.png (R roughness, G metallic). … |
@@ -1464,6 +1476,18 @@ Player needs and activities (scripts/needs.gd, inventory.gd, activities.gd). Bib
 Top-level keys: `_doc`, `needs`, `food`, `groceries`, `gym`, `bowling`, `cinema`, `sports`, `fishing`
 
 7 named records: Walleye, Yellow Perch, White Bass, Smallmouth Bass, Channel Catfish, Freshwater Drum, Muskellunge
+
+### `look.json` (1 KB)
+Art direction. style: bully = 4K-Bully look on modern geometry (hand-painted textures from textures_bully/, warm soft lighting, stylized people); classic = the earlier photo-real look. Owner decision 2026-11-21.
+
+Top-level keys: `_doc`, `style`
+
+```json
+{
+ "_doc": "Art direction. style: bully = 4K-Bully look on modern geometry (hand-painted textures from textures_bully/, warm soft lighting, stylized people); classic = the earlier photo-real look. Owner decision 2026-11-21.",
+ "style": "bully"
+}
+```
 
 ### `name_bank.txt` (4 KB)
 ```
@@ -2914,7 +2938,7 @@ echo "done: $1"
 
 ```
 
-Demo shot keywords in `scripts/demo.gd`: `@aim`, `@bowling`, `@bus`, `@cam`, `@carshow`, `@chase`, `@closeup`, `@fight`, `@fishing`, `@heli`, `@homesign`, `@incar`, `@pause`, `@phone`, `@phonehome`, `@pinned`, `@play`, `@props`, `@replica`, `@responder`, `@roster`, `@sky`, `@store`, `@storefloor`, `@title`, `@wheel`, `@worksign`. Command-line flags read by the game: `--at=`, `--bar=`, `--bench-scale=`, `--benchmark`, `--cam=`, `--demo`, `--demo=`, `--fly=`, `--hlod-std`, `--hour=`, `--load-world`, `--mute`, `--no-hlod`, `--no-menu`, `--no-peds`, `--no-save`, `--no-traffic`, `--only=`, `--out=`, `--perf`, `--seconds=`, `--shotlist=`, `--snowcover=`, `--test`, `--test=`, `--time=`, `--timescale=`, `--weather=`, `--wet=`
+Demo shot keywords in `scripts/demo.gd`: `@aim`, `@bowling`, `@bus`, `@cam`, `@carshow`, `@chase`, `@closeup`, `@fight`, `@fishing`, `@heli`, `@homesign`, `@incar`, `@pause`, `@phone`, `@phonehome`, `@pinned`, `@play`, `@props`, `@replica`, `@responder`, `@roster`, `@sky`, `@store`, `@storefloor`, `@title`, `@wheel`, `@worksign`. Command-line flags read by the game: `--at=`, `--bar=`, `--bench-scale=`, `--benchmark`, `--cam=`, `--demo`, `--demo=`, `--fly=`, `--hlod-std`, `--hour=`, `--load-world`, `--look=`, `--mute`, `--no-hlod`, `--no-menu`, `--no-peds`, `--no-save`, `--no-traffic`, `--only=`, `--out=`, `--perf`, `--seconds=`, `--shotlist=`, `--snowcover=`, `--test`, `--test=`, `--time=`, `--timescale=`, `--weather=`, `--wet=`
 
 ## 22. Architecture (`docs/ARCHITECTURE.md`, inlined)
 

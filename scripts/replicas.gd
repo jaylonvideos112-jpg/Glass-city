@@ -104,9 +104,9 @@ func material(name: String) -> Material:
 		if d[0] != "":
 			var base := "res://textures/pbr/%s" % d[0]
 			for ext in ["_diff.jpg", "_diff.png", ".jpg", "/diff.jpg"]:
-				if ResourceLoader.exists(base + ext): sm.albedo_texture = load(base + ext); break
+				if ResourceLoader.exists(base + ext): sm.albedo_texture = load(Look.t(base + ext)); break
 			for ext in ["_nor.jpg", "_nor.png", "_nor_gl.jpg", "_nor_gl.png"]:
-				if ResourceLoader.exists(base + ext): sm.normal_enabled = true; sm.normal_texture = load(base + ext); break
+				if ResourceLoader.exists(base + ext): sm.normal_enabled = true; sm.normal_texture = load(base + ext); sm.normal_scale = Look.normal_k(); break
 			sm.uv1_scale = Vector3(1.0 / d[4], 1.0 / d[4], 1.0)
 			sm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 		m = sm

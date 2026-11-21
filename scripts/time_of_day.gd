@@ -191,6 +191,8 @@ func apply_now() -> void:
 	sun.basis = Basis.looking_at(-dir, Vector3.UP if abs(dir.y) < 0.99 else Vector3.FORWARD)
 	sun.light_energy = 1.3 * smoothstep(-0.02, 0.2, s) * float(w["sun"])
 	sun.light_color = Color(1.0, 0.62, 0.38).lerp(Color(1.0, 0.95, 0.86), smoothstep(0.02, 0.3, s))
+	if Look.bully():   # Bully: a warm, golden afternoon sun all day
+		sun.light_color = sun.light_color * Color(1.0, 0.97, 0.88)
 	sun.shadow_enabled = sun.light_energy > 0.05
 	# moon: high in the opposite sky, soft and blue
 	var md := dir_from(lerp(25.0, 55.0, night), fposmod(sp.y + 180.0, 360.0))
@@ -220,6 +222,7 @@ func apply_now() -> void:
 		main.env.fog_light_color = col["fog"]
 		main.env.fog_density = fog_base * float(w["fog"])
 		main.env.ambient_light_energy = lerp(float(P["night"]["ambient"]), float(P["day"]["ambient"]), day_f) * (1.0 - float(w["dark"]) * 0.4)
+		if Look.bully(): main.env.ambient_light_energy *= 1.35     # Bully: soft, well-filled shadows
 	# night lights: windows (facade shader + masked textures), street lamps
 	var fac: ShaderMaterial = main.streamer.materials.get("facade")
 	if fac:

@@ -708,6 +708,13 @@ func _setup_environment() -> void:
 	env.adjustment_contrast = 1.04
 	env.adjustment_saturation = 1.05
 	env.adjustment_color_correction = _grade_lut()        # filmic warm-highlights / cool-shadows grade (GTA-style)
+	if Look.bully():
+		# Bully look (2026-11-21): warm and soft - gentle contrast, richer colour, a soft bloom on bright areas,
+		# lighter contact shadows. Lighting and grade only; the hand-painted look itself is in textures_bully/.
+		env.tonemap_mode = Environment.TONE_MAPPER_FILMIC; env.tonemap_white = 6.0
+		env.adjustment_contrast = 1.0; env.adjustment_saturation = 1.12
+		env.glow_intensity = 0.6; env.glow_bloom = 0.12; env.glow_hdr_threshold = 0.95
+		env.ssao_intensity = 1.1; env.ssil_intensity = 1.3
 	var we := WorldEnvironment.new(); we.environment = env; add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.name = "Sun"
@@ -720,5 +727,6 @@ func _setup_environment() -> void:
 	sun.directional_shadow_split_1 = 0.06; sun.directional_shadow_split_2 = 0.16; sun.directional_shadow_split_3 = 0.4
 	sun.directional_shadow_blend_splits = true
 	sun.light_angular_distance = 0.6        # the sun's real size: shadows soften with distance from the caster
+	if Look.bully(): sun.light_angular_distance = 0.9     # Bully: softer shadow edges (PCSS cost grows fast with size)
 	sun.shadow_bias = 0.03; sun.shadow_normal_bias = 1.2
 	add_child(sun)
