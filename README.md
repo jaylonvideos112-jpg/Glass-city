@@ -298,10 +298,27 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 
 ### GLASS CITY's own human system (owner, 2026-11-21: "don't use MakeHuman, make your own")
 All game characters, NPCs and other humans will come from our own generator in `tools/blender/glasshuman/`, in Bully style. **MakeHuman/MPFB2 is no longer used for game people**; the older creator code stays only as reference.
-- **Head** (`glasshuman/head.py`, in progress): parametric and built from scratch. A quad grid over spherical angles around the head centre, with a skull shape plus facial features as smooth displacement fields.
-  - The eye sockets are almond-shaped dents the eyeballs show through.
-  - Brow ridge, nose (bridge, tip, wings, base), cheekbones, lips with a mouth slit, philtrum, chin and jaw.
-  - About 45 named face parameters. A face slider is exactly one parameter, so its blend shape is `head(P + 1) - head(P)`.
+- **Head** (`glasshuman/head.py`, in progress): parametric and built from scratch as a signed-distance field (SDF) of sculpting primitives blended with smooth unions:
+  - cranium, forehead, face mass, jaw (ellipsoid ↔ rounded box for `jaw_square`), jaw angles, chin, cheekbones, cheeks, muzzle;
+  - brow shelf plus glabella;
+  - eye sockets with eyelids (an almond opening cut into a shell round the eyeball);
+  - nose (bridge capsules, bulb, wings, nostril holes);
+  - full lips with a shallow slit (the line itself is painted), philtrum, the groove under the lower lip;
+  - neck.
+
+  A fixed set of rays (dense over the face) is shot inward and each stops at the surface, so every face has identical topology. A slider's blend shape is `head(P + 1) - head(P)`.
+  - About 45 named face parameters.
+  - Preview with `bpyenv/bin/python tools/blender/glasshuman/preview_head.py -- OUT.png [param=value ...]`, which renders front, ¾ and side views.
+- **Style target** (owner's reference screenshots, 2026-11-21): the 2006–2008 Rockstar look:
+  - compact, rounded heads;
+  - small, deep-set, squinting eyes under a heavy low brow;
+  - broad, fleshy noses and full lower lips;
+  - wide soft jaws and thick necks;
+  - expression baked into the face (scowls);
+  - smooth, simple forms, with detail **painted** into the skin: freckles, ruddy cheeks, painted shading under the brow, lip colour, stubble;
+  - big hands and chunky forearms.
+  
+  We match the look but never copy a specific character.
 - **Planned:**
   - body and hands built the same way, with Bully proportions;
   - our own skeleton with the game's bone names and computed skin weights;
