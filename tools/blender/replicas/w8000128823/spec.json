@@ -1,0 +1,166 @@
+{
+ "name": "1910 Front St commercial row (1903), Birmingham",
+ "refs": "Lucas County Auditor parcel 08137020 photos",
+ "notes": "Three two-storey frame storefronts in a row, each painted differently (cream, pale blue, sage) with bracketed cornices in teal trim, shop windows under striped awnings, tall narrow sash windows upstairs.",
+ "materials": {
+  "base": "siding_cream",
+  "body": "siding_cream",
+  "trim": "paint_green",
+  "cornice": "paint_green",
+  "pier": "siding_cream",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "siding_cream"
+ },
+ "bay": 3.1,
+ "corner_pier": 0.6,
+ "pilaster": 0.5,
+ "window": {
+  "w": 0.32,
+  "h": 0.62,
+  "group": 1,
+  "depth": 0.12,
+  "mull": "transom",
+  "sill_frac": 0.5,
+  "surround": {
+   "w": 0.12,
+   "d": 0.04,
+   "quoin": 3.0,
+   "label": false,
+   "mat": "trim"
+  }
+ },
+ "parts": [
+  {
+   "rect": [
+    5.13,
+    9.85,
+    9.33,
+    15.0,
+    -133.61
+   ],
+   "z1": 6.8999999999999995,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.6,
+     "kind": "storefront",
+     "glass_h": 0.8
+    },
+    {
+     "n": 1,
+     "h": 3.2999999999999994
+    }
+   ],
+   "mat_over": {
+    "body": "siding_cream",
+    "base": "siding_cream"
+   },
+   "cornice": {
+    "h": 0.7,
+    "out": 0.4,
+    "profile": "corbel"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    -1.31,
+    3.09,
+    9.33,
+    15.0,
+    -133.61
+   ],
+   "z1": 7.7,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.6,
+     "kind": "storefront",
+     "glass_h": 0.8
+    },
+    {
+     "n": 1,
+     "h": 4.1
+    }
+   ],
+   "mat_over": {
+    "body": "siding_blue",
+    "base": "siding_blue"
+   },
+   "cornice": {
+    "h": 0.7,
+    "out": 0.4,
+    "profile": "corbel"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    -7.75,
+    -3.67,
+    9.33,
+    15.0,
+    -133.61
+   ],
+   "z1": 6.7,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.6,
+     "kind": "storefront",
+     "glass_h": 0.8
+    },
+    {
+     "n": 1,
+     "h": 3.1
+    }
+   ],
+   "mat_over": {
+    "body": "siding_sage",
+    "base": "siding_sage"
+   },
+   "cornice": {
+    "h": 0.7,
+    "out": 0.4,
+    "profile": "corbel"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    2.57,
+    -10.96,
+    5.0,
+    10.0,
+    -133.61
+   ],
+   "z1": 3.4,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.4
+    }
+   ],
+   "cornice": {
+    "h": 0.25,
+    "out": 0.1,
+    "profile": "belt"
+   },
+   "roof": {
+    "type": "flat"
+   },
+   "mat_over": {
+    "body": "siding_cream"
+   }
+  }
+ ]
+}

@@ -15,7 +15,7 @@ func _ready() -> void:
 	var d = JSON.parse_string(FileAccess.get_file_as_string(path))
 	var st = main.streamer
 	for r in d.get("replicas", []):
-		var pos := Vector3(float(r["anchor"][0]), 0.0, float(r["anchor"][1]))
+		var pos := Vector3(float(r["anchor"][0]), float(r.get("y", 0.0)), float(r["anchor"][1]))
 		var k: Vector2i = st.key_for_world(pos)
 		if not by_chunk.has(k): by_chunk[k] = []
 		by_chunk[k].append({"key": r["key"], "pos": pos})
@@ -57,6 +57,16 @@ const MAT := {
 	"brick_red": ["red_brick_03", Color(1, 1, 1), 0.85, 0.0, 2.0],
 	"brick_orange": ["brick_wall_003", Color(1.18, 0.8, 0.58), 0.85, 0.0, 1.4],
 	"brick_brown": ["brick_wall_001", Color(0.8, 0.7, 0.6), 0.85, 0.0, 2.0],
+	"brick_tapestry": ["red_brick_03", Color(0.62, 0.43, 0.36), 0.88, 0.0, 1.45],   # dark red-brown tapestry brick (Waite, Scott)
+	"siding_cream": ["hsid", Color(0.92, 0.86, 0.72), 0.75, 0.0, 2.4],
+	"siding_blue": ["hsid", Color(0.68, 0.78, 0.84), 0.75, 0.0, 2.4],
+	"siding_sage": ["hsid", Color(0.6, 0.62, 0.5), 0.75, 0.0, 2.4],
+	"siding_white": ["hsid", Color(0.97, 0.96, 0.93), 0.75, 0.0, 2.4],
+	"siding_grey": ["hsid", Color(0.66, 0.66, 0.64), 0.75, 0.0, 2.4],
+	"siding_yellow": ["hsid", Color(0.95, 0.85, 0.55), 0.75, 0.0, 2.4],
+	"stone_lime": ["hstn", Color(1.05, 1.0, 0.92), 0.9, 0.0, 2.2],
+	"stucco": ["hstu", Color(1, 1, 1), 0.9, 0.0, 3.0],
+	"terracotta_cream": ["white_sandstone_bricks", Color(1.28, 1.2, 1.0), 0.65, 0.0, 2.5],
 	"terracotta": ["white_sandstone_bricks", Color(1.05, 0.9, 0.75), 0.7, 0.0, 2.5],
 	"precast_white": ["concrete_wall_008", Color(1.3, 1.3, 1.28), 0.7, 0.0, 3.0],
 	"precast": ["concrete_wall_008", Color(1.1, 1.08, 1.04), 0.8, 0.0, 3.0],

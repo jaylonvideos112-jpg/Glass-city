@@ -1,0 +1,117 @@
+{
+ "name": "St. Louis Catholic Church, 459 Sixth St (1872)",
+ "refs": "Lucas County Auditor parcel 08261007 photos",
+ "notes": "Red brick Romanesque church: front gable with a white-trimmed triple-arched entrance porch, paired round-arched windows and a statue niche, brick corbel tables under the eaves, a tall square brick bell tower with arched belfry openings and a little cross-topped cap (~22 m).",
+ "materials": {
+  "base": "limestone",
+  "body": "brick_red",
+  "trim": "precast_white",
+  "cornice": "precast_white",
+  "pier": "brick_red",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "parapet": "brick_red",
+  "arch": "precast_white",
+  "sill": "precast_white",
+  "door": "frame_dark"
+ },
+ "bay": 3.6,
+ "corner_pier": 1.2,
+ "window": {
+  "w": 0.42,
+  "h": 0.5,
+  "group": 1,
+  "depth": 0.25,
+  "mull": "vertical",
+  "sill_frac": 0.45
+ },
+ "parts": [
+  {
+   "rect": [
+    0.1,
+    -0.99,
+    31.0,
+    14.0,
+    -51.11
+   ],
+   "z1": 10.4,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.0,
+     "kind": "storefront",
+     "glass_h": 0.8
+    },
+    {
+     "n": 1,
+     "h": 6.4,
+     "arched": true
+    }
+   ],
+   "pilaster": 0.8,
+   "plinth": 0.8,
+   "cornice": {
+    "h": 0.5,
+    "out": 0.25,
+    "profile": "corbel"
+   },
+   "roof": {
+    "type": "gable",
+    "h": 4.3,
+    "mat": "slate",
+    "overhang": 0.3
+   },
+   "rose": {
+    "end": 1,
+    "r": 1.2
+   }
+  },
+  {
+   "rect": [
+    12.0,
+    -8.1,
+    4.6,
+    4.6,
+    -51.11
+   ],
+   "z1": 19.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 14.0,
+     "kind": "blank"
+    },
+    {
+     "n": 1,
+     "h": 5.0,
+     "arched": true
+    }
+   ],
+   "bay": 2.0,
+   "corner_pier": 0.9,
+   "window": {
+    "w": 0.55,
+    "h": 0.6,
+    "group": 2,
+    "group_gap": 0.15,
+    "depth": 0.35,
+    "mull": "vertical",
+    "sill_frac": 0.4
+   },
+   "cornice": {
+    "h": 0.5,
+    "out": 0.3,
+    "profile": "corbel"
+   },
+   "roof": {
+    "type": "pyramid",
+    "h": 2.8,
+    "mat": "slate",
+    "overhang": 0.2
+   }
+  }
+ ]
+}

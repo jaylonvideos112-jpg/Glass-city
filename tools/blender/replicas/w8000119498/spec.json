@@ -1,0 +1,111 @@
+{
+ "name": "Eastwood Theater, 815 E Broadway St (1919)",
+ "refs": "Lucas County Auditor parcel 07046021 photos",
+ "notes": "Neighbourhood movie house: two-storey painted brick front with five tall round-arched windows, a pressed-metal parapet with urns and a raised centre, a projecting marquee with the EASTWOOD name over the entrance doors; long plain brick auditorium behind.",
+ "materials": {
+  "base": "precast",
+  "body": "brick_red",
+  "trim": "precast_white",
+  "cornice": "precast_white",
+  "pier": "brick_red",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "parapet": "brick_red",
+  "arch": "precast_white"
+ },
+ "bay": 2.6,
+ "corner_pier": 1.2,
+ "window": {
+  "w": 0.55,
+  "h": 0.7,
+  "group": 1,
+  "depth": 0.15,
+  "mull": "vertical",
+  "sill_frac": 0.35
+ },
+ "parts": [
+  {
+   "rect": [
+    0.6,
+    0.07,
+    35.8,
+    16.0,
+    1.5
+   ],
+   "z1": 8.6,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.0,
+     "kind": "storefront",
+     "glass_h": 0.75
+    },
+    {
+     "n": 1,
+     "h": 4.6,
+     "arched": true
+    }
+   ],
+   "parapet": 0.9,
+   "cornice": {
+    "h": 0.6,
+    "out": 0.35,
+    "profile": "classical"
+   },
+   "roof": {
+    "type": "flat"
+   },
+   "style": "solid"
+  },
+  {
+   "rect": [
+    -18.0,
+    0.07,
+    1.2,
+    16.0,
+    1.5
+   ],
+   "z1": 8.6,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.0,
+     "kind": "storefront",
+     "glass_h": 0.75
+    },
+    {
+     "n": 1,
+     "h": 4.6,
+     "arched": true
+    }
+   ],
+   "parapet": 1.2,
+   "cornice": {
+    "h": 0.6,
+    "out": 0.35,
+    "profile": "classical"
+   },
+   "roof": {
+    "type": "flat"
+   },
+   "bay": 2.6,
+   "corner_pier": 1.0,
+   "merlons": {
+    "h": 0.8,
+    "w": 0.3,
+    "panel": false
+   },
+   "window": {
+    "w": 0.55,
+    "h": 0.7,
+    "group": 1,
+    "depth": 0.15,
+    "mull": "vertical",
+    "sill_frac": 0.35
+   }
+  }
+ ]
+}

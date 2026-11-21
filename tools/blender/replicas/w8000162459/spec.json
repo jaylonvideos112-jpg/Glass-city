@@ -1,0 +1,117 @@
+{
+ "name": "National Museum of the Great Lakes, 1701 Front St (2014, in the 2007 Toledo Maritime building)",
+ "refs": "Lucas County Auditor parcel 08911033 photo",
+ "notes": "One-storey red brick hall with buff cast-stone base and bands, round-arched windows, a two-storey glass-and-brick entrance tower under a hipped dark metal roof; big bronze ship propeller on the lawn.",
+ "materials": {
+  "base": "precast",
+  "body": "brick_red",
+  "trim": "precast",
+  "cornice": "precast",
+  "pier": "brick_red",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "parapet": "brick_red",
+  "arch": "precast",
+  "sill": "precast",
+  "door": "frame_dark"
+ },
+ "bay": 4.2,
+ "corner_pier": 1.2,
+ "window": {
+  "w": 0.55,
+  "h": 0.55,
+  "group": 1,
+  "depth": 0.2,
+  "mull": "vertical",
+  "sill_frac": 0.35
+ },
+ "parts": [
+  {
+   "rect": [
+    -0.01,
+    0.1,
+    40.0,
+    26.0,
+    -51.02
+   ],
+   "z1": 5.1,
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.1,
+     "arched": true
+    }
+   ],
+   "plinth": 1.0,
+   "belts": [
+    {
+     "z": 3.8,
+     "h": 0.3,
+     "out": 0.06
+    }
+   ],
+   "parapet": 0.4,
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    -20.05,
+    -4.54,
+    22.0,
+    11.0,
+    -51.02
+   ],
+   "z1": 5.1,
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.1,
+     "arched": true
+    }
+   ],
+   "plinth": 1.0,
+   "parapet": 0.4,
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    -15.17,
+    -12.17,
+    7.0,
+    7.0,
+    -51.02
+   ],
+   "z1": 9.4,
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.0,
+     "kind": "storefront",
+     "glass_h": 0.92
+    },
+    {
+     "n": 1,
+     "h": 4.4,
+     "kind": "storefront",
+     "glass_h": 0.85
+    }
+   ],
+   "pilaster": 0.6,
+   "bay": 3.0,
+   "corner_pier": 0.8,
+   "roof": {
+    "type": "hip",
+    "h": 2.4,
+    "mat": "metal_dark",
+    "overhang": 0.6
+   }
+  }
+ ]
+}

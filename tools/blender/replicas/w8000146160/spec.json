@@ -1,0 +1,126 @@
+{
+ "name": "Euclid United Methodist Church, 711 Euclid Ave (1903)",
+ "refs": "Lucas County Auditor parcel 08236023 photos",
+ "notes": "Richardsonian Romanesque in rock-faced brown sandstone: broad two-storey block under a low hipped metal roof, a great round-arched traceried window in the gable, round-arched entrance, square windows in the side wings, a little octagonal belfry with a pointed cap rising from the roof centre (~21 m).",
+ "materials": {
+  "base": "sandstone",
+  "body": "sandstone",
+  "trim": "sandstone",
+  "cornice": "limestone",
+  "pier": "sandstone",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "sandstone",
+  "parapet": "sandstone",
+  "arch": "sandstone",
+  "sill": "sandstone",
+  "door": "paint_red"
+ },
+ "bay": 3.4,
+ "corner_pier": 1.4,
+ "window": {
+  "w": 0.42,
+  "h": 0.5,
+  "group": 1,
+  "depth": 0.25,
+  "mull": "transom",
+  "sill_frac": 0.5
+ },
+ "parts": [
+  {
+   "rect": [
+    0.61,
+    0.13,
+    25.0,
+    16.0,
+    90.93
+   ],
+   "z1": 9.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 1.0,
+     "kind": "blank"
+    },
+    {
+     "n": 2,
+     "h": 4.0
+    }
+   ],
+   "plinth": 1.0,
+   "roof": {
+    "type": "hip",
+    "h": 4.0,
+    "mat": "lead",
+    "overhang": 0.5
+   }
+  },
+  {
+   "rect": [
+    -8.45,
+    3.98,
+    19.0,
+    4.0,
+    90.93
+   ],
+   "z1": 9.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 9.0,
+     "arched": true
+    }
+   ],
+   "window": {
+    "w": 0.7,
+    "h": 0.55,
+    "group": 1,
+    "depth": 0.25,
+    "mull": "cross",
+    "sill_frac": 0.45
+   },
+   "roof": {
+    "type": "gable",
+    "h": 4.5,
+    "mat": "lead",
+    "overhang": 0.3
+   }
+  },
+  {
+   "rect": [
+    1.13,
+    -0.86,
+    3.2,
+    3.2,
+    90.93
+   ],
+   "z1": 16.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 12.5,
+     "kind": "blank"
+    },
+    {
+     "n": 1,
+     "h": 3.5,
+     "arched": true
+    }
+   ],
+   "bay": 1.4,
+   "corner_pier": 0.6,
+   "mat_over": {
+    "body": "paint_white",
+    "solid": "paint_white"
+   },
+   "roof": {
+    "type": "pyramid",
+    "h": 5.0,
+    "mat": "lead",
+    "overhang": 0.2
+   }
+  }
+ ]
+}

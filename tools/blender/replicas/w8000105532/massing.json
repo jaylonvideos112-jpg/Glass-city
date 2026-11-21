@@ -1,0 +1,58 @@
+{
+ "key": "w8000105532",
+ "src": "lidar_county",
+ "anchor": [
+  2019.638,
+  1796.765
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 6.49,
+   "polys": [
+    [
+     [
+      11.26,
+      -18.183
+     ],
+     [
+      -12.954,
+      -18.711
+     ],
+     [
+      -13.192,
+      -7.69
+     ],
+     [
+      -9.509,
+      -7.61
+     ],
+     [
+      -10.097,
+      19.545
+     ],
+     [
+      10.434,
+      19.993
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "building": "yes",
+  "county": "1",
+  "name": "New Life Tabernacle",
+  "amenity": "place_of_worship",
+  "c:luc": "685",
+  "c:cls": "E",
+  "c:bval": "357700",
+  "c:addr": "1123 NAVARRE AVE",
+  "c:ctype": "112",
+  "c:year": "1940",
+  "c:stories": "1",
+  "c:grade": "14",
+  "c:units": "0"
+ }
+}

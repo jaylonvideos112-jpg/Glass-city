@@ -1,0 +1,49 @@
+{
+ "name": "Marina Lofts, 1001 Front St / Riverside Dr (2020)",
+ "refs": "Lucas County Auditor parcel 08914001 photo (2023)",
+ "notes": "Three-storey 2020 apartment building on the real (post-LiDAR) footprint: brown brick, cream stucco and charcoal panel sections, ground-floor shopfront glass, a taller corner tower with a curved dark roof and MARINA LOFTS sign.",
+ "materials": {
+  "base": "precast",
+  "body": "brick_brown",
+  "trim": "precast_white",
+  "cornice": "precast_white",
+  "pier": "brick_brown",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_brown",
+  "parapet": "brick_brown",
+  "arch": "precast_white",
+  "sill": "precast_white",
+  "door": "frame_dark"
+ },
+ "bay": 3.2,
+ "corner_pier": 1.0,
+ "window": {
+  "w": 0.6,
+  "h": 0.5,
+  "group": 1,
+  "depth": 0.12,
+  "mull": "vertical",
+  "sill_frac": 0.5
+ },
+ "floors": [
+  {
+   "n": 1,
+   "h": 4.4,
+   "kind": "storefront",
+   "glass_h": 0.85
+  },
+  {
+   "n": 2,
+   "h": 3.3
+  }
+ ],
+ "cornice": {
+  "h": 0.6,
+  "out": 0.3,
+  "profile": "fascia"
+ },
+ "parapet": 0.5
+}

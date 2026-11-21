@@ -1,0 +1,50 @@
+{
+ "key": "w8000128752",
+ "src": "lidar_county",
+ "anchor": [
+  3435.373,
+  -1070.915
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 7.21,
+   "polys": [
+    [
+     [
+      -14.46,
+      -9.349
+     ],
+     [
+      8.644,
+      14.925
+     ],
+     [
+      14.46,
+      9.349
+     ],
+     [
+      -8.644,
+      -14.925
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "building": "yes",
+  "county": "1",
+  "name": "The Hungarian Club",
+  "amenity": "community_centre",
+  "c:luc": "465",
+  "c:cls": "C",
+  "c:bval": "49800",
+  "c:addr": "224 PAINE AVE",
+  "c:ctype": "85",
+  "c:year": "1914",
+  "c:stories": "1",
+  "c:grade": "14",
+  "c:units": "0"
+ }
+}

@@ -1,0 +1,237 @@
+{
+ "name": "Franklin School, 310 Steadman St (1924)",
+ "refs": "Lucas County Auditor parcel 08282001 photos (1998-2011); LiDAR",
+ "notes": "Three-storey Collegiate Gothic school in brown tapestry brick with limestone trim: limestone-faced entrance bay with a Tudor-arched doorway and carved panels rising to a battlemented top, grouped classroom windows, limestone belt and sill courses, raised parapet panels; hollow-square plan.",
+ "materials": {
+  "base": "limestone",
+  "body": "brick_brown",
+  "trim": "limestone",
+  "cornice": "limestone",
+  "pier": "brick_brown",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_brown",
+  "parapet": "brick_brown",
+  "door": "frame_dark",
+  "arch": "limestone",
+  "sill": "limestone"
+ },
+ "bay": 5.2,
+ "corner_pier": 2.0,
+ "window": {
+  "w": 0.62,
+  "h": 0.62,
+  "group": 3,
+  "group_gap": 0.15,
+  "depth": 0.18,
+  "mull": "cross",
+  "sill_frac": 0.5,
+  "surround": {
+   "w": 0.18,
+   "d": 0.05,
+   "quoin": 3.0,
+   "label": false
+  }
+ },
+ "parts": [
+  {
+   "rect": [
+    4.69,
+    -6.18,
+    46.0,
+    24.0,
+    -141.32
+   ],
+   "z1": 12.8,
+   "floors": [
+    {
+     "n": 1,
+     "h": 1.4,
+     "kind": "blank"
+    },
+    {
+     "n": 3,
+     "h": 3.8
+    }
+   ],
+   "plinth": 1.4,
+   "parapet": 0.8,
+   "merlons": {
+    "h": 0.7,
+    "w": 0.4,
+    "panel": false
+   },
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.3,
+     "out": 0.12
+    },
+    {
+     "above_floor": 4,
+     "h": 0.35,
+     "out": 0.15
+    }
+   ],
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    -11.24,
+    13.73,
+    48.0,
+    9.0,
+    -141.32
+   ],
+   "z1": 12.8,
+   "floors": [
+    {
+     "n": 1,
+     "h": 1.4,
+     "kind": "blank"
+    },
+    {
+     "n": 3,
+     "h": 3.8
+    }
+   ],
+   "plinth": 1.4,
+   "parapet": 0.8,
+   "merlons": {
+    "h": 0.7,
+    "w": 0.4,
+    "panel": false
+   },
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.3,
+     "out": 0.12
+    },
+    {
+     "above_floor": 4,
+     "h": 0.35,
+     "out": 0.15
+    }
+   ],
+   "roof": {
+    "type": "flat"
+   },
+   "portal": {
+    "dir": [
+     0.632,
+     -0.775
+    ],
+    "w": 7.5,
+    "proj": 1.0,
+    "z1": 14.6,
+    "door_w": 3.0,
+    "door_z": 1.0,
+    "door_h": 2.6,
+    "windows": [
+     [
+      7.2,
+      9.6,
+      3,
+      true
+     ],
+     [
+      10.6,
+      12.4,
+      3
+     ]
+    ]
+   }
+  },
+  {
+   "rect": [
+    7.26,
+    17.02,
+    13.0,
+    9.0,
+    -141.32
+   ],
+   "z1": 12.8,
+   "floors": [
+    {
+     "n": 1,
+     "h": 1.4,
+     "kind": "blank"
+    },
+    {
+     "n": 3,
+     "h": 3.8
+    }
+   ],
+   "plinth": 1.4,
+   "parapet": 0.8,
+   "merlons": {
+    "h": 0.7,
+    "w": 0.4,
+    "panel": false
+   },
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.3,
+     "out": 0.12
+    },
+    {
+     "above_floor": 4,
+     "h": 0.35,
+     "out": 0.15
+    }
+   ],
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    -18.5,
+    -3.61,
+    13.0,
+    9.0,
+    -141.32
+   ],
+   "z1": 12.8,
+   "floors": [
+    {
+     "n": 1,
+     "h": 1.4,
+     "kind": "blank"
+    },
+    {
+     "n": 3,
+     "h": 3.8
+    }
+   ],
+   "plinth": 1.4,
+   "parapet": 0.8,
+   "merlons": {
+    "h": 0.7,
+    "w": 0.4,
+    "panel": false
+   },
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.3,
+     "out": 0.12
+    },
+    {
+     "above_floor": 4,
+     "h": 0.35,
+     "out": 0.15
+    }
+   ],
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

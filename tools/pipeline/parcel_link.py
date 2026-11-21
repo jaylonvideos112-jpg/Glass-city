@@ -3,7 +3,7 @@
 usage: parcel_link.py COUNTY_DIR osm_blds.pkl house_wings.pkl out.json
 out: {building_key: [assr, cx, cy]}  (plan coords of the footprint centroid)
 """
-import sys, math, pickle, json
+import sys, os, math, pickle, json
 import shapefile, pyproj
 from shapely.geometry import Polygon, Point
 from shapely.strtree import STRtree
@@ -14,7 +14,7 @@ tr = pyproj.Transformer.from_crs("EPSG:3734", "EPSG:4326", always_xy=True)
 
 wings = pickle.load(open(WINGS, "rb"))
 blds = pickle.load(open(BLDS, "rb"))
-keys = [k for k in wings if k in blds]
+keys = [k for k in blds if k.startswith("w8")] if os.environ.get("ALLKEYS") else [k for k in wings if k in blds]
 geoms = [blds[k][1] for k in keys]
 tree = STRtree(geoms)
 print("houses", len(keys))

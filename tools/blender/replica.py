@@ -123,6 +123,133 @@ def curtain(o, t, n, L, z0, z1, fl):
         a = i * pw
         box_on(o, t, n, a - C.get("mw", 0.06), a + C.get("mw", 0.06), z0, z1, -0.04, C.get("fin", 0.12), fr)
 
+def surround(o, t, n, g0, g1, wz0, wz1, SR, mats):
+    """Collegiate-Gothic terra-cotta frame round a window group: lintel with a label stop, continuous sill, and
+    quoined jambs (alternating short and long blocks), all standing a little proud of the brick."""
+    sw = SR.get("w", 0.22); d = SR.get("d", 0.06); q = SR.get("quoin", 0.34); tm = mats.get(SR.get("mat", "trim"), SR.get("mat", mats["trim"]))
+    box_on(o, t, n, g0 - sw, g1 + sw, wz1, wz1 + sw * 1.1, 0.0, d, tm)
+    if SR.get("label", True):                      # drip label returning down the jambs
+        box_on(o, t, n, g0 - sw - 0.08, g1 + sw + 0.08, wz1 + sw * 1.1, wz1 + sw * 1.1 + 0.1, 0.0, d + 0.05, tm)
+        for a in (g0 - sw - 0.08, g1 + sw - 0.02):
+            box_on(o, t, n, a, a + 0.1, wz1 - 0.35, wz1 + sw * 1.1, 0.0, d + 0.05, tm)
+    box_on(o, t, n, g0 - sw - 0.05, g1 + sw + 0.05, wz0 - 0.12, wz0 + 0.02, 0.0, d + 0.04, tm)
+    z = wz0; k = 0
+    while z < wz1 - 0.05:
+        z2 = min(z + q, wz1)
+        wid = sw * (1.65 if k % 2 == 0 else 1.0)
+        box_on(o, t, n, g0 - wid, g0, z, z2 - 0.025, 0.0, d, tm)
+        box_on(o, t, n, g1, g1 + wid, z, z2 - 0.025, 0.0, d, tm)
+        z = z2; k += 1
+
+def bays_of(L):
+    corner = S.get("corner_pier", 1.2); bay = S.get("bay", 3.0)
+    usable = L - 2 * corner
+    nb = max(0, int(round(usable / bay))) if usable > bay * 0.7 else 0
+    return corner, nb, (usable / nb if nb else 0)
+
+def merlons(poly, top, mats):
+    """raised parapet blocks centred over every window bay, each with a terra-cotta coping and an inset panel."""
+    MR = S["merlons"]
+    for i in range(len(poly)):
+        A, Bv = Vector(poly[i]), Vector(poly[(i + 1) % len(poly)]); L = (Bv - A).length
+        if L < 2.0: continue
+        tt = (Bv - A) / L; nn = Vector((tt.y, -tt.x))
+        oo = Vector((A.x, A.y, 0)); T3 = Vector((tt.x, tt.y, 0)); N3 = Vector((nn.x, nn.y, 0))
+        corner, nb, bw = bays_of(L)
+        spots = [(corner / 2, corner * 0.9)] + [(corner + (k + 0.5) * bw, bw * MR.get("w", 0.55)) for k in range(nb)] + [(L - corner / 2, corner * 0.9)]
+        for c, w in spots:
+            h = MR.get("h", 0.9) * (1.25 if w == corner * 0.9 else 1.0)
+            box_on(oo, T3, N3, c - w / 2, c + w / 2, top, top + h, -0.35, 0.04, mats.get("parapet", mats["body"]))
+            box_on(oo, T3, N3, c - w / 2 - 0.06, c + w / 2 + 0.06, top + h, top + h + 0.14, -0.42, 0.1, mats["trim"])
+            if MR.get("panel", True) and w > 1.0:
+                box_on(oo, T3, N3, c - w * 0.32, c + w * 0.32, top + h * 0.22, top + h * 0.8, 0.0, 0.06, mats["trim"])
+                box_on(oo, T3, N3, c - w * 0.22, c + w * 0.22, top + h * 0.32, top + h * 0.7, 0.0, 0.075, mats.get("parapet", mats["body"]))
+
+def tudor_arch(cx, w, z0, zs, zt, seg=8):
+    """outline of a flattened (Tudor-style) arched opening, CCW from bottom-left: jambs to zs, arch to apex zt."""
+    r = w / 2
+    right = [(cx + r * math.cos(k / seg * math.pi / 2), zs + (zt - zs) * math.sin(k / seg * math.pi / 2) ** 0.75) for k in range(seg + 1)]
+    left = [(2 * cx - u, z) for (u, z) in reversed(right[:-1])]
+    return [(cx - r, z0), (cx + r, z0)] + right + left
+
+def portal(poly, P_, mats):
+    """Gothic entrance pavilion on the face of poly that looks toward P_['dir']: a projecting brick bay with quoined
+    terra-cotta edges, a Tudor-arched doorway in a carved terra-cotta frame, a band of blind lancet panels above it,
+    stacked window groups, and a raised battlemented top."""
+    dx, dy = P_["dir"]; best = None
+    for i in range(len(poly)):
+        A, Bv = Vector(poly[i]), Vector(poly[(i + 1) % len(poly)]); L = (Bv - A).length
+        tt = (Bv - A) / L; nn = Vector((tt.y, -tt.x)); sc = nn.x * dx + nn.y * dy
+        if best is None or sc > best[0]: best = (sc, A, tt, nn, L)
+    _, A, tt, nn, L = best
+    o = Vector((A.x, A.y, 0)); T3 = Vector((tt.x, tt.y, 0)); N3 = Vector((nn.x, nn.y, 0))
+    at = P_.get("at"); c = L / 2 if at is None else max(3, min(L - 3, (Vector(at) - A).dot(tt)))
+    w = P_.get("w", 10.0); pd = P_.get("proj", 1.2); z1 = P_["z1"]; tm = mats["trim"]; body = mats["body"]
+    box_on(o, T3, N3, c - w / 2, c + w / 2, 0.0, z1, 0.0, pd, body)
+    for a in (c - w / 2, c + w / 2 - 0.6):            # quoined edges
+        z = 0.0; k = 0
+        while z < z1:
+            box_on(o, T3, N3, a - (0.15 if k % 2 == 0 and a < c else 0), a + 0.6 + (0.15 if k % 2 == 0 and a > c else 0), z, min(z + 0.5, z1) - 0.03, pd, pd + 0.05, tm); z += 0.5; k += 1
+    # doorway: terra-cotta frame, Tudor arch, doors + fanlight recessed
+    dw = P_.get("door_w", 4.2); dz = P_.get("door_z", 0.6); ds = dz + P_.get("door_h", 3.0); da = ds + 1.2
+    fw = 0.55
+    frame = tudor_arch(c, dw + 2 * fw, dz - 0.1, ds, da + fw * 0.8)
+    def onface(pts, d, mat):
+        face([o + T3 * u + N3 * d + Vector((0, 0, zz)) for (u, zz) in pts], mat, [(u, zz) for (u, zz) in pts])
+    box_on(o, T3, N3, c - dw / 2 - fw - 0.5, c + dw / 2 + fw + 0.5, dz - 0.1, da + fw + 0.9, pd, pd + 0.12, tm)   # carved block
+    onface(tudor_arch(c, dw, dz, ds, da), pd + 0.125, mats.get("door", "frame_dark"))
+    for k in range(5):                                       # door leaves / mullions
+        u = c - dw / 2 + (k + 0.5) * dw / 5
+        box_on(o, T3, N3, u - 0.04, u + 0.04, dz, ds, pd + 0.125, pd + 0.16, mats.get("frame", "frame_white"))
+    box_on(o, T3, N3, c - dw / 2, c + dw / 2, ds - 0.06, ds + 0.04, pd + 0.125, pd + 0.16, mats.get("frame", "frame_white"))
+    onface([(u, zz) for (u, zz) in tudor_arch(c, dw - 0.2, ds + 0.05, ds + 0.05, da - 0.1)], pd + 0.13, mats["glass"])
+    # band of blind lancet panels + pinnacle stubs over the doorway
+    bz0 = da + fw + 1.0; bz1 = bz0 + 1.3
+    box_on(o, T3, N3, c - w / 2 + 0.6, c + w / 2 - 0.6, bz0, bz1, pd, pd + 0.1, tm)
+    nl = max(4, int((w - 1.6) / 0.75))
+    for k in range(nl):
+        u = c - w / 2 + 0.9 + (k + 0.5) * (w - 1.8) / nl
+        onface(tudor_arch(u, 0.36, bz0 + 0.2, bz1 - 0.5, bz1 - 0.15, 4), pd + 0.105, mats.get("door", "frame_dark"))
+    for u in (c - dw / 2 - fw - 0.5, c + dw / 2 + fw + 0.3):
+        box_on(o, T3, N3, u, u + 0.2, dz, bz1 + 0.6, pd + 0.12, pd + 0.3, tm)
+    # stacked window groups in the pavilion's upper floors
+    for wrow in P_.get("windows", []):
+        zz0, zz1, grp = wrow[:3]
+        gw = min(w - 2.0, grp * 1.05); g0 = c - gw / 2; each = (gw - 0.16 * (grp - 1)) / grp
+        if len(wrow) > 3 and wrow[3]:            # blind Gothic arcade over the group (one lancet per light)
+            az0 = zz1 + 0.35; az1 = az0 + 1.05
+            box_on(o + N3 * pd, T3, N3, g0 - 0.2, g0 + gw + 0.2, zz1 + 0.25, az1 + 0.15, 0.0, 0.07, tm)
+            for k in range(grp):
+                w0 = g0 + k * (each + 0.16)
+                onface(tudor_arch(w0 + each / 2 - c + c, each * 0.8, az0, az1 - 0.45, az1, 6), pd + 0.075, mats["glass"])
+        for k in range(grp):
+            w0 = g0 + k * (each + 0.16)
+            window(o + N3 * pd, T3, N3, w0, w0 + each, zz0, zz1, 0.16, mats["frame"], mats["glass"], "transom", rng.random())
+            if k: box_on(o + N3 * pd, T3, N3, w0 - 0.16, w0, zz0, zz1, 0.0, 0.05, tm)
+        surround(o + N3 * pd, T3, N3, g0, g0 + gw, zz0, zz1, {"w": 0.24, "d": 0.07, "quoin": 0.36}, mats)
+    # raised top with battlements
+    top = z1
+    box_on(o, T3, N3, c - w / 2, c + w / 2, top, top + 1.4, -0.2, pd, mats.get("parapet", body))
+    box_on(o, T3, N3, c - w / 2 - 0.08, c + w / 2 + 0.08, top + 1.4, top + 1.55, -0.25, pd + 0.1, tm)
+    nm = 5
+    for k in range(0, nm, 2):
+        a0 = c - w / 2 + k * w / nm; a1 = a0 + w / nm
+        box_on(o, T3, N3, a0, a1, top + 1.55, top + 2.3, 0.0, pd, mats.get("parapet", body))
+        box_on(o, T3, N3, a0 - 0.05, a1 + 0.05, top + 2.3, top + 2.42, -0.05, pd + 0.08, tm)
+
+def chimney(C_, mats):
+    """square brick stack with a terra-cotta band and cap."""
+    cx, cy = C_["at"]; w, d = C_.get("w", 2.6), C_.get("d", 2.0); z0, z1 = C_.get("z0", 10.0), C_["z1"]
+    poly = rect_poly([cx, cy, w, d, C_.get("ang", 0.0)])
+    o = None
+    for i in range(4):
+        A, Bv = Vector(poly[i]), Vector(poly[(i + 1) % 4]); L = (Bv - A).length; tt = (Bv - A) / L; nn = Vector((tt.y, -tt.x))
+        oo = Vector((A.x, A.y, 0)); T3 = Vector((tt.x, tt.y, 0)); N3 = Vector((nn.x, nn.y, 0))
+        quad_on(oo, T3, N3, 0, L, z0, z1, 0, mats["body"])
+        box_on(oo, T3, N3, -0.05, L + 0.05, z1 - 2.0, z1 - 1.6, 0.0, 0.08, mats["trim"])
+        box_on(oo, T3, N3, -0.12, L + 0.12, z1, z1 + 0.35, 0.0, 0.14, mats["trim"])
+    roof(poly, z1 + 0.35, mats.get("roof", "roof_flat"))
+
 def facade(a, b, z0, z1, fl):
     o = Vector((a[0], a[1], 0.0)); e = Vector((b[0] - a[0], b[1] - a[1], 0.0)); L = e.length
     if L < 0.5: return
@@ -187,10 +314,14 @@ def facade(a, b, z0, z1, fl):
                 quad_on(o, t, n, g0, g1, fz0, wz0, 0, body); quad_on(o, t, n, g0, g1, wz1, fz1, 0, body)
             gap = W.get("group_gap", 0.25)
             each = (gw - gap * (g_here - 1)) / g_here
+            SR = W.get("surround") if not f.get("no_surround") else None
             for k in range(g_here):
                 w0 = g0 + k * (each + gap); w1 = w0 + each
                 if k: quad_on(o, t, n, w0 - gap, w0, wz0, wz1, 0, body)
+                if k and SR: box_on(o, t, n, w0 - gap, w0, wz0, wz1, 0.0, SR.get("d", 0.06) * 0.6, mats["trim"])
                 window(o, t, n, w0, w1, wz0, wz1, W.get("depth", 0.18), mats["frame"], mats["glass"], f.get("mull", W.get("mull", "none")), rng.random())
+            if SR:
+                surround(o, t, n, g0, g1, wz0, wz1, SR, mats)
     # piers: proud vertical strips between bays over the typical floors
     P = S.get("piers")
     if P and nb:
@@ -237,10 +368,17 @@ PROFILES = {
     "plinth": [(0.0, 0.0), (0.1, 0.0), (0.1, 0.9), (0.04, 1.0), (0.0, 1.0)],
     "coping": [(0.0, 0.0), (0.06, 0.0), (0.06, 0.12), (0.0, 0.12)],
     "corbel": [(0.0, 0.0), (0.15, 0.0), (0.15, 0.2), (0.35, 0.22), (0.35, 0.42), (0.6, 0.44), (0.6, 0.62), (0.85, 0.64), (0.85, 0.85), (1.0, 0.87), (1.0, 1.0), (0.0, 1.0)],
+    "fascia": [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)],
     "deco": [(0.0, 0.0), (0.25, 0.0), (0.25, 0.4), (0.12, 0.45), (0.12, 1.2), (0.3, 1.25), (0.3, 1.45), (0.0, 1.45)],
 }
 def profile(name, scale_h, scale_out):
     return [(o * scale_out, z * scale_h) for o, z in PROFILES[name]]
+
+def cornice_profile(c):
+    """cornice of the requested height and projection whatever the profile's native size."""
+    P = PROFILES[c.get("profile", "classical")]
+    ph = max(z for _, z in P) or 1.0; po = max(o for o, _ in P) or 1.0
+    return [(o / po * c["out"], z / ph * c["h"]) for o, z in P]
 
 def ccw(poly):
     a = sum(poly[i][0] * poly[(i + 1) % len(poly)][1] - poly[(i + 1) % len(poly)][0] * poly[i][1] for i in range(len(poly)))
@@ -323,7 +461,7 @@ def build_tier(ti, tr):
         top = mz1
         if S.get("cornice"):
             c = S["cornice"]
-            sweep(poly, profile(c.get("profile", "classical"), c["h"] / 1.35, c["out"] / 1.15), top, mats.get("cornice", mats["trim"]))
+            sweep(poly, cornice_profile(c), top, mats.get("cornice", mats["trim"]))
             top += c["h"]
         if S.get("parapet"):
             p2 = [(p.x, p.y) for p in offset_poly(poly, -0.05)]
@@ -451,11 +589,12 @@ def build_part(pt):
         sweep(poly, profile(b.get("profile", "belt"), b.get("h", 0.6) / 0.42, b.get("out", 0.25) / 0.18), z - 0.05, mats["trim"])
     top = z1
     if S.get("cornice"):
-        c = S["cornice"]; sweep(poly, profile(c.get("profile", "classical"), c["h"] / 1.35, c["out"] / 1.15), top, mats.get("cornice", mats["trim"])); top += c["h"]
+        c = S["cornice"]; sweep(poly, cornice_profile(c), top, mats.get("cornice", mats["trim"])); top += c["h"]
     if S.get("parapet"):
         for i in range(len(poly)):
             a_, b_ = Vector((*poly[i], top)), Vector((*poly[(i + 1) % len(poly)], top))
             face([a_, b_, b_ + Vector((0, 0, S["parapet"])), a_ + Vector((0, 0, S["parapet"]))], mats.get("parapet", mats["body"]))
+        if S.get("merlons"): merlons(poly, top + S["parapet"], mats)
         if S.get("battlement"):
             for i in range(len(poly)):
                 A, Bv = Vector(poly[i]), Vector(poly[(i + 1) % len(poly)]); L = (Bv - A).length; nmer = max(1, int(L / 1.2))
@@ -464,7 +603,10 @@ def build_part(pt):
                     a0 = k * L / nmer; a1 = (k + 1) * L / nmer
                     oo = Vector((A.x, A.y, 0)); box_on(oo, Vector((tt.x, tt.y, 0)), Vector((nn.x, nn.y, 0)), a0, a1, top + S["parapet"], top + S["parapet"] + 0.7, -0.4, 0.05, mats.get("parapet", mats["body"]))
         sweep(poly, profile("coping", 1.0, 1.0), top + S["parapet"], mats["trim"])
+    if pt.get("portal"): portal(poly, pt["portal"], mats)
+    for C_ in pt.get("chimneys", []): chimney(C_, mats)
     rf = pt.get("roof", {"type": "flat"})
+    if rf.get("roof_z"): top = rf["roof_z"]
     if rf.get("type", "flat") == "flat":
         roof(poly, top + 0.02, mats.get("roof", "roof_flat"))
     else:

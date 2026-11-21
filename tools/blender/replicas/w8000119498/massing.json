@@ -1,0 +1,58 @@
+{
+ "key": "w8000119498",
+ "src": "lidar_county",
+ "anchor": [
+  1876.547,
+  1893.236
+ ],
+ "ground": null,
+ "tiers": [
+  {
+   "z0": 0.0,
+   "z1": 9.68,
+   "polys": [
+    [
+     [
+      18.423,
+      -7.124
+     ],
+     [
+      -18.035,
+      -8.061
+     ],
+     [
+      -18.434,
+      7.11
+     ],
+     [
+      -14.542,
+      7.213
+     ],
+     [
+      9.729,
+      7.855
+     ],
+     [
+      18.024,
+      8.075
+     ]
+    ]
+   ]
+  }
+ ],
+ "osm_tags": {
+  "building": "yes",
+  "county": "1",
+  "name": "Eastwood Theater 8",
+  "amenity": "cinema",
+  "c:luc": "460",
+  "c:cls": "C",
+  "c:bval": "137600",
+  "c:addr": "815 E BROADWAY ST",
+  "c:ctype": "81",
+  "c:year": "1919",
+  "c:stories": "1",
+  "c:grade": "14",
+  "c:units": "0"
+ }
+}

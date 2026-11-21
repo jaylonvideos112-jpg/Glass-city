@@ -1,0 +1,252 @@
+{
+ "name": "St. Mark's Lutheran Church, 611 Woodville Rd (1917)",
+ "refs": "Lucas County Auditor parcel 08245012 photos",
+ "notes": "Gothic Revival in rock-faced grey limestone: tall steep-roofed nave with a great pointed-arch window in the street gable, square corner bell tower with paired louvred lancets and a slate spire to ~35 m (LiDAR), Tudor-gabled limestone parish house beside it, low link buildings.",
+ "materials": {
+  "base": "stone_lime",
+  "body": "stone_lime",
+  "trim": "limestone",
+  "cornice": "limestone",
+  "pier": "stone_lime",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "stone_lime",
+  "parapet": "stone_lime",
+  "arch": "limestone",
+  "sill": "limestone"
+ },
+ "bay": 4.2,
+ "corner_pier": 1.6,
+ "window": {
+  "w": 0.36,
+  "h": 0.55,
+  "group": 1,
+  "depth": 0.3,
+  "mull": "vertical",
+  "sill_frac": 0.45
+ },
+ "parts": [
+  {
+   "rect": [
+    -0.38,
+    3.16,
+    60.0,
+    24.0,
+    -127.14
+   ],
+   "z1": 6.2,
+   "floors": [
+    {
+     "n": 2,
+     "h": 3.1
+    }
+   ],
+   "window": {
+    "w": 0.5,
+    "h": 0.55,
+    "group": 2,
+    "depth": 0.2,
+    "mull": "transom",
+    "sill_frac": 0.5
+   },
+   "cornice": {
+    "h": 0.3,
+    "out": 0.12,
+    "profile": "fascia"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    -0.03,
+    -27.84,
+    11.0,
+    14.0,
+    -127.14
+   ],
+   "z1": 8.0,
+   "floors": [
+    {
+     "n": 2,
+     "h": 4.0
+    }
+   ],
+   "window": {
+    "w": 0.45,
+    "h": 0.55,
+    "group": 2,
+    "depth": 0.2,
+    "mull": "transom",
+    "sill_frac": 0.5
+   },
+   "cornice": {
+    "h": 0.3,
+    "out": 0.12,
+    "profile": "fascia"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    -13.52,
+    -5.07,
+    35.0,
+    13.0,
+    -127.14
+   ],
+   "z1": 11.5,
+   "floors": [
+    {
+     "n": 1,
+     "h": 11.5,
+     "arched": true
+    }
+   ],
+   "bay": 4.4,
+   "plinth": 1.0,
+   "roof": {
+    "type": "gable",
+    "h": 9.5,
+    "mat": "slate",
+    "overhang": 0.4
+   },
+   "rose": {
+    "end": 1,
+    "r": 2.6
+   },
+   "turrets": [
+    {
+     "r": 0.45,
+     "h": 1.4,
+     "cap": 1.0,
+     "mat": "limestone"
+    }
+   ]
+  },
+  {
+   "rect": [
+    8.1,
+    19.32,
+    24.0,
+    20.0,
+    -127.14
+   ],
+   "z1": 7.4,
+   "floors": [
+    {
+     "n": 1,
+     "h": 0.9,
+     "kind": "blank"
+    },
+    {
+     "n": 2,
+     "h": 3.25
+    }
+   ],
+   "window": {
+    "w": 0.55,
+    "h": 0.55,
+    "group": 3,
+    "group_gap": 0.12,
+    "depth": 0.2,
+    "mull": "transom",
+    "sill_frac": 0.5,
+    "surround": {
+     "w": 0.16,
+     "d": 0.05,
+     "quoin": 0.4,
+     "label": true
+    }
+   },
+   "bay": 5.5,
+   "roof": {
+    "type": "gable",
+    "h": 5.0,
+    "mat": "slate",
+    "overhang": 0.35
+   },
+   "chimneys": [
+    {
+     "at": [
+      13.5,
+      14.0
+     ],
+     "w": 1.4,
+     "d": 1.0,
+     "z0": 8,
+     "z1": 14.5,
+     "ang": -127.14
+    }
+   ]
+  },
+  {
+   "rect": [
+    -27.16,
+    -12.31,
+    6.0,
+    6.0,
+    -127.14
+   ],
+   "z1": 22.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.0,
+     "kind": "blank"
+    },
+    {
+     "n": 1,
+     "h": 8.0
+    },
+    {
+     "n": 1,
+     "h": 10.0,
+     "arched": true
+    }
+   ],
+   "bay": 2.2,
+   "corner_pier": 1.2,
+   "window": {
+    "w": 0.55,
+    "h": 0.55,
+    "group": 2,
+    "group_gap": 0.15,
+    "depth": 0.35,
+    "mull": "vertical",
+    "sill_frac": 0.5
+   },
+   "belts": [
+    {
+     "above_floor": 2,
+     "h": 0.4,
+     "out": 0.15
+    }
+   ],
+   "cornice": {
+    "h": 0.5,
+    "out": 0.25,
+    "profile": "belt"
+   },
+   "roof": {
+    "type": "spire",
+    "h": 13.0,
+    "mat": "slate",
+    "overhang": 0.1
+   },
+   "turrets": [
+    {
+     "r": 0.4,
+     "h": 2.2,
+     "cap": 1.6,
+     "mat": "limestone"
+    }
+   ]
+  }
+ ]
+}

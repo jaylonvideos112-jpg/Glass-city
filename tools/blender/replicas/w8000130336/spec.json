@@ -1,0 +1,211 @@
+{
+ "name": "Oakdale Elementary School, 1650 Milroy Ave (2005)",
+ "refs": "Lucas County Auditor parcel 07072001 photos",
+ "notes": "Y-plan 2000s TPS school: two storeys of red brick over a buff base with buff bands, hipped roofs, a raised gabled buff entrance block at the hub.",
+ "materials": {
+  "base": "brick_buff",
+  "body": "brick_red",
+  "trim": "precast",
+  "cornice": "precast",
+  "pier": "brick_buff",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "sill": "precast"
+ },
+ "bay": 3.6,
+ "corner_pier": 1.4,
+ "window": {
+  "w": 0.75,
+  "h": 0.5,
+  "group": 1,
+  "depth": 0.12,
+  "mull": "cross",
+  "sill_frac": 0.5
+ },
+ "parts": [
+  {
+   "rect": [
+    13.31,
+    -0.59,
+    14.0,
+    54.0,
+    -165.93
+   ],
+   "z1": 8.2,
+   "floors": [
+    {
+     "n": 2,
+     "h": 4.1
+    }
+   ],
+   "plinth": 1.0,
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.35,
+     "out": 0.06
+    }
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 2.6,
+    "mat": "slate",
+    "overhang": 0.4
+   }
+  },
+  {
+   "rect": [
+    -17.98,
+    9.09,
+    40.0,
+    14.0,
+    -165.93
+   ],
+   "z1": 8.2,
+   "floors": [
+    {
+     "n": 2,
+     "h": 4.1
+    }
+   ],
+   "plinth": 1.0,
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.35,
+     "out": 0.06
+    }
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 2.6,
+    "mat": "slate",
+    "overhang": 0.4
+   }
+  },
+  {
+   "rect": [
+    18.51,
+    28.03,
+    10.0,
+    21.0,
+    -165.93
+   ],
+   "z1": 8.2,
+   "floors": [
+    {
+     "n": 2,
+     "h": 4.1
+    }
+   ],
+   "plinth": 1.0,
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.35,
+     "out": 0.06
+    }
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 2.6,
+    "mat": "slate",
+    "overhang": 0.4
+   }
+  },
+  {
+   "rect": [
+    -47.21,
+    16.72,
+    17.0,
+    11.0,
+    -165.93
+   ],
+   "z1": 8.2,
+   "floors": [
+    {
+     "n": 2,
+     "h": 4.1
+    }
+   ],
+   "plinth": 1.0,
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.35,
+     "out": 0.06
+    }
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 2.6,
+    "mat": "slate",
+    "overhang": 0.4
+   }
+  },
+  {
+   "rect": [
+    31.76,
+    -22.77,
+    7.0,
+    30.0,
+    -165.93
+   ],
+   "z1": 8.2,
+   "floors": [
+    {
+     "n": 2,
+     "h": 4.1
+    }
+   ],
+   "plinth": 1.0,
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.35,
+     "out": 0.06
+    }
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 2.6,
+    "mat": "slate",
+    "overhang": 0.4
+   }
+  },
+  {
+   "rect": [
+    3.37,
+    -4.11,
+    9.0,
+    22.0,
+    -165.93
+   ],
+   "z1": 10.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.0,
+     "kind": "storefront",
+     "glass_h": 0.85
+    },
+    {
+     "n": 1,
+     "h": 5.0
+    }
+   ],
+   "mat_over": {
+    "body": "brick_buff"
+   },
+   "roof": {
+    "type": "gable",
+    "h": 3.0,
+    "mat": "slate",
+    "overhang": 0.3
+   }
+  }
+ ]
+}

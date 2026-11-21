@@ -1,0 +1,91 @@
+{
+ "name": "Navarre Elementary School, 800 Kingston Ave (2007)",
+ "refs": "Lucas County Auditor parcel 07056002 photos",
+ "notes": "Two-storey 2000s TPS school: red brick with buff cast-stone bands and base, buff entrance pavilions with gabled roofs, ribbon windows, low-pitched gable roofs.",
+ "materials": {
+  "base": "brick_buff",
+  "body": "brick_red",
+  "trim": "precast",
+  "cornice": "precast",
+  "pier": "brick_buff",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "sill": "precast"
+ },
+ "bay": 3.6,
+ "corner_pier": 1.4,
+ "window": {
+  "w": 0.75,
+  "h": 0.5,
+  "group": 1,
+  "depth": 0.12,
+  "mull": "cross",
+  "sill_frac": 0.5
+ },
+ "parts": [
+  {
+   "rect": [
+    0.96,
+    -2.66,
+    34.0,
+    25.0,
+    90.55
+   ],
+   "z1": 8.0,
+   "floors": [
+    {
+     "n": 2,
+     "h": 4.0
+    }
+   ],
+   "plinth": 1.0,
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.35,
+     "out": 0.06
+    }
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 2.4,
+    "mat": "slate",
+    "overhang": 0.4
+   }
+  },
+  {
+   "rect": [
+    0.96,
+    -15.6,
+    8.0,
+    3.0,
+    90.55
+   ],
+   "z1": 8.8,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.4,
+     "kind": "storefront",
+     "glass_h": 0.85
+    },
+    {
+     "n": 1,
+     "h": 4.4
+    }
+   ],
+   "mat_over": {
+    "body": "brick_buff"
+   },
+   "roof": {
+    "type": "gable",
+    "h": 2.2,
+    "mat": "slate",
+    "overhang": 0.3
+   }
+  }
+ ]
+}

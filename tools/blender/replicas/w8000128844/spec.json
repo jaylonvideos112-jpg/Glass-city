@@ -1,11 +1,440 @@
-{"name": "Morrison R. Waite High School (1914), 301 Morrison Dr",
- "refs": "refs/w8000128844/00 (Waite High School Toledo (Cropped), July 2022, Wikimedia Commons)",
- "notes": "Jacobethan in dark red brick with limestone trim: four storeys of grouped mullioned windows, a tall central gabled pavilion with a great window flanked by turreted stone towers facing Morrison Dr, crenellated stone parapets.",
- "materials": {"base": "limestone", "body": "brick_red", "trim": "limestone", "frame": "frame_white", "glass": "glass_window", "roof": "roof_flat", "column": "limestone"},
- "orthogonal": true, "grid": 1.5, "smooth_m": 2.0, "simplify": 0.3, "z1": 18.5,
- "floors": [{"n": 1, "h": 4.8}, {"n": 3, "h": 4.2}],
- "bay": 4.2, "corner_pier": 2.0,
- "window": {"w": 0.75, "h": 0.62, "group": 3, "group_gap": 0.15, "depth": 0.22, "mull": "cross", "sill_frac": 0.45},
- "plinth": 0.8, "belts": [{"above_floor": 1, "h": 0.6, "out": 0.25}], "parapet": 1.2, "battlement": true,
- "portico": {"facing": [-0.78, -0.63], "block": true, "width": 16.0, "depth": 2.5, "h": 18.5, "ped_h": 5.0, "tower_w": 3.6, "tower_h": 22.0, "roof_mat": "slate"}
+{
+ "name": "Waite High School, 301 Morrison Dr (1914, David L. Stine; English Collegiate Gothic)",
+ "refs": "Lucas County Auditor parcel 08220001 photos (2006-2011), aerial + LiDAR; Toledo Lucas County Public Library history (sister school of Scott HS, 380 x 210 ft, English Collegiate Gothic)",
+ "notes": "Symmetric H plan: 95 m main bar between two 63 m cross wings, raised centre block. Dark red-brown tapestry brick, cream terra cotta: quoined window surrounds round triple windows, belt courses, battlemented parapet with a raised panel over every bay, Gothic entrance pavilion with a Tudor-arched doorway facing the front lawn (SE). Hipped slate roofs behind the parapet; tall brick stacks. Centre block parapet level with the wings (LiDAR 25.7 m peak there is the main ridge and the big stack).",
+ "materials": {
+  "base": "terracotta_cream",
+  "body": "brick_tapestry",
+  "trim": "terracotta_cream",
+  "cornice": "terracotta_cream",
+  "pier": "brick_tapestry",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_tapestry",
+  "parapet": "brick_tapestry",
+  "door": "frame_dark",
+  "arch": "terracotta_cream",
+  "sill": "terracotta_cream"
+ },
+ "bay": 6.2,
+ "corner_pier": 2.2,
+ "window": {
+  "w": 0.6,
+  "h": 0.6,
+  "group": 3,
+  "group_gap": 0.18,
+  "depth": 0.2,
+  "mull": "cross",
+  "sill_frac": 0.55,
+  "surround": {
+   "w": 0.22,
+   "d": 0.06,
+   "quoin": 0.36
+  }
+ },
+ "parts": [
+  {
+   "floors": [
+    {
+     "n": 1,
+     "h": 2.9,
+     "wh": 0.5,
+     "group": 3
+    },
+    {
+     "n": 3,
+     "h": 4.35
+    }
+   ],
+   "z1": 16.3,
+   "parapet": 0.75,
+   "merlons": {
+    "h": 0.95,
+    "w": 0.5
+   },
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.45,
+     "out": 0.18
+    },
+    {
+     "above_floor": 3,
+     "h": 0.35,
+     "out": 0.12
+    }
+   ],
+   "cornice": {
+    "h": 0.45,
+    "out": 0.25,
+    "profile": "belt"
+   },
+   "plinth": 0.9,
+   "rect": [
+    -36.65,
+    -17.83,
+    95.0,
+    21.0,
+    39.17
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 5.0,
+    "mat": "slate",
+    "overhang": -0.6
+   }
+  },
+  {
+   "floors": [
+    {
+     "n": 1,
+     "h": 2.9,
+     "wh": 0.5,
+     "group": 3
+    },
+    {
+     "n": 3,
+     "h": 4.35
+    }
+   ],
+   "z1": 16.3,
+   "parapet": 0.75,
+   "merlons": {
+    "h": 0.95,
+    "w": 0.5
+   },
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.45,
+     "out": 0.18
+    },
+    {
+     "above_floor": 3,
+     "h": 0.35,
+     "out": 0.12
+    }
+   ],
+   "cornice": {
+    "h": 0.45,
+    "out": 0.25,
+    "profile": "belt"
+   },
+   "plinth": 0.9,
+   "rect": [
+    -73.44,
+    -47.48,
+    63.0,
+    21.5,
+    129.17000000000002
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 5.5,
+    "mat": "slate",
+    "overhang": -0.6
+   },
+   "chimneys": [
+    {
+     "at": [
+      -73.44,
+      -47.48
+     ],
+     "w": 2.6,
+     "d": 2.0,
+     "z0": 15,
+     "z1": 24.8,
+     "ang": 39.17
+    }
+   ]
+  },
+  {
+   "floors": [
+    {
+     "n": 1,
+     "h": 2.9,
+     "wh": 0.5,
+     "group": 3
+    },
+    {
+     "n": 3,
+     "h": 4.35
+    }
+   ],
+   "z1": 16.3,
+   "parapet": 0.75,
+   "merlons": {
+    "h": 0.95,
+    "w": 0.5
+   },
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.45,
+     "out": 0.18
+    },
+    {
+     "above_floor": 3,
+     "h": 0.35,
+     "out": 0.12
+    }
+   ],
+   "cornice": {
+    "h": 0.45,
+    "out": 0.25,
+    "profile": "belt"
+   },
+   "plinth": 0.9,
+   "rect": [
+    0.13,
+    11.82,
+    64.0,
+    22.0,
+    129.17000000000002
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 5.5,
+    "mat": "slate",
+    "overhang": -0.6
+   },
+   "chimneys": [
+    {
+     "at": [
+      0.13,
+      11.82
+     ],
+     "w": 2.6,
+     "d": 2.0,
+     "z0": 15,
+     "z1": 24.8,
+     "ang": 39.17
+    }
+   ]
+  },
+  {
+   "floors": [
+    {
+     "n": 1,
+     "h": 2.9,
+     "wh": 0.5
+    },
+    {
+     "n": 3,
+     "h": 4.35
+    }
+   ],
+   "z1": 16.3,
+   "parapet": 0.75,
+   "merlons": {
+    "h": 0.95,
+    "w": 0.5
+   },
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.45,
+     "out": 0.18
+    },
+    {
+     "above_floor": 3,
+     "h": 0.35,
+     "out": 0.12
+    }
+   ],
+   "cornice": {
+    "h": 0.45,
+    "out": 0.25,
+    "profile": "belt"
+   },
+   "plinth": 0.9,
+   "rect": [
+    -35.9,
+    -17.55,
+    17.0,
+    24.0,
+    39.17
+   ],
+   "roof": {
+    "type": "hip",
+    "h": 5.0,
+    "mat": "slate",
+    "overhang": -0.6
+   },
+   "portal": {
+    "dir": [
+     0.632,
+     -0.775
+    ],
+    "w": 10.5,
+    "proj": 1.6,
+    "z1": 16.9,
+    "door_w": 4.4,
+    "door_z": 0.8,
+    "door_h": 2.8,
+    "windows": [
+     [
+      8.9,
+      11.0,
+      4,
+      true
+     ],
+     [
+      13.4,
+      16.0,
+      4
+     ]
+    ]
+   },
+   "chimneys": [
+    {
+     "at": [
+      -37.450550624460725,
+      -18.813246912121482
+     ],
+     "w": 3.2,
+     "d": 2.4,
+     "z0": 15,
+     "z1": 28.6,
+     "ang": 39.17
+    }
+   ]
+  },
+  {
+   "rect": [
+    57.49,
+    34.04,
+    33.0,
+    36.0,
+    39.17
+   ],
+   "z1": 15.2,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.0,
+     "kind": "blank"
+    },
+    {
+     "n": 3,
+     "h": 3.7
+    }
+   ],
+   "window": {
+    "w": 0.85,
+    "h": 0.45,
+    "group": 1,
+    "depth": 0.12,
+    "mull": "vertical",
+    "sill_frac": 0.6
+   },
+   "bay": 3.4,
+   "corner_pier": 1.5,
+   "parapet": 0.4,
+   "belts": [],
+   "cornice": {
+    "h": 0.3,
+    "out": 0.1,
+    "profile": "belt"
+   },
+   "mat_over": {
+    "body": "brick_red",
+    "trim": "precast",
+    "parapet": "brick_red"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    76.63,
+    50.92,
+    10.0,
+    34.0,
+    39.17
+   ],
+   "z1": 12.1,
+   "floors": [
+    {
+     "n": 3,
+     "h": 4.0,
+     "kind": "blank"
+    }
+   ],
+   "parapet": 0.3,
+   "belts": [],
+   "mat_over": {
+    "body": "brick_red",
+    "trim": "precast"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    32.84,
+    22.34,
+    10.0,
+    23.0,
+    39.17
+   ],
+   "z1": 12.1,
+   "floors": [
+    {
+     "n": 3,
+     "h": 4.0,
+     "kind": "blank"
+    }
+   ],
+   "parapet": 0.3,
+   "belts": [],
+   "mat_over": {
+    "body": "brick_red",
+    "trim": "precast"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    74.93,
+    13.42,
+    44.0,
+    8.0,
+    39.17
+   ],
+   "z1": 5.1,
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.1
+    }
+   ],
+   "window": {
+    "w": 0.9,
+    "h": 0.6,
+    "group": 1,
+    "depth": 0.1,
+    "mull": "vertical",
+    "sill_frac": 0.3
+   },
+   "bay": 3.0,
+   "corner_pier": 1.0,
+   "parapet": 0.3,
+   "belts": [],
+   "mat_over": {
+    "body": "brick_red",
+    "trim": "precast"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ],
+ "extras": []
 }

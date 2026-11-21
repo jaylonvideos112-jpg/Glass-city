@@ -4,17 +4,21 @@ usage: parcel_photos.py house_parcels.json OUT_DIR CX CY [MAX] [DELAY]
 Fetches houses nearest to (CX, CY) first. Saves OUT_DIR/<assr>.jpg downscaled to 512 px wide,
 plus OUT_DIR/index.json {assr: {"taxyr", "title"}}. Resumable.
 """
-import sys, os, re, json, time, base64, subprocess, urllib.parse, html
+import sys, os, re, json, time, base64, subprocess, urllib.parse, html, glob
 
 LINK, OUT, CX, CY = sys.argv[1], sys.argv[2], float(sys.argv[3]), float(sys.argv[4])
 MAX = int(sys.argv[5]) if len(sys.argv) > 5 else 1000
 DELAY = float(sys.argv[6]) if len(sys.argv) > 6 else 1.5
 UA = "GlassCityBuilder/0.3 (game reference research)"
 BASE = "https://icare.co.lucas.oh.us/LucasCare/"
-JAR = os.path.join(OUT, ".cookies")
+JAR = os.path.join(OUT, ".cookies" + os.environ.get("SHARD", "").replace("/", "_"))
 os.makedirs(OUT, exist_ok=True)
-IDX = os.path.join(OUT, "index.json")
+IDX = os.path.join(OUT, "index%s.json" % os.environ.get("SHARD", "").replace("/", "_"))
 idx = json.load(open(IDX)) if os.path.exists(IDX) else {}
+BASE_IDX = {}
+for f_ in glob.glob(os.path.join(OUT, "index*.json")):
+    try: BASE_IDX.update(json.load(open(f_)))
+    except ValueError: pass
 last = [0.0]
 
 
@@ -50,17 +54,24 @@ def new_token():
     get(BASE + "Datalets/Datalet.aspx?sIndex=0&idx=1")
     _, t = get(BASE + "idoc2/photoview.aspx?sIndex=0&idx=1&LMparent=20")
     m = re.search(rb"var token = '([^']+)'", t)
-    if not m: raise SystemExit("no token")
+    if not m:
+        NT[0] += 1
+        if NT[0] > 8: raise SystemExit("no token")
+        time.sleep(60 * NT[0]); return new_token()
+    NT[0] = 0
     return m.group(1).decode()
+NT = [0]
 
 
 def main():
     order = sorted(byassr, key=lambda a: (byassr[a][1] - CX) ** 2 + (byassr[a][2] - CY) ** 2)
+    if os.environ.get("SHARD"):                    # "k/n": this worker takes every n-th parcel
+        k_, n_ = map(int, os.environ["SHARD"].split("/")); order = order[k_::n_]
     print("residential parcels", len(order), flush=True)
     tok = new_token(); n = fails = 0
     for assr in order:
         if n >= MAX: break
-        if assr in idx: continue
+        if assr in idx or assr in BASE_IDX or os.path.exists(os.path.join(OUT, assr + ".jpg")): continue
         url = BASE + "api/documents/Parcel%20Photo/048/" + base64.b64encode(assr.encode()).decode() + "?token=" + tok
         code, body = get(url)
         if code != 200:
@@ -74,7 +85,7 @@ def main():
         if not docs:
             idx[assr] = None; n += 1; continue
         d = max(docs, key=lambda d: ((d["Fields"] or {}).get("Taxyr") or 0, -d.get("Rank", 9)))
-        tmp = os.path.join(OUT, ".tmp.jpg")
+        tmp = os.path.join(OUT, ".tmp%s.jpg" % os.environ.get("SHARD", "").replace("/", "_"))
         code, _ = get(BASE + "api/document/" + urllib.parse.quote(d["Id"], safe="") + "/standard?token=" + tok, out=tmp)
         if code == 200:
             subprocess.run(["python3", "-c", "import cv2,sys;i=cv2.imread(sys.argv[1]);"
@@ -89,6 +100,8 @@ def main():
 
 import csv
 RES = set(r["AssrNo"] for r in csv.DictReader(open(os.environ.get("RESCSV", "county/res.csv"))) if r["YearBlt"] not in ("", "0"))
+if os.environ.get("ASSR_ONLY"):        # an explicit parcel list (e.g. every non-residential parcel of one area)
+    RES = set(json.load(open(os.environ["ASSR_ONLY"])))
 link = {k: v for k, v in json.load(open(LINK)).items() if v[0] in RES}
 byassr = {}
 for k, v in link.items(): byassr.setdefault(v[0], v)

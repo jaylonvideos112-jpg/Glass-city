@@ -75,8 +75,33 @@ const ERA_PAINT := {"old": ["#e9e3d2", "#c8b386", "#7f8d6f", "#9b5c4b", "#61748a
 	"post": ["#f2f0ea", "#cfd3cf", "#a3b3c1", "#e3d6b5", "#b9aa92", "#a7b59c", "#e9e4d4", "#c9c2b2"],
 	"new": ["#f4f2ec", "#d9d5c9", "#c3c5c0", "#b7ab95", "#8f9ba4", "#e8e0cc", "#a6a294", "#d2c6ad"]}
 const BRICK_TONE := {"old": Color(1.0, 0.93, 0.88), "mid": Color(1, 1, 1), "post": Color(0.93, 0.86, 0.8), "new": Color(1.08, 1.0, 0.94)}
+var _tex_mean := {}
 func _mat(name: String) -> Material:
 	if materials.has(name): return materials[name]
+	var tl := name.find("~")
+	if tl > 0:                                  # photo-measured wall colour on a textured wall: "<mat>~rrggbb"
+		var base_m = materials.get(name.substr(0, tl))
+		var want := Color("#" + name.substr(tl + 1))
+		var m2: Material = base_m.duplicate() if base_m != null else StandardMaterial3D.new()
+		if m2 is StandardMaterial3D:
+			var sm := m2 as StandardMaterial3D
+			var mean := Color(0.6, 0.6, 0.6)
+			if sm.albedo_texture != null:
+				var key := sm.albedo_texture.resource_path
+				if not _tex_mean.has(key):
+					var img := sm.albedo_texture.get_image()
+					if img != null:
+						img = img.duplicate(); img.decompress(); img.resize(8, 8, Image.INTERPOLATE_BILINEAR)
+						var acc := Color(0, 0, 0)
+						for yy in 8:
+							for xx in 8: acc += img.get_pixel(xx, yy)
+						_tex_mean[key] = acc / 64.0
+					else: _tex_mean[key] = mean
+				mean = _tex_mean[key] * sm.albedo_color
+			var k := Color(clampf(want.r / maxf(mean.r, 0.05), 0.35, 1.9), clampf(want.g / maxf(mean.g, 0.05), 0.35, 1.9), clampf(want.b / maxf(mean.b, 0.05), 0.35, 1.9))
+			sm.albedo_color = sm.albedo_color * k
+		_mutex.lock(); materials[name] = m2; _mutex.unlock()
+		return m2
 	if name.begins_with("hsid#"):              # house siding (real lap boards) in an era paint: hsid#<era><i>
 		var era := name.substr(5, name.length() - 6); var i := int(name.substr(name.length() - 1))
 		materials[name] = _tex_mat("hsid", Color(ERA_PAINT.get(era, ERA_PAINT["mid"])[i]), 0.75)
@@ -485,7 +510,7 @@ func _add_prop(root: Node3D, p: Array) -> void:
 	if kind == "pillar":
 		var h: float = p[3]
 		bm.size = Vector3(1.4, h, 1.4)
-		mi.position = Vector3(p[1], h * 0.5, p[2])
+		mi.position = Vector3(p[1], h * 0.5 + (float(p[4]) if p.size() > 4 and kind == "pillar" and p[4] < 200.0 and h > 0.0 else 0.0), p[2])
 		mi.material_override = materials["pillar"]
 		var body := StaticBody3D.new()
 		var cs := CollisionShape3D.new()

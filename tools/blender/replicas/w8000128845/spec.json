@@ -1,0 +1,75 @@
+{
+ "name": "Waite High School gymnasium wing",
+ "refs": "aerial + LiDAR, county parcel 08220001 photos",
+ "notes": "Plain brick gym box, flat roof, a band of high windows.",
+ "materials": {
+  "base": "precast",
+  "body": "brick_red",
+  "trim": "precast",
+  "cornice": "precast",
+  "pier": "brick_red",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "parapet": "brick_red"
+ },
+ "bay": 4.0,
+ "corner_pier": 1.2,
+ "window": {
+  "w": 0.7,
+  "h": 0.28,
+  "group": 1,
+  "depth": 0.12,
+  "mull": "vertical",
+  "sill_frac": 0.85
+ },
+ "parts": [
+  {
+   "rect": [
+    -4.23,
+    -7.2,
+    39.0,
+    58.0,
+    39.17
+   ],
+   "z1": 8.2,
+   "floors": [
+    {
+     "n": 1,
+     "h": 8.2
+    }
+   ],
+   "parapet": 0.4,
+   "cornice": {
+    "h": 0.3,
+    "out": 0.1,
+    "profile": "belt"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    11.88,
+    25.28,
+    27.0,
+    28.0,
+    39.17
+   ],
+   "z1": 6.4,
+   "floors": [
+    {
+     "n": 1,
+     "h": 6.4
+    }
+   ],
+   "parapet": 0.3,
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

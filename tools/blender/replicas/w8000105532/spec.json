@@ -1,0 +1,65 @@
+{
+ "name": "New Life Tabernacle, 1123 Navarre Ave (1940)",
+ "refs": "Lucas County Auditor parcel 08210012 photos",
+ "notes": "One-storey 1940 civic-style block in orange-red brick with limestone: tall windows in deep limestone frames between brick piers, a limestone-framed entrance, stone base and coping.",
+ "materials": {
+  "base": "limestone",
+  "body": "brick_orange",
+  "trim": "limestone",
+  "cornice": "limestone",
+  "pier": "brick_orange",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_orange",
+  "parapet": "brick_orange",
+  "arch": "limestone",
+  "sill": "limestone",
+  "door": "frame_dark"
+ },
+ "bay": 3.6,
+ "corner_pier": 1.4,
+ "window": {
+  "w": 0.55,
+  "h": 0.62,
+  "group": 1,
+  "depth": 0.2,
+  "mull": "cross",
+  "sill_frac": 0.45,
+  "surround": {
+   "w": 0.28,
+   "d": 0.06,
+   "quoin": 5.0,
+   "label": false
+  }
+ },
+ "parts": [
+  {
+   "rect": [
+    0.31,
+    0.51,
+    33.0,
+    21.0,
+    91.24
+   ],
+   "z1": 5.2,
+   "floors": [
+    {
+     "n": 1,
+     "h": 0.8,
+     "kind": "blank"
+    },
+    {
+     "n": 1,
+     "h": 4.4
+    }
+   ],
+   "plinth": 0.8,
+   "parapet": 0.5,
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

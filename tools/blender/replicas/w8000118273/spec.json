@@ -1,0 +1,103 @@
+{
+ "name": "Toledo Fire Station #13, 1899 Front St (1985)",
+ "refs": "Lucas County Auditor parcel 08910002 photos",
+ "notes": "1980s fire station: red brick, three white overhead apparatus doors under a stepped brick gable front, standing-seam metal gable roofs, low office wing, brick screen wall; radio mast in the yard.",
+ "materials": {
+  "base": "precast",
+  "body": "brick_red",
+  "trim": "precast",
+  "cornice": "precast",
+  "pier": "brick_red",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "parapet": "brick_red",
+  "arch": "precast",
+  "sill": "precast",
+  "door": "frame_dark"
+ },
+ "bay": 4.4,
+ "corner_pier": 1.0,
+ "window": {
+  "w": 0.7,
+  "h": 0.45,
+  "group": 1,
+  "depth": 0.12,
+  "mull": "cross",
+  "sill_frac": 0.5
+ },
+ "parts": [
+  {
+   "rect": [
+    -1.05,
+    -1.84,
+    39.0,
+    15.0,
+    31.61
+   ],
+   "z1": 4.4,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.4
+    }
+   ],
+   "roof": {
+    "type": "gable",
+    "h": 1.8,
+    "mat": "metal_light",
+    "overhang": 0.4
+   }
+  },
+  {
+   "rect": [
+    6.19,
+    -5.02,
+    12.0,
+    15.0,
+    31.61
+   ],
+   "z1": 5.4,
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.4,
+     "kind": "storefront",
+     "glass_h": 0.9
+    }
+   ],
+   "pilaster": 1.0,
+   "mat_over": {
+    "shop_glass": "paint_white",
+    "frame": "frame_white"
+   },
+   "roof": {
+    "type": "gable",
+    "h": 2.4,
+    "mat": "metal_light",
+    "overhang": 0.3
+   }
+  },
+  {
+   "rect": [
+    5.2,
+    13.75,
+    10.0,
+    5.0,
+    31.61
+   ],
+   "z1": 3.6,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.6
+    }
+   ],
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

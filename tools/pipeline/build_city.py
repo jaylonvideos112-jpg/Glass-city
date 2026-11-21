@@ -9,6 +9,7 @@ usage: build_city.py <osm json file or dir of tiles> <outdir> [S W N E]
 import re, pickle, zlib, json, math, struct, sys, os, hashlib, random, glob, heapq, time
 from collections import defaultdict
 import numpy as np
+import cv2
 import shapely
 import shapely.prepared
 import shapely.affinity
@@ -83,7 +84,8 @@ class Chunk:
         self.layers = defaultdict(lambda: ([], [], []))
         self.fac = ([], [], [], [], [], [])     # facade layer: V, N, UV(m), UV2(floor h, bay w), COLOR, CUSTOM0
         self.col = []
-        self.streets, self.labels, self.props = [], [], []
+        self.streets, self.labels = [], []
+        self.props = PropList(self)
         self.bars = []
         self.roads, self.ix = [], []    # traffic network: lane segments and intersection controls
 
@@ -99,7 +101,52 @@ def chunk_at(x, y):
             import traceback
             fr = traceback.extract_stack()[-2]; SPILL[(fr.name, fr.lineno)] += 1
     return chunks[k]
-def to3(c, x, y, h): return (x - c.ox, h, -(y - c.oy))
+# ---------------------------------------------------------------- terrain (tools/pipeline/dem.py: 4 m LiDAR bare earth)
+# Game y = metres above DATUM. Everything is draped onto the ground unless ZBASE says otherwise: a building sets ZBASE
+# to its lowest ground point so it stays level, bridges and water use absolute heights (ZBASE = 0).
+DEM_DIR = os.environ.get("DEM")
+DATUM = 176.0                       # 174.4 m water surface -> WATER_Y -1.6
+_dem = {}
+def _dem_tile(cx, cy):
+    t = _dem.get((cx, cy))
+    if t is None:
+        if len(_dem) > 600: _dem.clear()          # regions are built in order: old tiles are not needed again
+        f = os.path.join(DEM_DIR, f"{cx}_{cy}.npz") if DEM_DIR else None
+        t = (np.load(f)["h"].astype(np.float32) / 100.0 + 150.0 - DATUM) if f and os.path.exists(f) else False
+        _dem[(cx, cy)] = t
+    return t
+def TZ(x, y):
+    """bare-earth height (m above DATUM) at plan (x, y), bilinear on the 4 m grid."""
+    if not DEM_DIR: return 0.0
+    gx = x / 4.0 - 0.5; gy = y / 4.0 - 0.5
+    i0 = math.floor(gx); j0 = math.floor(gy); fx = gx - i0; fy = gy - j0
+    v = 0.0
+    for di, dj, w in ((0, 0, (1 - fx) * (1 - fy)), (1, 0, fx * (1 - fy)), (0, 1, (1 - fx) * fy), (1, 1, fx * fy)):
+        ci, cj = i0 + di, j0 + dj
+        t = _dem_tile(ci // 125, cj // 125)
+        v += w * (float(t[124 - cj % 125, ci % 125]) if t is not False else 0.0)
+    return v
+ZBASE = [None]
+def G(x, y): return ZBASE[0] if ZBASE[0] is not None else TZ(x, y)
+def foot_base(g):
+    """level base for a building: its lowest ground point (walls on the downhill side meet the ground)."""
+    if not DEM_DIR: return 0.0
+    if hasattr(g, "geoms"): g = max(g.geoms, key=lambda q: q.area)
+    pts = list(g.exterior.coords)[:-1] if hasattr(g, "exterior") else []
+    pts.append((g.centroid.x, g.centroid.y))
+    return min(TZ(x, y) for x, y in pts)
+def to3(c, x, y, h): return (x - c.ox, h + G(x, y), -(y - c.oy))
+
+class PropList(list):
+    """chunk props carry their own height (p[3]); add the ground (or the current building base) on append."""
+    def __init__(self, c): super().__init__(); self.ox, self.oy = c.ox, c.oy      # no back-reference: no cycle
+    def append(self, p):
+        if DEM_DIR and len(p) > 3:
+            x, y = p[1] + self.ox, self.oy - p[2]
+            if p[0] == "pillar": p = list(p); gz = TZ(x, y); p[3] = max(0.5, p[3] - gz); p[4] = gz     # pillar: [.., height, ground y]
+            elif p[0] == "pool": pass
+            else: p = list(p); p[3] = p[3] + G(x, y)
+        super().append(p)
 
 def tri(c, mat, a, b, cc, n, uvs, collide=False):
     ab = (b[0] - a[0], b[1] - a[1], b[2] - a[2]); ac = (cc[0] - a[0], cc[1] - a[1], cc[2] - a[2])
@@ -172,7 +219,41 @@ def polys_of(g):
     return []
 
 UP = (0.0, 1.0, 0.0)
+def _drape_cell(poly):
+    """grid size for draping a ground polygon on the terrain: none where it is flat enough."""
+    if not DEM_DIR or ZBASE[0] is not None: return 0
+    x0, y0, x1, y1 = poly.bounds
+    if max(x1 - x0, y1 - y0) < 6: return 0
+    zs = [TZ(x, y) for x in (x0, (x0 + x1) / 2, x1) for y in (y0, (y0 + y1) / 2, y1)]
+    rng = max(zs) - min(zs)
+    if rng < 0.12: return 0
+    # how far the terrain bends away from a plane over this polygon (edge midpoints and centre vs corners)
+    m = (zs[0] + zs[2] + zs[6] + zs[8]) / 4
+    err = max(abs(zs[4] - m), abs(zs[1] - (zs[0] + zs[2]) / 2), abs(zs[7] - (zs[6] + zs[8]) / 2),
+              abs(zs[3] - (zs[0] + zs[6]) / 2), abs(zs[5] - (zs[2] + zs[8]) / 2))
+    if err < 0.08 and rng < 4: return 0           # a tilted plane: the polygon's own vertices drape it exactly
+    # grid fine enough to keep the sag between grid points small (terrain bends are broad in Toledo)
+    return 8.0 if err > 1.0 else 16.0 if err > 0.4 else 32.0 if err > 0.15 else 64.0
+
+def _cells(poly, g):
+    x0, y0, x1, y1 = poly.bounds
+    out = []
+    for gx in np.arange(math.floor(x0 / g) * g, x1, g):
+        for gy in np.arange(math.floor(y0 / g) * g, y1, g):
+            b = box(gx, gy, gx + g, gy + g)
+            if not b.intersects(poly): continue
+            if poly.contains(b): out.append(b); continue
+            out.extend(polys_of(poly.intersection(b)))
+    return out
+
 def flat_poly(c, mat, poly, h, uvscale, collide=False, col_h=None):
+    g = _drape_cell(poly)
+    if g:
+        for sub in _cells(poly, g): flat_poly_1(c, mat, sub, h, uvscale, collide, col_h)
+        return
+    flat_poly_1(c, mat, poly, h, uvscale, collide, col_h)
+
+def flat_poly_1(c, mat, poly, h, uvscale, collide=False, col_h=None):
     for t in triangulate(poly):
         pts = [to3(c, x, y, h) for x, y in t]
         tri(c, mat, pts[0], pts[1], pts[2], UP, [(x / uvscale, -y / uvscale) for x, y in t], False)
@@ -574,6 +655,9 @@ def tree_of(lst):
     lst = [g for g in lst if g is not None and not g.is_empty]
     return (lst, STRtree(lst) if lst else None)
 T_ROAD, T_SIDE, T_PARK, T_PARKING, T_FOREST, T_IND, T_WATER = map(tree_of, (road_polys, side_polys, park, parking, forest, industrial, WATER_TREE_SRC))
+if os.environ.get("DUMP_WATER"):          # tools/pipeline/dem.py needs the same water polygons (river surface level)
+    pickle.dump([g for g in WATER_TREE_SRC if g is not None and not g.is_empty], open(os.environ["DUMP_WATER"], "wb"))
+    log("water dumped"); sys.exit(0)
 T_FIELDS = [tree_of(f) for f in fields]
 
 def local_union(tr, rb):
@@ -636,7 +720,21 @@ for root, members in comp.items():
         if d > dist.get(n, 1e18): continue
         for m, w_ in adj[n]:
             if d + w_ < dist.get(m, 1e18): dist[m] = d + w_; heapq.heappush(pq, (d + w_, m))
-    for n in adj: node_h[n] = H * min(1.0, dist.get(n, ramp) / ramp)
+    # terrain under the ends: every node blends the ground heights of the bridge's ends by graph distance
+    base = {n: 0.0 for n in adj}
+    if DEM_DIR and terms:
+        acc = {n: [0.0, 0.0] for n in adj}
+        for t in terms[:12]:
+            tz = TZ(*node_pos[t]); dd = {t: 0.0}; pq2 = [(0.0, t)]
+            while pq2:
+                d, n = heapq.heappop(pq2)
+                if d > dd.get(n, 1e18): continue
+                for m, w_ in adj[n]:
+                    if d + w_ < dd.get(m, 1e18): dd[m] = d + w_; heapq.heappush(pq2, (d + w_, m))
+            for n, d in dd.items():
+                wgt = 1.0 / (d + 5.0) ** 2; acc[n][0] += tz * wgt; acc[n][1] += wgt
+        base = {n: (a / b if b else 0.0) for n, (a, b) in acc.items()}
+    for n in adj: node_h[n] = H * min(1.0, dist.get(n, ramp) / ramp) + base[n]
 
 def densify(nodes, pts, step=8.0):
     out = []
@@ -741,9 +839,11 @@ def build_suspension(ways, deck):
             wbox("concrete_dk", ax_, ay_, u, v, 6, 2.0, 0.0, deck_y - 1.6)
     log("suspension towers at", round(cx), round(cy))
 
+ZBASE[0] = 0.0
 for kind_, ways_ in special_bridges.items():
     cfg_ = [c_ for c_ in BRIDGE_CFG if c_[3] == kind_][0]
     (build_skyway if kind_ == "skyway" else build_suspension)(ways_, cfg_[1])
+ZBASE[0] = None
 
 def emit_bridge_seg(p0, p1, w, drv, i):
     (x0, y0, h0), (x1, y1, h1) = p0, p1
@@ -779,12 +879,27 @@ def emit_bridge_seg(p0, p1, w, drv, i):
 def emit_centerline(x0, y0, x1, y1, water_p):
     L = math.hypot(x1 - x0, y1 - y0)
     if L < 1: return
+    mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+    if not BBOX_P.contains(Point(mx, my)): return
+    cw = chunk_at(mx, my)                # the whole line stays in its own chunk (region-safe)
+    if DEM_DIR and L > 24:              # follow the terrain: paint in short pieces
+        k = int(L / 12) + 1
+        for i in range(k):
+            a, b = i / k, (i + 1) / k
+            emit_centerline_1(x0 + (x1 - x0) * a, y0 + (y1 - y0) * a, x0 + (x1 - x0) * b, y0 + (y1 - y0) * b, water_p, i == 0, i == k - 1, cw)
+        return
+    emit_centerline_1(x0, y0, x1, y1, water_p, True, True, cw)
+
+def emit_centerline_1(x0, y0, x1, y1, water_p, first=True, last=True, cw=None):
+    L = math.hypot(x1 - x0, y1 - y0)
+    if L < 1: return
     dx, dy = (x1 - x0) / L, (y1 - y0) / L; nx, ny = -dy, dx
     mx, my = (x0 + x1) / 2, (y0 + y1) / 2
     if not BBOX_P.contains(Point(mx, my)) or water_p.contains(Point(mx, my)): return
-    c = chunk_at(mx, my)
-    tr = 4 if L > 12 else 0
-    sx0, sy0, sx1, sy1 = x0 + dx * tr, y0 + dy * tr, x1 - dx * tr, y1 - dy * tr
+    c = cw if cw is not None else chunk_at(mx, my)
+    tr = 4 if L > 12 or not (first and last) else 0
+    sx0, sy0 = (x0 + dx * tr, y0 + dy * tr) if first else (x0, y0)
+    sx1, sy1 = (x1 - dx * tr, y1 - dy * tr) if last else (x1, y1)
     for off in (-0.18, 0.18):
         ox, oy, h = nx * off, ny * off, 0.06
         p = [(sx0 + ox - nx * h, sy0 + oy - ny * h), (sx1 + ox - nx * h, sy1 + oy - ny * h), (sx1 + ox + nx * h, sy1 + oy + ny * h), (sx0 + ox + nx * h, sy0 + oy + ny * h)]
@@ -804,7 +919,8 @@ def ring_walls(geom, R_ext, top, bot, mat):
                 c = chunk_at(mx, my)
                 nx, ny = -(y1 - y0) / L, (x1 - x0) / L
                 n = (nx, 0.0, -ny)
-                quad(c, mat, to3(c, x0, y0, bot), to3(c, x1, y1, bot), to3(c, x1, y1, top), to3(c, x0, y0, top), n,
+                b0 = (x0 - c.ox, bot, -(y0 - c.oy)); b1 = (x1 - c.ox, bot, -(y1 - c.oy))      # bed: absolute; top: on the bank
+                quad(c, mat, b0, b1, to3(c, x1, y1, top), to3(c, x0, y0, top), n,
                      [(0, bot / 3), (L / 3, bot / 3), (L / 3, top / 3), (0, top / 3)], True)
 
 # ---------------------------------------------------------------- buildings
@@ -909,6 +1025,12 @@ def county_style(t, g, h, rnd, cls, store, m, e):
     has_lidar = m is not None and "h" in m and m.get("n", 0) >= 6
     resid = ctype in (2, 3, 4, 5, 12) or (ctype < 0 and luc[:1] == "5")
     lid_h = m["h"] if has_lidar else (st or 1) * 3.0
+    # big street trees over small East-Toledo-style houses push the LiDAR top up to 15-27 m: a 1.5-storey house
+    # can't be taller than its storeys plus a steep roof, so cap it (and its wings) at that
+    if resid and st and st <= 3 and g.area < 650:
+        cap = st * 3.0 + 6.0
+        e["_hcap"] = cap
+        if lid_h > cap: lid_h = st * 3.0 + 4.0; h = min(h, lid_h)
     if resid and (g.area >= 650 or lid_h > 13.5 or (st or 1) > 3):
         resid = False; ctype = 1                     # big residential = apartment block, not a house
     if resid and g.area < 650:
@@ -928,6 +1050,7 @@ def county_style(t, g, h, rnd, cls, store, m, e):
             e["_base"] = (f"h_brick_{era}", 1.1 if st <= 1.3 else 3.0)
         e["_porch"] = {"old": 0.92, "mid": 0.85, "post": 0.22, "new": 0.12}[era]
         if not has_lidar: h = max(3.0, (st or 1) * 2.9) + 2.0
+        if e.get("_hcap"): h = min(h, e["_hcap"])
         return mat, cls, h, False
     # ---------------- commercial / institutional by AREIS structure type
     if not has_lidar and st: h = st * (4.2 if st <= 2 else 3.7) + 0.8
@@ -973,6 +1096,7 @@ for _m in HOUSE_MATS:
 TILE["h_block"] = (4.0, 2.95)
 TILE.update({"hsid": (2.4, 2.4), "hbrk": (1.45, 1.45), "hstu": (3.0, 3.0), "hstn": (2.2, 2.2), "hblk": (2.2, 2.2)})
 def tile_of(mat):
+    mat = mat.split("~")[0]
     if mat in TILE: return TILE[mat]
     b = mat.split("@")[0].split("#")[0]
     if b.startswith("hbrk"): b = "hbrk"
@@ -1175,6 +1299,7 @@ def walls(c, p, z0, z1, mat):
 # per-house paint from county reference photos (tools/pipeline/house_looks*.py): key -> wall/trim palette index, porch seen
 HLOOKS = json.load(open(os.environ["HLOOKS"])) if os.environ.get("HLOOKS") and os.path.exists(os.environ["HLOOKS"]) else {}
 TRIM_MAT = ["trim_white"]
+BLOOKS = json.load(open(os.environ["BLOOKS"])) if os.environ.get("BLOOKS") and os.path.exists(os.environ["BLOOKS"]) else {}
 FACADES = json.load(open(os.environ["FACADES"])) if os.environ.get("FACADES") and os.path.exists(os.environ["FACADES"]) else {}
 MAT_WALL = {"brick_red": ("#8c3a2c", 0.0), "brick_brown": ("#6e4430", 0.0), "brick_tan": ("#b89a72", 0.0), "concrete": ("#aaa69d", 0.5),
             "limestone": ("#cfc6b0", 0.25), "granite_black": ("#2a2a2c", 0.25), "metal": ("#8e9399", 0.75), "intl_dark": ("#2c2f33", 0.75),
@@ -1899,7 +2024,7 @@ def bar_door(c, p, theme, h):
     _, mx, my, nx, ny, L = best
     dx_, dy_ = mx + nx * 0.25, my + ny * 0.25
     yaw = math.atan2(-nx, ny)   # Godot yaw so that local -Z points out of the building
-    c.bars.append([theme, dx_ - c.ox, -(dy_ - c.oy), float(yaw), float(min(h, 12.0)), float(L)])
+    c.bars.append([theme, dx_ - c.ox, -(dy_ - c.oy), float(yaw), float(min(h, 12.0)), float(L), float(G(dx_, dy_))])
 # ---------------------------------------------------------------- yards: lawns, driveways, front walks, shrubs
 def _is_small_res(e, g):
     t = e.get("tags", {})
@@ -1911,7 +2036,54 @@ HOUSE_TREE = STRtree(_SMALL) if _SMALL else None
 BIG_TREE = STRtree(_BIG) if _BIG else None
 log("yard houses", len(_SMALL))
 
+def green_of(rb):
+    """vegetated ground in the aerial photo (excess-green index on a 2 m grid) as polygons: real lawns, school
+    grounds, vacant lots, field edges - so leftover ground is grass where it is grass and paved where it is paved."""
+    AERIAL_DIR = os.environ.get("AERIAL", os.path.join(_REPO, "data/aerial"))
+    x0, y0, x1, y1 = rb.bounds
+    W, H = int(math.ceil((x1 - x0) / 2)), int(math.ceil((y1 - y0) / 2))
+    img = np.zeros((H, W, 3), np.float32); have = np.zeros((H, W), bool)
+    for cx in range(math.floor(x0 / 200), math.floor((x1 - 1e-6) / 200) + 1):
+        for cy in range(math.floor(y0 / 200), math.floor((y1 - 1e-6) / 200) + 1):
+            f = os.path.join(AERIAL_DIR, f"{cx}_{cy}.jpg")
+            if not os.path.exists(f): continue
+            t = cv2.imread(f)
+            if t is None: continue
+            t = cv2.resize(t, (100, 100), interpolation=cv2.INTER_AREA).astype(np.float32)
+            c0 = int(round((cx * 200 - x0) / 2)); r0 = int(round((y1 - (cy + 1) * 200) / 2))
+            a0, b0 = max(0, r0), max(0, c0); a1, b1 = min(H, r0 + 100), min(W, c0 + 100)
+            if a1 <= a0 or b1 <= b0: continue
+            img[a0:a1, b0:b1] = t[a0 - r0:a1 - r0, b0 - c0:b1 - c0]; have[a0:a1, b0:b1] = True
+    if not have.any(): return Polygon()
+    b, g, r = img[..., 0], img[..., 1], img[..., 2]
+    exg = (2 * g - r - b) / np.maximum(r + g + b, 1)
+    br = (r + g + b) / 3; yel = (r + g) / 2 - b            # leaf-off imagery: dormant grass is dull, dark and yellowish
+    m = ((((exg > 0.06) & (g > 45)) | ((yel > 11) & (br < 108) & (br > 40))) & have).astype(np.uint8) * 255
+    m = (cv2.medianBlur(m, 3) > 0).astype(np.uint8)
+    cs, hier = cv2.findContours(m, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+    polys = []
+    for ci, cn in enumerate(cs):
+        if hier[0][ci][3] != -1 or cv2.contourArea(cn) < 6: continue
+        pts = [(x0 + (p[0][0] + 0.5) * 2, y1 - (p[0][1] + 0.5) * 2) for p in cn]
+        if len(pts) < 3: continue
+        holes = [[(x0 + (p[0][0] + 0.5) * 2, y1 - (p[0][1] + 0.5) * 2) for p in cs[hj]] for hj in range(len(cs))
+                 if hier[0][hj][3] == ci and len(cs[hj]) >= 3 and cv2.contourArea(cs[hj]) >= 6]
+        pg = Polygon(pts, holes).buffer(0)
+        if not pg.is_empty: polys.append(pg)
+    return unary_union(polys).simplify(1.0) if polys else Polygon()
+
 def yards(Rg, rb, generic, roads_r, side_r, rng_):
+    lot, lawn, extra = yards_0(Rg, rb, generic, roads_r, side_r, rng_)
+    if lot is not None and not lot.is_empty:
+        gr = green_of(rb)
+        if not gr.is_empty:
+            gl = safe(lambda a, b: a.intersection(b), lot, gr)
+            if not gl.is_empty:
+                lot = safe(lambda a, b: a.difference(b), lot, gl)
+                lawn = gl if lawn is None or lawn.is_empty else unary_union([lawn, gl])
+    return lot, lawn, extra
+
+def yards_0(Rg, rb, generic, roads_r, side_r, rng_):
     """split the leftover ground into lawns (around houses) and paved lots; add driveways, walks and shrubs."""
     if HOUSE_TREE is None or generic.is_empty: return generic, Polygon(), []
     hs = [_SMALL[i] for i in HOUSE_TREE.query(rb)]
@@ -1990,6 +2162,12 @@ log("replicas", len(REPLICAS))
 REPLICA_PLACED = []
 
 def do_building(e, g, cp, is_part):
+    """every building is level: its geometry and props sit on the lowest ground point of its footprint."""
+    ZBASE[0] = foot_base(g)
+    try: return _do_building(e, g, cp, is_part)
+    finally: ZBASE[0] = None
+
+def _do_building(e, g, cp, is_part):
     t = tags(e)
     _k = f"{e['type'][0]}{e['id']}"
     if _k in REPLICAS: return
@@ -2044,10 +2222,20 @@ def do_building(e, g, cp, is_part):
     if cls == "house" and not lm and not is_part and key in HWINGS and not exact:
         hw_ = HWINGS[key]
         if all("h" in w_ and w_.get("n", 0) >= 6 for w_ in hw_):
+            if e.get("_hcap"):
+                cap_ = e["_hcap"]
+                hw_ = [dict(w_, h=min(w_["h"], cap_), eave=min(w_["eave"], cap_ - 2.2)) for w_ in hw_]
             e["_hw"] = hw_
             st_ = _f(ct or {}, "c:stories", 0)
             # county story count -> least believable eave for the main body (LiDAR's low percentile catches porch roofs)
             e["_hw_eave"] = {1: 2.7, 1.3: 2.9, 1.5: 3.4, 2: 5.5, 2.5: 5.8, 3: 8.3}.get(st_, 0.0) if st_ else 0.0
+    bl = BLOOKS.get(key) if cls not in ("house", "garage") and not lm and not exact and not is_part else None
+    if bl and not mat.startswith(("h_", "hsid", "hbrk")):
+        wc = bl["cls"]
+        if wc == "brick": mat = mat if mat.startswith("brick") else "brick_red"
+        elif wc == "buff": mat = "brick_tan"
+        elif wc in ("light", "grey", "paint"): mat = "metal" if cls == "industrial" and wc != "paint" else "concrete"
+        mat = mat + "~" + bl["wall"][1:]
     hl = HLOOKS.get(key) if cls in ("house", "garage") and not lm else None
     if hl:
         if hl["w"] >= 0 and mat.startswith("h_clap_"): mat = mat.split("#")[0] + "@%d" % hl["w"]
@@ -2102,7 +2290,7 @@ def do_building(e, g, cp, is_part):
         if shown and shown not in labels_done and g.area > 400:
             labels_done.add(shown)
             c = chunk_at(cp.x, cp.y)
-            c.labels.append([shown, cp.x - c.ox, -(cp.y - c.oy), h + 3.0])
+            c.labels.append([shown, cp.x - c.ox, -(cp.y - c.oy), h + 3.0 + foot_base(g) if DEM_DIR else h + 3.0])
 
 # ---------------------------------------------------------------- spawn
 def find_spawn():
@@ -2197,8 +2385,10 @@ for ri in range(rx0, rx1 + 1):
         add_area(side_r, "sidewalk", 0.05, 3.0, True, GROUND_COL_Y)
         add_area(roads_r, "asphalt", 0.08, 6.0, True, GROUND_COL_Y)
         if not water_r.is_empty:
+            ZBASE[0] = 0.0                                  # water surface and bed are absolute levels
             add_area(water_r, "water", WATER_Y, 20.0)
             add_area(water_r, "riverbed", BED_Y, 10.0, True)
+            ZBASE[0] = None
             ring_walls(water_r, Rg.exterior, GROUND_COL_Y, BED_Y, "seawall")
         water_p = shapely.prepared.prep(water_r)
         hard = shapely.prepared.prep(unary_union([roads_r.buffer(0.5), water_r, side_r]))
@@ -2250,7 +2440,8 @@ for ri in range(rx0, rx1 + 1):
                 pt = Point(j[1], j[2])
                 if BBOX_P.contains(pt) and not hard.contains(pt):
                     c = chunk_at(j[1], j[2]); c.props.append(["tree", j[1] - c.ox, -(j[2] - c.oy), 0.0, j[3]])
-            elif k == "br": emit_bridge_seg(*j[1:])
+            elif k == "br":
+                ZBASE[0] = 0.0; emit_bridge_seg(*j[1:]); ZBASE[0] = None
             elif k == "wt":
                 _, mat_, a_, b_, c3_, n_, uv_, col_ = j
                 ch = chunk_at((a_[0] + b_[0] + c3_[0]) / 3, (a_[1] + b_[1] + c3_[1]) / 3)
@@ -2278,7 +2469,7 @@ manifest = {"chunk_size": CHUNK, "origin_lat": LAT0, "origin_lon": LON0, "chunks
 json.dump(manifest, open(os.path.join(OUTDIR, "manifest.json"), "w"))
 if os.environ.get("HPAL") and os.path.exists(os.environ["HPAL"]):     # paint palette the photo looks index into
     import shutil; shutil.copy(os.environ["HPAL"], os.path.join(OUTDIR, "house_palette.json"))
-REPLICA_PLACED = [{"key": k, "anchor": r["anchor"]} for k, r in sorted(REPLICAS.items())]
+REPLICA_PLACED = [{"key": k, "anchor": r["anchor"], "y": round(foot_base(r["foot"].buffer(-1.5)) if DEM_DIR else 0.0, 2)} for k, r in sorted(REPLICAS.items())]
 json.dump({"replicas": REPLICA_PLACED}, open(os.path.join(OUTDIR, "replicas.json"), "w"))
 log("replicas placed", len(REPLICA_PLACED))
 log("chunk spill sources", sorted(SPILL.items(), key=lambda kv: -kv[1])[:10])

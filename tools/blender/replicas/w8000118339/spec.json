@@ -1,0 +1,81 @@
+{
+ "name": "Locke Branch Library, 703 Miami St (2006)",
+ "refs": "Lucas County Auditor parcel 08319002 photos",
+ "notes": "Modern branch library: red brick walls with buff split-face base, steep crossing gables clad in tan siding with a big arched-glass gable end, standing-seam/shingle roofs, curved entrance canopy.",
+ "materials": {
+  "base": "brick_buff",
+  "body": "brick_red",
+  "trim": "precast",
+  "cornice": "precast",
+  "pier": "brick_red",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "sill": "precast"
+ },
+ "bay": 3.0,
+ "corner_pier": 1.0,
+ "window": {
+  "w": 0.8,
+  "h": 0.6,
+  "group": 1,
+  "depth": 0.15,
+  "mull": "cross",
+  "sill_frac": 0.35
+ },
+ "parts": [
+  {
+   "rect": [
+    -0.23,
+    -0.04,
+    37.0,
+    22.0,
+    -88.46
+   ],
+   "z1": 4.6,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.6
+    }
+   ],
+   "plinth": 0.8,
+   "roof": {
+    "type": "hip",
+    "h": 3.6,
+    "mat": "shingle",
+    "overhang": 0.5
+   }
+  },
+  {
+   "rect": [
+    -0.21,
+    -0.54,
+    8.0,
+    26.0,
+    -88.46
+   ],
+   "z1": 5.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.0,
+     "kind": "storefront",
+     "glass_h": 0.95
+    }
+   ],
+   "mat_over": {
+    "body": "siding_cream",
+    "base": "siding_cream"
+   },
+   "roof": {
+    "type": "gable",
+    "h": 6.4,
+    "mat": "shingle",
+    "overhang": 0.5
+   }
+  }
+ ]
+}

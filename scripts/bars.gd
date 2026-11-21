@@ -121,7 +121,7 @@ func add_exterior(chunk_root: Node3D, b: Array) -> void:
 	var th: Dictionary = THEMES.get(theme, THEMES["BAR"])
 	var anchor := Node3D.new()
 	anchor.name = "bar_" + theme.replace(" ", "_").replace("'", "")
-	anchor.position = Vector3(b[1], 0.0, b[2])
+	anchor.position = Vector3(b[1], float(b[6]) if b.size() > 6 else 0.0, b[2])
 	anchor.rotation.y = b[3]
 	chunk_root.add_child(anchor)
 	var sign_col := _col(th["sign"])

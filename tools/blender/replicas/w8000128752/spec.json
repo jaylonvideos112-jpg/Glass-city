@@ -1,0 +1,87 @@
+{
+ "name": "The Hungarian Club, 224 Paine Ave (1914)",
+ "refs": "Lucas County Auditor parcel 08130007 photos",
+ "notes": "Dark brown brick two-storey front with a white three-arched loggia on columns over the doors, three painted heritage panels (Hungarian flag between) and cream block accents above; a long one-storey brick hall behind.",
+ "materials": {
+  "base": "precast",
+  "body": "brick_brown",
+  "trim": "paint_white",
+  "cornice": "paint_white",
+  "pier": "brick_brown",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_brown",
+  "parapet": "brick_brown",
+  "arch": "paint_white",
+  "sill": "paint_white",
+  "door": "frame_dark"
+ },
+ "bay": 2.6,
+ "corner_pier": 0.8,
+ "window": {
+  "w": 0.55,
+  "h": 0.45,
+  "group": 1,
+  "depth": 0.12,
+  "mull": "none",
+  "sill_frac": 0.5
+ },
+ "parts": [
+  {
+   "rect": [
+    -1.0,
+    -0.9,
+    26.0,
+    8.0,
+    46.41
+   ],
+   "z1": 5.4,
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.4
+    }
+   ],
+   "style": "solid",
+   "parapet": 0.4,
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    10.040000000000001,
+    10.425999999999998,
+    4.0,
+    8.0,
+    46.41
+   ],
+   "z1": 7.8,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.8,
+     "kind": "storefront",
+     "glass_h": 0.9
+    },
+    {
+     "n": 1,
+     "h": 4.0
+    }
+   ],
+   "pilaster": 0.5,
+   "bay": 2.6,
+   "parapet": 0.6,
+   "cornice": {
+    "h": 0.25,
+    "out": 0.12,
+    "profile": "fascia"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

@@ -1,0 +1,78 @@
+{
+ "name": "Toledo Sports Center, 1516 Starr Ave (1963)",
+ "refs": "Lucas County Auditor parcel 08165002 photos",
+ "notes": "Long windowless 1960s red brick hall with a red standing-seam mansard fascia, small entrance under a fabric canopy, low brick annex.",
+ "materials": {
+  "base": "limestone",
+  "body": "brick_red",
+  "trim": "precast",
+  "cornice": "precast",
+  "pier": "brick_red",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "parapet": "brick_red",
+  "arch": "precast",
+  "sill": "precast",
+  "door": "frame_dark"
+ },
+ "bay": 6.0,
+ "corner_pier": 1.0,
+ "window": {
+  "w": 0.5,
+  "h": 0.4,
+  "group": 1,
+  "depth": 0.1,
+  "mull": "none",
+  "sill_frac": 0.5
+ },
+ "parts": [
+  {
+   "rect": [
+    12.73,
+    -2.75,
+    36.0,
+    53.0,
+    -178.8
+   ],
+   "z1": 4.8,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.8
+    }
+   ],
+   "style": "solid",
+   "roof": {
+    "type": "mansard",
+    "h": 1.2,
+    "pitch": 70,
+    "mat": "tile_red",
+    "overhang": 0.3
+   }
+  },
+  {
+   "rect": [
+    -14.5,
+    7.42,
+    25.0,
+    33.0,
+    -178.8
+   ],
+   "z1": 3.5,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.5
+    }
+   ],
+   "style": "solid",
+   "parapet": 0.3,
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

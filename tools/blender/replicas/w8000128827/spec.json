@@ -1,0 +1,14 @@
+{"name":"St. Stephen Catholic Church (Hungarian), 1880 Genesee St (1914)","refs":"Lucas County Auditor parcel 08127034 photos","notes":"Romanesque Revival in dark brown tapestry brick with cream terra-cotta: twin square front towers (~29 m, LiDAR) with low caps, big wheel window in the front gable, triple round-arched entrance under a red tile canopy, round-arched nave windows.",
+ "materials":{"base":"limestone","body":"brick_brown","trim":"terracotta_cream","cornice":"terracotta_cream","pier":"brick_brown","frame":"frame_dark","glass":"glass_window","shop_glass":"glass_shop","roof":"roof_flat","solid":"brick_brown","parapet":"brick_brown","arch":"terracotta_cream","sill":"terracotta_cream"},
+ "bay":4.4,"corner_pier":1.6,
+ "window":{"w":0.42,"h":0.5,"group":1,"depth":0.3,"mull":"vertical","sill_frac":0.5},
+ "parts":[
+  {"rect":[0.32,1.75,37.0,20.0,68.21],"z1":13.0,"floors":[{"n":1,"h":2.0,"kind":"blank"},{"n":1,"h":11.0,"arched":true}],"plinth":1.0,
+   "cornice":{"h":0.6,"out":0.3,"profile":"corbel"},"roof":{"type":"gable","h":4.6,"mat":"slate","overhang":0.35},"rose":{"end":1,"r":2.0}},
+  {"rect":[0.5,18.37,6.0,6.0,68.21],"z1":25.0,"floors":[{"n":1,"h":13.0,"kind":"blank"},{"n":1,"h":12.0,"arched":true}],"bay":2.4,"corner_pier":1.2,
+   "window":{"w":0.5,"h":0.45,"group":2,"group_gap":0.15,"depth":0.35,"mull":"vertical","sill_frac":0.5},
+   "belts":[{"above_floor":1,"h":0.4,"out":0.15}],"cornice":{"h":0.7,"out":0.35,"profile":"corbel"},"roof":{"type":"pyramid","h":3.8,"mat":"tile_red","overhang":0.3}},
+  {"rect":[13.87,14.1,6.0,6.0,68.21],"z1":25.0,"floors":[{"n":1,"h":13.0,"kind":"blank"},{"n":1,"h":12.0,"arched":true}],"bay":2.4,"corner_pier":1.2,
+   "window":{"w":0.5,"h":0.45,"group":2,"group_gap":0.15,"depth":0.35,"mull":"vertical","sill_frac":0.5},
+   "belts":[{"above_floor":1,"h":0.4,"out":0.15}],"cornice":{"h":0.7,"out":0.35,"profile":"corbel"},"roof":{"type":"pyramid","h":3.8,"mat":"tile_red","overhang":0.3}}
+ ]}

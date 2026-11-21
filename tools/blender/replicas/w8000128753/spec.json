@@ -1,0 +1,108 @@
+{
+ "name": "Birmingham Branch Library, 2206 Genesee St (1925)",
+ "refs": "Lucas County Auditor parcel 08131020 photos",
+ "notes": "Georgian Revival branch library: red brick with a white classical entrance (arched fanlight, pilasters, pediment) in the centre of a long front of tall many-paned windows, side-gabled slate roof, end chimney, small wing.",
+ "materials": {
+  "base": "precast_white",
+  "body": "brick_red",
+  "trim": "paint_white",
+  "cornice": "paint_white",
+  "pier": "brick_red",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "arch": "paint_white",
+  "sill": "precast_white"
+ },
+ "bay": 2.4,
+ "corner_pier": 1.6,
+ "window": {
+  "w": 0.75,
+  "h": 0.62,
+  "group": 1,
+  "depth": 0.15,
+  "mull": "cross",
+  "sill_frac": 0.45
+ },
+ "parts": [
+  {
+   "rect": [
+    -1.05,
+    0.51,
+    22.0,
+    18.0,
+    136.63
+   ],
+   "z1": 5.2,
+   "floors": [
+    {
+     "n": 1,
+     "h": 0.9,
+     "kind": "blank"
+    },
+    {
+     "n": 1,
+     "h": 4.3
+    }
+   ],
+   "plinth": 0.9,
+   "cornice": {
+    "h": 0.45,
+    "out": 0.3,
+    "profile": "classical"
+   },
+   "roof": {
+    "type": "gable",
+    "h": 3.2,
+    "mat": "slate",
+    "overhang": 0.3
+   },
+   "chimneys": [
+    {
+     "at": [
+      -9.0,
+      9.0
+     ],
+     "w": 1.4,
+     "d": 1.0,
+     "z0": 5,
+     "z1": 9.6,
+     "ang": 136.63
+    }
+   ]
+  },
+  {
+   "rect": [
+    11.41,
+    -2.32,
+    9.0,
+    4.0,
+    136.63
+   ],
+   "z1": 4.2,
+   "floors": [
+    {
+     "n": 1,
+     "h": 4.2
+    }
+   ],
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ],
+ "portico": {
+  "facing": [
+   -0.729,
+   0.685
+  ],
+  "width": 4.2,
+  "depth": 1.4,
+  "h": 4.6,
+  "columns": 2,
+  "r": 0.22,
+  "pediment": true
+ }
+}

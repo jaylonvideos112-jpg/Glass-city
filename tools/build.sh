@@ -17,7 +17,7 @@ BBOX="41.4560 -83.9160 41.7900 -83.2400"            # S W N E: the whole island 
 DT_BBOX="41.6420 -83.5510 41.6625 -83.5280"         # downtown test box
 cd "$WORK"
 export COUNTY=osm LIDAR=lidar/buildings.pkl LIDAR2=lidar/county.pkl LIDAR3=lidar/downtown_exact.pkl LTREES=lidar/trees.json
-export HWINGS=lidar/house_wings.pkl HLOOKS=lidar/house_looks_keys.json HPAL=lidar/house_palette.json
+export HWINGS=lidar/house_wings.pkl HLOOKS=lidar/house_looks_keys.json HPAL=lidar/house_palette.json DEM=lidar/dem BLOOKS=lidar/bld_looks_keys.json
 export BARS="$REPO/source_data/bars.json" FACADES="$REPO/source_data/facades.json"
 build() {   # $1 = bbox
   rm -rf /tmp/glasscity_build && python3 "$P/build_city.py" "${OSMSRC:-osm/city_all}" /tmp/glasscity_build $1

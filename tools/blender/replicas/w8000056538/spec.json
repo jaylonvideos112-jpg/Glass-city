@@ -1,0 +1,117 @@
+{
+ "name": "Eagle Academy (former St. Stephen school), 2014 Consaul St",
+ "refs": "Lucas County Auditor parcel 08127001 photos",
+ "notes": "Three-storey dark brown tapestry brick school with wide grouped windows, a richly carved cream terra-cotta entrance bay (scrolled pediment, cartouche and cross, arched window) over a stair to the raised doorway, stone base and belt course, green copper cornice.",
+ "materials": {
+  "base": "precast",
+  "body": "brick_brown",
+  "trim": "terracotta_cream",
+  "cornice": "terracotta_cream",
+  "pier": "brick_brown",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_brown",
+  "parapet": "brick_brown",
+  "arch": "terracotta_cream",
+  "sill": "terracotta_cream",
+  "door": "frame_dark"
+ },
+ "bay": 5.0,
+ "corner_pier": 1.6,
+ "window": {
+  "w": 0.82,
+  "h": 0.62,
+  "group": 3,
+  "group_gap": 0.12,
+  "depth": 0.15,
+  "mull": "transom",
+  "sill_frac": 0.5
+ },
+ "parts": [
+  {
+   "rect": [
+    1.13,
+    8.46,
+    28.0,
+    19.0,
+    -111.46
+   ],
+   "z1": 13.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 2.2,
+     "kind": "blank"
+    },
+    {
+     "n": 3,
+     "h": 3.6
+    }
+   ],
+   "plinth": 2.2,
+   "cornice": {
+    "h": 0.6,
+    "out": 0.4,
+    "profile": "classical"
+   },
+   "mat_over": {
+    "cornice": "copper"
+   },
+   "belts": [
+    {
+     "above_floor": 1,
+     "h": 0.35,
+     "out": 0.12
+    }
+   ],
+   "roof": {
+    "type": "flat"
+   },
+   "portal": {
+    "dir": [
+     0.93,
+     -0.367
+    ],
+    "w": 6.0,
+    "proj": 0.6,
+    "z1": 13.8,
+    "door_w": 2.6,
+    "door_z": 2.2,
+    "door_h": 2.6,
+    "windows": [
+     [
+      7.0,
+      9.6,
+      2
+     ],
+     [
+      10.4,
+      12.6,
+      2
+     ]
+    ]
+   }
+  },
+  {
+   "rect": [
+    -1.8,
+    -10.0,
+    24.0,
+    19.0,
+    -111.46
+   ],
+   "z1": 5.6,
+   "floors": [
+    {
+     "n": 1,
+     "h": 5.6
+    }
+   ],
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

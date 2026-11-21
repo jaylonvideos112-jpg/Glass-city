@@ -1,0 +1,115 @@
+{
+ "name": "St. Thomas Aquinas school, 1430 Idaho St (1923)",
+ "refs": "Lucas County Auditor parcel 08192001 photos",
+ "notes": "Two-storey buff tapestry brick school, Prairie-style: big grouped classroom windows (4 x 2 lights) framed in white, white belt and sill courses, round medallions, low hipped red clay-tile roof with deep eaves, tall brick chimney; plain flat-roofed brick gym at the back.",
+ "materials": {
+  "base": "precast_white",
+  "body": "brick_buff",
+  "trim": "precast_white",
+  "cornice": "precast_white",
+  "pier": "brick_buff",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_buff",
+  "parapet": "brick_buff"
+ },
+ "bay": 4.6,
+ "corner_pier": 2.4,
+ "window": {
+  "w": 0.82,
+  "h": 0.68,
+  "group": 4,
+  "group_gap": 0.12,
+  "depth": 0.15,
+  "mull": "cross",
+  "sill_frac": 0.55,
+  "surround": {
+   "w": 0.14,
+   "d": 0.04,
+   "quoin": 3.0,
+   "label": false
+  }
+ },
+ "parts": [
+  {
+   "rect": [
+    -1.91,
+    6.38,
+    29.0,
+    16.0,
+    99.56
+   ],
+   "z1": 7.9,
+   "floors": [
+    {
+     "n": 1,
+     "h": 0.9,
+     "kind": "blank"
+    },
+    {
+     "n": 2,
+     "h": 3.5
+    }
+   ],
+   "plinth": 0.9,
+   "belts": [
+    {
+     "above_floor": 2,
+     "h": 0.25,
+     "out": 0.08
+    }
+   ],
+   "cornice": {
+    "h": 0.3,
+    "out": 0.15,
+    "profile": "belt"
+   },
+   "roof": {
+    "type": "hip",
+    "h": 2.2,
+    "mat": "tile_red",
+    "overhang": 0.9
+   },
+   "chimneys": [
+    {
+     "at": [
+      -7.4,
+      17.6
+     ],
+     "w": 1.6,
+     "d": 1.2,
+     "z0": 6,
+     "z1": 11.6,
+     "ang": 99.56
+    }
+   ]
+  },
+  {
+   "rect": [
+    2.32,
+    -14.72,
+    10.0,
+    17.0,
+    99.56
+   ],
+   "z1": 7.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 7.0,
+     "kind": "blank"
+    }
+   ],
+   "cornice": {
+    "h": 0.3,
+    "out": 0.08,
+    "profile": "fascia"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

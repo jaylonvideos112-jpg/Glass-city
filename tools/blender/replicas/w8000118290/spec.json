@@ -1,0 +1,110 @@
+{
+ "name": "East Toledo Family Center - Warren Densmore Building, 1001 White Ave",
+ "refs": "Lucas County Auditor parcel 07900003 photo (2011); aerial + LiDAR",
+ "notes": "Mid-century community centre: two storeys of brown-red brick with a deep white precast fascia band, ground floor of big aluminium-framed windows between brick piers, a taller plain brick gym/hall block in the middle with its own precast band, low one-storey wing.",
+ "materials": {
+  "base": "brick_brown",
+  "body": "brick_brown",
+  "trim": "precast_white",
+  "cornice": "precast_white",
+  "pier": "brick_brown",
+  "frame": "metal_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_brown",
+  "parapet": "precast_white"
+ },
+ "bay": 3.6,
+ "corner_pier": 1.4,
+ "window": {
+  "w": 0.82,
+  "h": 0.42,
+  "group": 1,
+  "depth": 0.12,
+  "mull": "vertical",
+  "sill_frac": 0.55
+ },
+ "parts": [
+  {
+   "rect": [
+    -2.21,
+    0.24,
+    50.0,
+    37.0,
+    -68.12
+   ],
+   "z1": 6.2,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.3,
+     "kind": "storefront",
+     "glass_h": 0.86
+    },
+    {
+     "n": 1,
+     "h": 2.9
+    }
+   ],
+   "pilaster": 0.9,
+   "cornice": {
+    "h": 1.1,
+    "out": 0.18,
+    "profile": "fascia"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    -1.0,
+    -4.12,
+    29.0,
+    30.0,
+    -68.12
+   ],
+   "z1": 10.3,
+   "floors": [
+    {
+     "n": 1,
+     "h": 10.3,
+     "kind": "blank"
+    }
+   ],
+   "cornice": {
+    "h": 1.1,
+    "out": 0.15,
+    "profile": "fascia"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  },
+  {
+   "rect": [
+    25.0,
+    -7.15,
+    16.0,
+    8.0,
+    -68.12
+   ],
+   "z1": 3.5,
+   "floors": [
+    {
+     "n": 1,
+     "h": 3.5
+    }
+   ],
+   "cornice": {
+    "h": 0.5,
+    "out": 0.1,
+    "profile": "fascia"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

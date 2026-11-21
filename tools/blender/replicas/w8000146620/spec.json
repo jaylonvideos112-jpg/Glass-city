@@ -1,0 +1,83 @@
+{
+ "name": "Memorial United Church of Christ, 367 Plymouth St (1921)",
+ "refs": "Lucas County Auditor parcel 08196024 photos",
+ "notes": "Grey rock-faced limestone church with steep gabled fronts, tall narrow mullioned windows and a gabled entrance, joined to a 1960s wing of aqua glass curtain wall with a limestone-framed entry bay and a cross.",
+ "materials": {
+  "base": "stone_lime",
+  "body": "stone_lime",
+  "trim": "limestone",
+  "cornice": "limestone",
+  "pier": "stone_lime",
+  "frame": "frame_dark",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "stone_lime",
+  "parapet": "stone_lime",
+  "arch": "limestone",
+  "sill": "limestone",
+  "door": "paint_red"
+ },
+ "bay": 2.4,
+ "corner_pier": 1.2,
+ "window": {
+  "w": 0.4,
+  "h": 0.7,
+  "group": 1,
+  "depth": 0.25,
+  "mull": "vertical",
+  "sill_frac": 0.4
+ },
+ "parts": [
+  {
+   "rect": [
+    -5.0,
+    -7.04,
+    26.0,
+    12.0,
+    -88.45
+   ],
+   "z1": 9.6,
+   "floors": [
+    {
+     "n": 1,
+     "h": 9.6
+    }
+   ],
+   "roof": {
+    "type": "gable",
+    "h": 3.6,
+    "mat": "slate",
+    "overhang": 0.2
+   }
+  },
+  {
+   "rect": [
+    0.7,
+    4.12,
+    20.0,
+    14.0,
+    -88.45
+   ],
+   "z1": 8.0,
+   "floors": [
+    {
+     "n": 2,
+     "h": 4.0
+    }
+   ],
+   "style": "curtain",
+   "curtain": {
+    "mullion": 1.4,
+    "spandrel": 0.6
+   },
+   "mat_over": {
+    "curtain_glass": "glass_teal",
+    "mullion": "metal_light"
+   },
+   "roof": {
+    "type": "flat"
+   }
+  }
+ ]
+}

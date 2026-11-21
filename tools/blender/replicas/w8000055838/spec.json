@@ -1,0 +1,99 @@
+{
+ "name": "Salem United Methodist Church, 610 Federal St (1908)",
+ "refs": "Lucas County Auditor parcel 08238001 photos (2026)",
+ "notes": "Small red brick Gothic church on a rock-faced stone base: steep front gable with a big pointed-arch traceried window and red double doors, a white-sided square corner bell tower with louvred belfry and a short pyramid spire (~18 m).",
+ "materials": {
+  "base": "stone_lime",
+  "body": "brick_red",
+  "trim": "paint_white",
+  "cornice": "paint_white",
+  "pier": "brick_red",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "parapet": "brick_red",
+  "arch": "paint_white",
+  "sill": "limestone"
+ },
+ "bay": 3.4,
+ "corner_pier": 1.2,
+ "window": {
+  "w": 0.5,
+  "h": 0.55,
+  "group": 1,
+  "depth": 0.2,
+  "mull": "vertical",
+  "sill_frac": 0.45
+ },
+ "parts": [
+  {
+   "rect": [
+    -0.57,
+    0.1,
+    22.0,
+    13.0,
+    1.67
+   ],
+   "z1": 6.5,
+   "floors": [
+    {
+     "n": 1,
+     "h": 1.5,
+     "kind": "blank"
+    },
+    {
+     "n": 1,
+     "h": 5.0,
+     "arched": true
+    }
+   ],
+   "plinth": 1.5,
+   "roof": {
+    "type": "gable",
+    "h": 4.6,
+    "mat": "shingle",
+    "overhang": 0.35
+   },
+   "rose": {
+    "end": 1,
+    "r": 1.4
+   }
+  },
+  {
+   "rect": [
+    6.78,
+    5.32,
+    4.0,
+    4.0,
+    1.67
+   ],
+   "z1": 12.0,
+   "floors": [
+    {
+     "n": 1,
+     "h": 8.0,
+     "kind": "blank"
+    },
+    {
+     "n": 1,
+     "h": 4.0,
+     "arched": true
+    }
+   ],
+   "bay": 1.6,
+   "corner_pier": 0.7,
+   "mat_over": {
+    "body": "siding_white",
+    "solid": "siding_white"
+   },
+   "roof": {
+    "type": "pyramid",
+    "h": 6.0,
+    "mat": "shingle",
+    "overhang": 0.3
+   }
+  }
+ ]
+}

@@ -1,0 +1,91 @@
+{
+ "name": "Early Childhood Center (former school), 255 Heffner St (1920)",
+ "refs": "Lucas County Auditor parcel 08050011 photos",
+ "notes": "One-storey red brick school on a raised basement: long fronts of big grouped windows, a central entrance bay with a stone-trimmed doorway and name band, flat roof with a stone coping, tall square brick chimney.",
+ "materials": {
+  "base": "precast",
+  "body": "brick_red",
+  "trim": "limestone",
+  "cornice": "limestone",
+  "pier": "brick_red",
+  "frame": "frame_white",
+  "glass": "glass_window",
+  "shop_glass": "glass_shop",
+  "roof": "roof_flat",
+  "solid": "brick_red",
+  "parapet": "brick_red",
+  "arch": "limestone",
+  "sill": "limestone",
+  "door": "frame_dark"
+ },
+ "bay": 4.6,
+ "corner_pier": 1.6,
+ "window": {
+  "w": 0.82,
+  "h": 0.55,
+  "group": 3,
+  "group_gap": 0.12,
+  "depth": 0.15,
+  "mull": "cross",
+  "sill_frac": 0.5
+ },
+ "parts": [
+  {
+   "rect": [
+    -0.89,
+    0.7,
+    40.0,
+    21.0,
+    -178.74
+   ],
+   "z1": 6.1,
+   "floors": [
+    {
+     "n": 1,
+     "h": 1.3,
+     "kind": "blank"
+    },
+    {
+     "n": 1,
+     "h": 4.8
+    }
+   ],
+   "plinth": 1.3,
+   "cornice": {
+    "h": 0.4,
+    "out": 0.15,
+    "profile": "belt"
+   },
+   "parapet": 0.4,
+   "roof": {
+    "type": "flat"
+   },
+   "portal": {
+    "dir": [
+     0.036,
+     -0.999
+    ],
+    "w": 6.0,
+    "proj": 0.6,
+    "z1": 6.9,
+    "door_w": 2.4,
+    "door_z": 1.3,
+    "door_h": 2.3,
+    "windows": []
+   },
+   "chimneys": [
+    {
+     "at": [
+      8.0,
+      8.0
+     ],
+     "w": 1.8,
+     "d": 1.8,
+     "z0": 5,
+     "z1": 13.5,
+     "ang": -178.74
+    }
+   ]
+  }
+ ]
+}
