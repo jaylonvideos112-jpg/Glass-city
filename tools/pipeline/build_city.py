@@ -1492,6 +1492,48 @@ def dormer(c, p, wl, fe, mat):
             _modelz("hp_attic", mx + ux * t - nx * (s0 - 0.01), my + uy * t - ny * (s0 - 0.01), zb + 0.12, nx, ny)
         return
 
+YARD_LIFE = os.environ.get("YARD_LIFE", "1") == "1"
+def yard_life(c, p, fe, st, porch_span, rnd, hsh):
+    """What makes a street look lived in (Bully, not a store-asset town): foundation shrubs along the front, the
+    city trash carts beside the house, and now and then a bike, a grill, patio chairs on the porch or a kids'
+    slide. Deterministic per house. Nothing is placed inside the house."""
+    if not YARD_LIFE or fe is None: return
+    x0, y0, ux, uy, nx, ny, L = fe
+    inside = lambda x, y: p.buffer(0.35).contains(Point(x, y))
+    def put(name, x, y, fx, fy, z=None):
+        if inside(x, y) and z is None: return
+        (_model(name, x, y, fx, fy) if z is None else _modelz(name, x, y, z, fx, fy))
+    # foundation shrubs along the front, clear of the porch and the door
+    if hsh(x0, y0, 1.0) < 0.75:
+        n = 2 + int(hsh(x0, y0, 2.0) * 3)
+        for i in range(n):
+            t = (i + 0.5) * L / n
+            if porch_span and porch_span[0] - 0.6 < t < porch_span[1] + 0.6: continue
+            put("yard_shrub", x0 + ux * t + nx * 0.7, y0 + uy * t + ny * 0.7, nx, ny)
+    # two trash carts beside the house, a few metres back from the front corner
+    if hsh(x0, y0, 3.0) < 0.7:
+        side = -1 if hsh(x0, y0, 4.0) < 0.5 else 1
+        bx_, by_ = (x0, y0) if side < 0 else (x0 + ux * L, y0 + uy * L)
+        for k in range(2):
+            put("yard_toter", bx_ + ux * side * 1.0 - nx * (2.0 + k * 0.85), by_ + uy * side * 1.0 - ny * (2.0 + k * 0.85), nx, ny)
+    # porch chairs
+    if porch_span and st.get("porch") == "F" and hsh(x0, y0, 5.0) < 0.45:
+        for k in (0.25, 0.4):
+            t = porch_span[0] + (porch_span[1] - porch_span[0]) * k
+            put("yard_chair", x0 + ux * t + nx * 1.1, y0 + uy * t + ny * 1.1, nx, ny, z=DECK)
+    r = hsh(x0, y0, 6.0)
+    if r < 0.16:      # a bike by the porch steps
+        t = (porch_span[1] + 0.8) if porch_span else L * 0.7
+        put("yard_bike", x0 + ux * min(t, L - 0.5) + nx * 1.6, y0 + uy * min(t, L - 0.5) + ny * 1.6, ux, uy)
+    elif r < 0.36:    # a grill in the side yard
+        side = 1 if hsh(x0, y0, 7.0) < 0.5 else -1
+        bx_, by_ = (x0, y0) if side < 0 else (x0 + ux * L, y0 + uy * L)
+        put("yard_grill", bx_ + ux * side * 1.6 - nx * 5.0, by_ + uy * side * 1.6 - ny * 5.0, nx, ny)
+    elif r < 0.44:    # a kids' slide in the side yard
+        side = 1 if hsh(x0, y0, 8.0) < 0.5 else -1
+        bx_, by_ = (x0, y0) if side < 0 else (x0 + ux * L, y0 + uy * L)
+        put("yard_slide", bx_ + ux * side * 2.4 - nx * 4.0, by_ + uy * side * 2.4 - ny * 4.0, ux, uy)
+
 REGION_WALKS = []
 def house_detail(c, p, wl, rnd, want_porch, mat, addr=None, look=None):
     """Real-looking house skin: 3D double-hung windows on every wall and floor, attic windows in the gables, a panel
@@ -1512,11 +1554,16 @@ def house_detail(c, p, wl, rnd, want_porch, mat, addr=None, look=None):
             porch_span = (t0, t0 + pw)
             porch3d(c, x0 + ux * t0, y0 + uy * t0, ux, uy, nx, ny, pw, rnd, st, mat)
         if st["dormer"]: dormer(c, p, wl, fe, mat)
+    yard_life(c, p, fe, st, porch_span, rnd, hsh)
     cs = list(p.exterior.coords)
     for ei, ((ax, ay), (bx, by)) in enumerate(zip(cs, cs[1:])):
         L = math.hypot(bx - ax, by - ay)
         if L < 1.0: continue
         ux, uy = (bx - ax) / L, (by - ay) / L; nx, ny = uy, -ux
+        if YARD_LIFE and L >= 1.5:     # grime band: splash-back and dirt along the bottom of every wall
+            quad(c, "grime_base", to3(c, ax + nx * 0.025, ay + ny * 0.025, 0.0), to3(c, bx + nx * 0.025, by + ny * 0.025, 0.0),
+                 to3(c, bx + nx * 0.025, by + ny * 0.025, 1.0), to3(c, ax + nx * 0.025, ay + ny * 0.025, 1.0),
+                 (nx, 0.0, -ny), [(0, 0), (L / 2.5, 0), (L / 2.5, 1), (0, 1)])     # image top row = wall base
         # corner board at the start of every edge (convex corners; concave ones hide inside the wall)
         if TRIM_MAT[0] and mat.startswith("hsid"):
             cbox(c, ax + nx * 0.03 + ux * 0.07, ay + ny * 0.03 + uy * 0.07, (ux, uy), (nx, ny), 0.07, 0.03, DECK - 0.05, min(low, 9.0) - 0.05, TRIM_MAT[0], trim=True)

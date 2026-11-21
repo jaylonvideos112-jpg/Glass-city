@@ -44,6 +44,15 @@ It is the owner's passion project for his own city.
     - 7.5 m slots, 42% filled, none within 11 m of a corner.
     - Roster models and paints; static colliders on layer 2.
     - `--no-parked` turns it off. Test: `parked_cars_line_side_streets`.
+  - **Yard life** (`build_city.yard_life`, models from `tools/blender/yard_props.py`): `YARD_LIFE=0` turns it off.
+    - Foundation shrubs along house fronts (75% of houses).
+    - Two city trash carts beside the house (70%).
+    - Patio chairs on full porches (45%).
+    - Now and then a bike by the steps, a grill or a kids' slide in the side yard.
+    - All deterministic per house.
+  - **Grime band:** a 1 m dirt and splash-back strip (`textures/grime_base.png`, transparent) along the bottom of every house wall.
+  - **Bark:** 3D tree trunks use `textures/bark_painted.png` (triplanar).
+  - `ModelLib` makes textured see-through cards on any model alpha-tested.
   - **Scenery shots** (`@cam`) hide passers-by within 12 m of the camera.
   - **3D grass** (owner, 2026-11-21): `scripts/grass.gd` + `shaders/grass.gdshader`. Real blade clumps (9 curved blades each) on every lawn and grass area within 46 m of the camera.
     - Grass is split into 8 m cells per chunk and scattered area-weighted with a fixed seed: 7 clumps/m² close up, 2.2 at the edge, capped at 520 per cell.
@@ -298,8 +307,10 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 - Traffic graph follows the terrain; tests reset to the spawn point.
 - Commits through `9608c15`.
 
+**Partial rebuild 2026-11-21:** East Toledo (lat 41.6205–41.6672, lon −83.5283 to −83.4910) was rebuilt on its own in 143 s, with yard life, grime and the brick-shop colour fix. Its 375 interior chunks were copied into `data/chunks`. The next full build regenerates everything consistently.
+
 **Not yet done:**
-- **Main St:** the last screenshot showed modern white buildings with big glass. The real buildings are 1890s–1920s brown and red brick storefronts.
+- **Main St:** (fix now in the East Toledo chunks; verify in a screenshot) the last screenshot showed modern white buildings with big glass. The real buildings are 1890s–1920s brown and red brick storefronts.
   - The fix is in code: light photo colours are no longer trusted on brick shops.
   - It needs a rebuild. Plan: a fast bbox build of the Main St area (lat 41.6402–41.6501, lon −83.5259 to −83.5115), with only those chunk files copied into `data/chunks`.
 - The theater front (EASTGATE marquee) is rebuilt but not yet seen in-game. Its earlier screenshot was taken from the back; it faces E Broadway.
@@ -893,6 +904,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/blender/replica.py` | Blender (bpy) replica builder: a real building recreated on its exact LiDAR footprint from a hand-written spec (tools/blender/replicas/<key>/spec.json, written from reference photos) + massing.json (replica_massing.py). Geometry: every facade of the main tier is a grid of floors x bays; window cells are recessed with reveals and a sill, glass set back, optional mullions; wall cells stay flush. Piers stand proud of the wall, belt courses and the cornice are profiles swept around the footprint, storefront bases get big glass with stone pilasters. Upper LiDAR tiers become penthouses / mechanical floors. UVs are world-scale (1 unit = 1 m) so the game's tiling PBR materials fit; material names … |
 | `tools/blender/rigged_people.py` | Blender (bpy): skinned, skeletal-animated people for GLASS CITY (and the Unreal port). Body: MakeHuman CC0 base mesh + ethnicity/gender targets (tools/blender/mh), skinned to the MPFB2 'game_engine' rig (CC0) - 53 bones named like the Unreal mannequin (pelvis, spine_01..03, thigh_l, calf_l, upperarm_l, ...), so the same files retarget straight onto UE5's Manny/Quinn. Animation: CMU Graphics Lab motion capture (cgspeed BVH conversion; free for any use), retargeted per bone: target_world = swing(bone axis -> mocap segment direction) * mocap_global_rotation * target_rest. Locomotion clips are cut to a single seamless gait cycle (best-matching frame pair) and played in place; the game moves the … |
 | `tools/blender/street_props.py` | Blender (bpy) procedural street props, bevelled and subdivided, exported as .glb into assets/models/. Godot faces -Z = Blender +Y, so every prop's 'front' (road side) points +Y here. usage: bpyenv/bin/python tools/blender/street_props.py OUTDIR |
+| `tools/blender/yard_props.py` | Lived-in yard props (Blender, bpy): what makes a Bully-style street feel inhabited, not like a store-asset town. yard_toter wheeled trash bin (Toledo's city carts), lid and handle yard_bike kid's bike leaning on its kickstand yard_chair white plastic patio chair yard_grill kettle grill on three legs yard_slide small plastic kids' slide yard_shrub foundation shrub: a lumpy clump of painted leaf cards (same style as tools/blender/bully_trees.py) Exported to assets/models/<name>.glb; build_city.py places them per house ("m:<name>" props). usage: bpyenv/bin/python tools/blender/yard_props.py -- OUTDIR |
 
 ### Character creator (`tools/blender/charcreator/`)
 
@@ -925,7 +937,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/dbg/helpers/study.sh` | usage: study.sh KEY ASSR [bands] |
 | `tools/dbg/helpers/tz.py` | — |
 
-Also: `tools/blender/replicas/<key>/{spec,massing}.json` (97 landmark specs), `tools/blender/mh/` (MakeHuman base mesh, targets, rig and weights; see its SOURCE.md), `assets/models/` (177 .glb models), `textures/` (procedural + Poly Haven PBR), `scenes/`, `fonts/`, `assets_src/` (source models, not shipped).
+Also: `tools/blender/replicas/<key>/{spec,massing}.json` (97 landmark specs), `tools/blender/mh/` (MakeHuman base mesh, targets, rig and weights; see its SOURCE.md), `assets/models/` (183 .glb models), `textures/` (procedural + Poly Haven PBR), `scenes/`, `fonts/`, `assets_src/` (source models, not shipped).
 
 ## 19. Data files (`source_data/`) and every name in them
 

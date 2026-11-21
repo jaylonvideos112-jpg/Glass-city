@@ -176,6 +176,12 @@ func _make_materials() -> void:
 	for i in tints.size():
 		materials["siding%d" % i] = _tex_mat("siding", tints[i])
 	materials["roof"] = _tex_mat("roof")
+	# dirt, splash-back and drips along the base of house walls (a transparent band just in front of the wall)
+	var gm := StandardMaterial3D.new()
+	gm.albedo_texture = load("res://textures/grime_base.png")
+	gm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA; gm.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
+	gm.roughness = 1.0; gm.cull_mode = BaseMaterial3D.CULL_BACK; gm.render_priority = 1
+	materials["grime_base"] = gm
 	materials["sand"] = ground_mat("coast_sand_01", 2.5)   # island beaches
 	var trim := StandardMaterial3D.new(); trim.albedo_color = Color(0.88, 0.87, 0.83); trim.roughness = 0.7
 	materials["trim_white"] = trim                                  # fascia, soffits, rake boards
@@ -614,8 +620,9 @@ func _tree3d(variant: int) -> ArrayMesh:
 				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR; m.alpha_scissor_threshold = 0.4
 				m.cull_mode = BaseMaterial3D.CULL_DISABLED
 				m.backlight_enabled = true; m.backlight = Color(0.12, 0.16, 0.06)
-			else:                                 # trunk and branches: dark, matte bark
-				m.albedo_color = Color(0.2, 0.15, 0.11)
+			else:                                 # trunk and branches: painted bark, mapped from world space
+				m.albedo_color = Color(1, 1, 1); m.albedo_texture = load("res://textures/bark_painted.png")
+				m.uv1_triplanar = true; m.uv1_scale = Vector3(1.2, 0.6, 1.2)
 			m.roughness = 0.9; m.metallic_specular = 0.15
 			out.surface_set_material(si, m)
 	_tree3d_cache[variant] = out

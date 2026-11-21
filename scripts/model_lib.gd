@@ -17,6 +17,12 @@ static func mesh(name: String, swap := {}, yaw := 0.0) -> ArrayMesh:
 	var rot := Transform3D(Basis(Vector3.UP, yaw), Vector3.ZERO)
 	_collect(root, rot, out, swap)
 	root.free()
+	# textured see-through cards (leaves, shrubs) are alpha-tested, two-sided: sorted blending would flicker
+	for si in out.get_surface_count():
+		var m := out.surface_get_material(si) as BaseMaterial3D
+		if m and m.albedo_texture != null and m.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA:
+			m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR; m.alpha_scissor_threshold = 0.4
+			m.cull_mode = BaseMaterial3D.CULL_DISABLED
 	_cache[key] = out
 	return out
 
