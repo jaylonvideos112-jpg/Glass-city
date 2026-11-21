@@ -71,7 +71,7 @@ func rebuild_graph() -> void:
 			if seen.has(key): continue
 			seen[key] = true
 			var pa := Vector3(r[2], 0, r[3]) + o; var pb := Vector3(r[4], 0, r[5]) + o
-			npos[a] = Vector3(pa.x, 0, pa.z); npos[b] = Vector3(pb.x, 0, pb.z)
+			npos[a] = Vector3(pa.x, Terrain.height(pa), pa.z); npos[b] = Vector3(pb.x, Terrain.height(pb), pb.z)   # ground level: 3D distances and lane points sit on the terrain
 			var ow: int = r[8]
 			if ow >= 0: _add_edge(a, b, r)
 			if ow <= 0: _add_edge(b, a, r)
@@ -92,7 +92,9 @@ func rebuild_graph() -> void:
 		if c["edge"] >= edges.size() or edges[c["edge"]]["a"] != c["ea"] or edges[c["edge"]]["b"] != c["eb"]:
 			var ne := _find_edge(c["ea"], c["eb"])
 			if ne < 0: _despawn(c)
-			else: c["edge"] = ne
+			else: c["edge"] = ne; c["next"] = _choose_next(c)
+		elif c["next"] >= edges.size() or (c["next"] >= 0 and edges[c["next"]]["a"] != c["eb"]):
+			c["next"] = _choose_next(c)      # edge ids are renumbered on every graph rebuild
 
 func _add_edge(a: int, b: int, r: Array) -> void:
 	var pa: Vector3 = npos[a]; var pb: Vector3 = npos[b]

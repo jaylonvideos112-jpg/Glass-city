@@ -1023,7 +1023,14 @@ def county_style(t, g, h, rnd, cls, store, m, e):
     ctype = int(_f(t, "c:ctype", -1)); era = era_of(y) if y > 1700 else "mid"
     tint = int(rnd * 997) % 8
     has_lidar = m is not None and "h" in m and m.get("n", 0) >= 6
-    resid = ctype in (2, 3, 4, 5, 12) or (ctype < 0 and luc[:1] == "5")
+    # AREIS ctype 12 is "converted/mixed": a house only on a residential (5xx) parcel. On a commercial or exempt
+    # parcel (Main St, Starr Ave) it is an 1890s brick block with a shop below, not a sided house
+    resid = ctype in (2, 3, 4, 5) or ((ctype < 0 or ctype == 12) and luc[:1] == "5")
+    if ctype == 12 and luc[:1] != "5" and (st or 1) <= 4 and g.area < 2500:
+        mat = ["brick_red", "brick_brown"][int(rnd * 2) % 2]       # photo wall colour (BLOOKS) tints it later
+        if not has_lidar and st: h = st * 4.2 + 0.8
+        if st and h > st * 4.6 + 3.5: h = st * 4.3 + 1.2
+        return mat, "retail", h, (st or 1) >= 2 or h > 6.5
     lid_h = m["h"] if has_lidar else (st or 1) * 3.0
     # big street trees over small East-Toledo-style houses push the LiDAR top up to 15-27 m: a 1.5-storey house
     # can't be taller than its storeys plus a steep roof, so cap it (and its wings) at that
@@ -1054,6 +1061,14 @@ def county_style(t, g, h, rnd, cls, store, m, e):
         return mat, cls, h, False
     # ---------------- commercial / institutional by AREIS structure type
     if not has_lidar and st: h = st * (4.2 if st <= 2 else 3.7) + 0.8
+    if st and st <= 4 and h > st * 4.6 + 3.5 and g.area < 3000:
+        h = st * 4.3 + 1.2                     # LiDAR top is a street tree or a sign, not the building
+    if ctype < 0 and luc[:1] == "4" and luc not in ("401", "402", "403", "404") and (st or 1) <= 3 and g.area < 2500:
+        # neighbourhood commercial strip (Main St, Starr Ave, Front St): brick shopfronts, storefront ground floor
+        if era in ("old", "mid"):
+            mat = ["brick_red", "brick_brown", "brick_tan"][int(rnd * 3) % 3]
+            return mat, "retail", h, (st or 1) >= 2 or h > 6.5
+        return ("brick_tan" if rnd < 0.5 else "concrete"), "retail", h, False
     if ctype == 1 or (resid and g.area >= 650):     # apartments
         small = g.area < 500 and lid_h <= 13.5
         if small:
@@ -1272,15 +1287,18 @@ def rect_parts(g, res=0.5, max_parts=4):
         parts.append(Polygon([(ox + ca * u - sa * v, oy + sa * u + ca * v) for u, v in pts]))
     return parts if len(parts) >= 1 and sum(q.area for q in parts) > 0.7 * g.area else []
 
-def cbox(c, cx, cy, u, v, hu, hv, z0, z1, mat, collide=False):
-    """Oriented box in chunk space (porches, columns, crowns)."""
+def cbox(c, cx, cy, u, v, hu, hv, z0, z1, mat, collide=False, trim=False):
+    """Oriented box in chunk space (porches, columns, crowns). trim=True: a board against a wall - no back
+    (toward -v) and no top face (trim boards, gutters, downspouts are seen from the street)."""
     sg = [(1, 1), (-1, 1), (-1, -1), (1, -1)]
     cor = lambda a, b, z: to3(c, cx + u[0] * hu * a + v[0] * hv * b, cy + u[1] * hu * a + v[1] * hv * b, z)
     for k in range(4):
         (a0, b0), (a1, b1) = sg[k], sg[(k + 1) % 4]
+        if trim and b0 == -1 and b1 == -1: continue
         nx, ny = u[0] * (a0 + a1) / 2 + v[0] * (b0 + b1) / 2, u[1] * (a0 + a1) / 2 + v[1] * (b0 + b1) / 2
         L = math.hypot(nx, ny) or 1
         quad(c, mat, cor(a0, b0, z0), cor(a1, b1, z0), cor(a1, b1, z1), cor(a0, b0, z1), (nx / L, 0.0, -ny / L), [(0, 0), (1, 0), (1, 1), (0, 1)], collide)
+    if trim: return
     quad(c, mat, cor(1, 1, z1), cor(-1, 1, z1), cor(-1, -1, z1), cor(1, -1, z1), UP, [(0, 0), (1, 0), (1, 1), (0, 1)], collide)
 
 def walls(c, p, z0, z1, mat):
@@ -1299,6 +1317,7 @@ def walls(c, p, z0, z1, mat):
 # per-house paint from county reference photos (tools/pipeline/house_looks*.py): key -> wall/trim palette index, porch seen
 HLOOKS = json.load(open(os.environ["HLOOKS"])) if os.environ.get("HLOOKS") and os.path.exists(os.environ["HLOOKS"]) else {}
 TRIM_MAT = ["trim_white"]
+VACANT = set(json.load(open(os.environ["VACANT"]))) if os.environ.get("VACANT") and os.path.exists(os.environ["VACANT"]) else set()
 BLOOKS = json.load(open(os.environ["BLOOKS"])) if os.environ.get("BLOOKS") and os.path.exists(os.environ["BLOOKS"]) else {}
 FACADES = json.load(open(os.environ["FACADES"])) if os.environ.get("FACADES") and os.path.exists(os.environ["FACADES"]) else {}
 MAT_WALL = {"brick_red": ("#8c3a2c", 0.0), "brick_brown": ("#6e4430", 0.0), "brick_tan": ("#b89a72", 0.0), "concrete": ("#aaa69d", 0.5),
@@ -1500,7 +1519,7 @@ def house_detail(c, p, wl, rnd, want_porch, mat, addr=None, look=None):
         ux, uy = (bx - ax) / L, (by - ay) / L; nx, ny = uy, -ux
         # corner board at the start of every edge (convex corners; concave ones hide inside the wall)
         if TRIM_MAT[0] and mat.startswith("hsid"):
-            cbox(c, ax + nx * 0.03 + ux * 0.07, ay + ny * 0.03 + uy * 0.07, (ux, uy), (nx, ny), 0.07, 0.03, DECK - 0.05, min(low, 9.0) - 0.05, TRIM_MAT[0])
+            cbox(c, ax + nx * 0.03 + ux * 0.07, ay + ny * 0.03 + uy * 0.07, (ux, uy), (nx, ny), 0.07, 0.03, DECK - 0.05, min(low, 9.0) - 0.05, TRIM_MAT[0], trim=True)
         if L < 1.7: continue
         mx, my = (ax + bx) / 2, (ay + by) / 2
         probe = Point(mx - nx * 0.6, my - ny * 0.6)
@@ -1571,10 +1590,10 @@ def house_detail(c, p, wl, rnd, want_porch, mat, addr=None, look=None):
             ux, uy = (b_[0] - a_[0]) / L, (b_[1] - a_[1]) / L; nx, ny = uy, -ux
             mx, my = (a_[0] + b_[0]) / 2, (a_[1] + b_[1]) / 2
             if p.exterior.distance(Point(mx, my)) > 0.6: continue
-            cbox(c, mx + nx * (ov + 0.07), my + ny * (ov + 0.07), (ux, uy), (nx, ny), L / 2 + ov, 0.065, he - 0.3, he - 0.12, TRIM_MAT[0])
-            for sgn in (-1, 1):
-                ex, ey = mx + ux * sgn * (L / 2 - 0.15) + nx * 0.06, my + uy * sgn * (L / 2 - 0.15) + ny * 0.06
-                cbox(c, ex, ey, (ux, uy), (nx, ny), 0.045, 0.035, 0.0, he - 0.3, TRIM_MAT[0])
+            cbox(c, mx + nx * (ov + 0.07), my + ny * (ov + 0.07), (ux, uy), (nx, ny), L / 2 + ov, 0.065, he - 0.3, he - 0.12, TRIM_MAT[0], trim=True)
+            sgn = 1 if (int(mx * 7 + my * 3) & 1) else -1           # one downspout per gutter, at the back-ish end
+            ex, ey = mx + ux * sgn * (L / 2 - 0.15) + nx * 0.06, my + uy * sgn * (L / 2 - 0.15) + ny * 0.06
+            cbox(c, ex, ey, (ux, uy), (nx, ny), 0.045, 0.035, 0.0, he - 0.3, TRIM_MAT[0], trim=True)
 
 def porch3d(c, sx, sy, ux, uy, nx, ny, pw, rnd, st=None, wall_mat="hsid#mid0"):
     """Front porch along a wall from (sx, sy) for pw metres: deck, a hipped roof with fascia and painted ceiling, and
@@ -2030,7 +2049,7 @@ def _is_small_res(e, g):
     t = e.get("tags", {})
     if t.get("shop") or t.get("amenity") or t.get("building") in ("commercial", "retail", "industrial", "warehouse", "office", "church", "school"): return False
     return 25 < g.area < 420
-_SMALL = [g for e, g in buildings if _is_small_res(e, g)]
+_SMALL = [g for e, g in buildings if _is_small_res(e, g) and f"w{e.get('id')}" not in VACANT]
 _BIG = [g for e, g in buildings if g.area > 1200]
 HOUSE_TREE = STRtree(_SMALL) if _SMALL else None
 BIG_TREE = STRtree(_BIG) if _BIG else None
@@ -2162,6 +2181,7 @@ log("replicas", len(REPLICAS))
 REPLICA_PLACED = []
 
 def do_building(e, g, cp, is_part):
+    if VACANT and f"w{e.get('id')}" in VACANT: return       # demolished since the survey (county: vacant lot)
     """every building is level: its geometry and props sit on the lowest ground point of its footprint."""
     ZBASE[0] = foot_base(g)
     try: return _do_building(e, g, cp, is_part)
@@ -2314,6 +2334,7 @@ os.makedirs(os.path.join(OUTDIR, "chunks"), exist_ok=True)
 manifest_chunks = []
 written = set()
 total_v = 0
+MATV = defaultdict(int)
 def flush_region():
     global total_v
     for (i, j), c in list(chunks.items()):
@@ -2323,7 +2344,7 @@ def flush_region():
         for mat, (V, Nn, U) in c.layers.items():
             if V:
                 layers.append({"mat": mat, "v": PV3(V), "n": PV3(Nn), "uv": PV2(U)})
-                total_v += len(V)
+                total_v += len(V); MATV[mat.split("@")[0].split("#")[0].split("~")[0]] += len(V)
         if c.fac[0]:
             V, Nn, U, U2, CO, C0 = c.fac
             layers.append({"mat": "facade", "v": PV3(V), "n": PV3(Nn), "uv": PV2(U), "uv2": PV2(U2), "color": PCOL(CO), "c0": PF32(C0)})
@@ -2472,5 +2493,6 @@ if os.environ.get("HPAL") and os.path.exists(os.environ["HPAL"]):     # paint pa
 REPLICA_PLACED = [{"key": k, "anchor": r["anchor"], "y": round(foot_base(r["foot"].buffer(-1.5)) if DEM_DIR else 0.0, 2)} for k, r in sorted(REPLICAS.items())]
 json.dump({"replicas": REPLICA_PLACED}, open(os.path.join(OUTDIR, "replicas.json"), "w"))
 log("replicas placed", len(REPLICA_PLACED))
+log("verts by material", sorted(MATV.items(), key=lambda kv: -kv[1])[:16])
 log("chunk spill sources", sorted(SPILL.items(), key=lambda kv: -kv[1])[:10])
 log("DONE chunks", len(manifest_chunks), "verts", total_v, "labels", len(labels_done))

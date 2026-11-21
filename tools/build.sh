@@ -17,7 +17,7 @@ BBOX="41.4560 -83.9160 41.7900 -83.2400"            # S W N E: the whole island 
 DT_BBOX="41.6420 -83.5510 41.6625 -83.5280"         # downtown test box
 cd "$WORK"
 export COUNTY=osm LIDAR=lidar/buildings.pkl LIDAR2=lidar/county.pkl LIDAR3=lidar/downtown_exact.pkl LTREES=lidar/trees.json
-export HWINGS=lidar/house_wings.pkl HLOOKS=lidar/house_looks_keys.json HPAL=lidar/house_palette.json DEM=lidar/dem BLOOKS=lidar/bld_looks_keys.json
+export HWINGS=lidar/house_wings.pkl HLOOKS=lidar/house_looks_keys.json HPAL=lidar/house_palette.json DEM=lidar/dem BLOOKS=lidar/bld_looks_keys.json VACANT=lidar/vacant_keys.json
 export BARS="$REPO/source_data/bars.json" FACADES="$REPO/source_data/facades.json"
 build() {   # $1 = bbox
   rm -rf /tmp/glasscity_build && python3 "$P/build_city.py" "${OSMSRC:-osm/city_all}" /tmp/glasscity_build $1
@@ -25,6 +25,7 @@ build() {   # $1 = bbox
   rm -rf "$REPO/data" && mkdir -p "$REPO/data" && cp -r /tmp/glasscity_build/* "$REPO/data/"
   [ -d /tmp/glasscity_aerial_keep ] && mv /tmp/glasscity_aerial_keep "$REPO/data/aerial" || true
   cp "$REPO/source_data/bars.json" "$REPO/data/bars_index.json"
+  [ -d "$WORK/lidar/dem" ] && python3 "$P/terrain_export.py" "$WORK/lidar/dem" "$REPO/data/manifest.json" "$REPO/data/terrain.bin" 16 || true
   [ -d "$REPO/data/aerial" ] || echo "NOTE: no aerial imagery in data/aerial; run: python3 $P/aerial_fetch.py data/manifest.json data/aerial"
 }
 case "${1:-city}" in

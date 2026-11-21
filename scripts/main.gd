@@ -81,6 +81,7 @@ func _ready() -> void:
 	var road_dir: Vector3 = st["dir"] if st["name"] != "" else Vector3(0, 0, -1)
 	var side := road_dir.cross(Vector3.UP).normalized()
 	player.global_position = _clear_spot(spawn - road_dir * 18.0, road_dir, [8.0, 9.0, 7.0, -8.0, -9.0, -7.0]) + Vector3(0, 0.1, 0)
+	start_pos = player.global_position + world_offset
 	cam_yaw = atan2(-road_dir.x, -road_dir.z)
 	# a drivable car parked at the curb + a few more parked down the block
 	var colors := [Color(0.65, 0.1, 0.1), Color(0.1, 0.25, 0.55), Color(0.85, 0.85, 0.82), Color(0.15, 0.15, 0.15), Color(0.2, 0.45, 0.25)]
@@ -196,15 +197,17 @@ func _build_outskirts() -> void:
 		world.add_child(bed)
 
 ## Find a spot near p (sliding along the road, trying several side offsets) that is open ground, not a roof.
+var start_pos := Vector3.ZERO      # world position the player first spawned at (tests reset to it)
+
 func _clear_spot(p: Vector3, road_dir: Vector3, sides: Array) -> Vector3:
 	var right := road_dir.cross(Vector3.UP).normalized()
 	for along in [0.0, 6.0, -6.0, 12.0, -12.0, 20.0, -20.0, 30.0, -30.0]:
 		for sd in sides:
 			var q: Vector3 = p + road_dir * along + right * sd
-			var g := _ground_from(q, 60.0)
-			if g.y < 0.5:
+			var g := _ground_from(q + Vector3(0, Terrain.height(q), 0), 60.0)
+			if g.y < Terrain.height(q) + 0.5:
 				return g
-	return Vector3(p.x, 0.1, p.z)
+	return Vector3(p.x, Terrain.height(p) + 0.1, p.z)
 
 func _ground_from(p: Vector3, h: float) -> Vector3:
 	var space := get_world_3d().direct_space_state
@@ -219,7 +222,7 @@ func _ground(p: Vector3) -> Vector3:
 	var q := PhysicsRayQueryParameters3D.create(p - world_offset + Vector3(0, 200, 0), p - world_offset + Vector3(0, -20, 0))
 	var r := space.intersect_ray(q)
 	if r.is_empty():
-		return Vector3(p.x, 0.1, p.z)
+		return Vector3(p.x, Terrain.height(p) + 0.1, p.z)
 	return r["position"] + world_offset
 
 # ------------------------------------------------------------------ input
@@ -539,11 +542,11 @@ func _physics_process(dt: float) -> void:
 	var f := focus_local()
 	if bars.inside or (gunstore and gunstore.inside):
 		pass
-	elif f.y < -2.2 and not cam_override:
+	elif f.y < minf(Terrain.height(f + world_offset), -1.6) - 2.2 and not cam_override:
 		_respawn()
 	else:
 		safe_timer += dt
-		if safe_timer > 1.0 and f.y > -0.5 and (current_car == null or current_car.speed_mps() < 30):
+		if safe_timer > 1.0 and f.y > Terrain.height(f + world_offset) - 0.5 and (current_car == null or current_car.speed_mps() < 30):
 			safe_timer = 0.0
 			var on_ground := player.is_on_floor() if current_car == null else true
 			if on_ground:

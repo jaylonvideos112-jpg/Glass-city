@@ -586,6 +586,7 @@ func t_schedules() -> Array:
 	return [true, "8:30 downtown mostly workers, 11 pm bars mostly %s; on the street now %s" % [top_night, roles]]
 
 func t_bus() -> Array:
+	await _tr_reset_to_spawn()
 	var sv = main.services
 	if sv.routes.size() < 8: return [false, "only %d bus routes" % sv.routes.size()]
 	var c: Dictionary = {}
@@ -783,7 +784,7 @@ func _on_ground(p: Vector3) -> bool:
 func t_spawn() -> Array:
 	await _frames(60)
 	var p: Vector3 = main.player.global_position
-	if abs(p.y) > 3.0: return [false, "player at y=%.2f (expected street level)" % p.y]
+	if abs(p.y - Terrain.height(p + main.world_offset)) > 3.0: return [false, "player at y=%.2f (expected street level %.2f)" % [p.y, Terrain.height(p + main.world_offset)]]
 	if not main.player.is_on_floor() and not _on_ground(p): return [false, "player not on the ground at %s" % p]
 	return [true, "at %s" % p.snapped(Vector3(0.1, 0.1, 0.1))]
 
@@ -1070,12 +1071,12 @@ func t_snow() -> Array:
 
 # ------------------------------------------------------------------ traffic
 func _tr_reset_to_spawn() -> void:
-	var sp: Array = main.streamer.manifest["spawn"]
 	main.focus_override = null
 	if main.current_car: main.toggle_vehicle()
-	main.player.global_position = Vector3(sp[0], 0, sp[1]) - main.world_offset
-	main.streamer.load_now(Vector3(sp[0], 0, sp[1]))
-	main.player.global_position = main._clear_spot(Vector3(sp[0], 0, sp[1]), Vector3(0, 0, -1), [8.0, -8.0, 12.0]) - main.world_offset + Vector3(0, 0.2, 0)
+	var sp: Vector3 = main.start_pos
+	main.streamer.load_now(sp)
+	main.player.global_position = sp - main.world_offset
+	main.player.velocity = Vector3.ZERO
 	await _frames(10)
 
 func t_tr_graph() -> Array:
@@ -1166,7 +1167,7 @@ func t_tr_player() -> Array:
 		var near: float = (tr.npos[e["b"]] - main.focus_world()).length()
 		if near < 160.0 and e["len"] > 35.0 and not tr._occupied(i, e["len"] * 0.5, e["len"]) and e["cls"] >= 2 and e["cls"] <= 5:
 			var g: Vector3 = main._ground_from(tr.lane_point(e, e["len"] - 4.0, 0), 30.0)
-			if absf(g.y) < 1.0:   # street level (not a bridge over the river, where the player would fall in)
+			if absf(g.y - Terrain.height(g)) < 1.0:   # street level (not a bridge over the river, where the player would fall in)
 				eid = i; break
 	if eid < 0: return [false, "no clear straight edge"]
 	var e2: Dictionary = tr.edges[eid]
@@ -1186,6 +1187,7 @@ func t_tr_player() -> Array:
 
 # ------------------------------------------------------------------ pedestrians
 func t_pd_density() -> Array:
+	await _tr_reset_to_spawn()
 	var tod = main.tod; var keep: float = tod.total_hours
 	tod.set_date("fall", 3, 3.0); var night: int = main.peds.target_count()
 	tod.set_date("fall", 3, 12.5); var noon: int = main.peds.target_count()
