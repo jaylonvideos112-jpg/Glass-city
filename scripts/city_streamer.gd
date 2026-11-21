@@ -619,9 +619,10 @@ func _tree3d(variant: int) -> ArrayMesh:
 			if m.albedo_texture != null:          # leaf cards
 				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR; m.alpha_scissor_threshold = 0.4
 				m.cull_mode = BaseMaterial3D.CULL_DISABLED
-				m.backlight_enabled = true; m.backlight = Color(0.12, 0.16, 0.06)
+				m.backlight_enabled = true; m.backlight = Color(0.42, 0.5, 0.2)     # sun through the leaves: no black crowns against the light
+				m.albedo_color = Color(1.12, 1.15, 1.08)
 			else:                                 # trunk and branches: painted bark, mapped from world space
-				m.albedo_color = Color(1, 1, 1); m.albedo_texture = load("res://textures/bark_painted.png")
+				m.albedo_color = Color(1.7, 1.6, 1.5); m.albedo_texture = load("res://textures/bark_painted.png")
 				m.uv1_triplanar = true; m.uv1_scale = Vector3(1.2, 0.6, 1.2)
 			m.roughness = 0.9; m.metallic_specular = 0.15
 			out.surface_set_material(si, m)

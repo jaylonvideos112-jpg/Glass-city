@@ -159,10 +159,14 @@ func _update_stop_signs() -> void:
 		_stop_signs[n] = mi
 
 func _ground_y(p: Vector3) -> float:
+	## the walkable ground under p: the highest surface within 1.2 m of the terrain (sidewalk, curb, lawn), not an
+	## awning, marquee or roof that overhangs the spot
+	var T := Terrain.height(p)
 	var sp: PhysicsDirectSpaceState3D = main.get_world_3d().direct_space_state
-	var q := PhysicsRayQueryParameters3D.create(p - main.world_offset + Vector3(0, 40, 0), p - main.world_offset + Vector3(0, -40, 0), 1)
+	var from: Vector3 = p - main.world_offset + Vector3(0, T + 1.2 - p.y, 0)
+	var q := PhysicsRayQueryParameters3D.create(from, from + Vector3(0, -6.0, 0), 1)
 	var hit := sp.intersect_ray(q)
-	return (hit["position"].y + main.world_offset.y) if not hit.is_empty() else 0.0
+	return (hit["position"].y + main.world_offset.y) if not hit.is_empty() else T
 
 # ------------------------------------------------------------------ emergencies
 ## shortest node path from a to b over the loaded, drivable, directed road graph

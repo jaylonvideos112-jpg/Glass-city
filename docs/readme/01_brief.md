@@ -50,6 +50,10 @@ It is the owner's passion project for his own city.
     - Patio chairs on full porches (45%).
     - Now and then a bike by the steps, a grill or a kids' slide in the side yard.
     - All deterministic per house.
+  - **Trash carts:** three colours (`yard_toter` green and `yard_toter_k` black for trash, `yard_toter_b` blue for recycling). Rounded bodies, lids, wheels, handles.
+  - **Signs** (jobs, homes, places) stand on the ground under them (`services._ground_y` ignores marquees and awnings). The cinema sign used to sit on top of the EASTGATE marquee.
+  - **Tree crowns** are lit through by the sun (backlight), so they don't go black against the light.
+  - **Grass:** finer blades, 14 per clump, 6–13 cm.
   - **Grime band:** a 1 m dirt and splash-back strip (`textures/grime_base.png`, transparent) along the bottom of every house wall.
   - **Bark:** 3D tree trunks use `textures/bark_painted.png` (triplanar).
   - `ModelLib` makes textured see-through cards on any model alpha-tested.
@@ -310,7 +314,11 @@ The owner wants a Sims/NBA 2K-style creator: full skeleton, detailed face slider
 **Partial rebuild 2026-11-21:** East Toledo (lat 41.6205–41.6672, lon −83.5283 to −83.4910) was rebuilt on its own in 143 s, with yard life, grime and the brick-shop colour fix. Its 375 interior chunks were copied into `data/chunks`. The next full build regenerates everything consistently.
 
 **Not yet done:**
-- **Main St:** (fix now in the East Toledo chunks; verify in a screenshot) the last screenshot showed modern white buildings with big glass. The real buildings are 1890s–1920s brown and red brick storefronts.
+- **Main St:** fixed in the East Toledo chunks.
+- **County-record gaps fixed by rules (2026-11-21):**
+  - religious land use (68x) builds as a church with a gable roof even when AREIS calls it an office. 811 E Broadway, next to the theater, is a stone-and-brick church with a bell tower; it rendered as a white office.
+  - one-storey shops and offices are capped at 5.8 m. 602 Main St is a low white block with green awnings.
+- **Known flaky test:** `peds_spawn_and_walk_on_sidewalks` sometimes fails in the full run (a person 1 m into the road) but passes on its own. the last screenshot showed modern white buildings with big glass. The real buildings are 1890s–1920s brown and red brick storefronts.
   - The fix is in code: light photo colours are no longer trusted on brick shops.
   - It needs a rebuild. Plan: a fast bbox build of the Main St area (lat 41.6402–41.6501, lon −83.5259 to −83.5115), with only those chunk files copied into `data/chunks`.
 - The theater front (EASTGATE marquee) is rebuilt but not yet seen in-game. Its earlier screenshot was taken from the back; it faces E Broadway.

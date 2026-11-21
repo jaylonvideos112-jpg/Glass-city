@@ -1069,6 +1069,12 @@ def county_style(t, g, h, rnd, cls, store, m, e):
             mat = ["brick_red", "brick_brown", "brick_tan"][int(rnd * 3) % 3]
             return mat, "retail", h, (st or 1) >= 2 or h > 6.5
         return ("brick_tan" if rnd < 0.5 else "concrete"), "retail", h, False
+    if luc[:2] == "68" and ctype not in (103, 104, 105, 106, 130, 131, 1) and g.area < 2500:
+        # religious land use (680-689): a church even when AREIS files it as an office or converted building
+        # (811 E Broadway: a stone-and-brick gabled church with a bell tower, recorded as structure type 22)
+        return ("h_stone" if era == "old" and rnd < 0.5 else "brick_tan" if era in ("old", "mid") else "brick_brown"), "church", h, False
+    if ctype in (20, 21, 22, 23, 24, 30, 31, 32, 33, 34, 35) and st == 1 and h > 5.8 and g.area < 1500:
+        h = 5.8                                      # one-storey shop or office: the extra LiDAR height is trees/signs
     if ctype == 1 or (resid and g.area >= 650):     # apartments
         small = g.area < 500 and lid_h <= 13.5
         if small:
@@ -1514,8 +1520,9 @@ def yard_life(c, p, fe, st, porch_span, rnd, hsh):
     if hsh(x0, y0, 3.0) < 0.7:
         side = -1 if hsh(x0, y0, 4.0) < 0.5 else 1
         bx_, by_ = (x0, y0) if side < 0 else (x0 + ux * L, y0 + uy * L)
-        for k in range(2):
-            put("yard_toter", bx_ + ux * side * 1.0 - nx * (2.0 + k * 0.85), by_ + uy * side * 1.0 - ny * (2.0 + k * 0.85), nx, ny)
+        trash = "yard_toter" if hsh(x0, y0, 9.0) < 0.6 else "yard_toter_k"
+        for k, name in enumerate((trash, "yard_toter_b" if hsh(x0, y0, 10.0) < 0.8 else trash)):   # trash + recycling
+            put(name, bx_ + ux * side * 1.0 - nx * (2.0 + k * 0.85), by_ + uy * side * 1.0 - ny * (2.0 + k * 0.85), nx, ny)
     # porch chairs
     if porch_span and st.get("porch") == "F" and hsh(x0, y0, 5.0) < 0.45:
         for k in (0.25, 0.4):
@@ -1818,6 +1825,8 @@ def emit_building(e, g, h, mn, mat, rnd, cls, cp, roof=None, eave=None, tiers=No
         kind = roof
         if kind is None and cls in ("house", "garage") and e.get("tags", {}).get("roof:shape") != "flat":
             kind = "gable" if rnd < 0.62 else "hip"
+        if kind is None and cls == "church" and p.area < 900 and e.get("tags", {}).get("roof:shape") != "flat":
+            kind = "gable"                       # neighbourhood churches: a steep gable, not a flat office roof
         if kind == "dome":
             r_ = math.sqrt(p.area / math.pi)
             dome_h = min(r_ * 0.9, 25.0)

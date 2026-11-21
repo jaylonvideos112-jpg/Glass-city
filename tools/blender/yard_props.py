@@ -80,22 +80,43 @@ def export(name):
     bpy.ops.export_scene.gltf(filepath=p, export_format="GLB")
     print("prop", name, p)
 
-# -------------------------------------------------------------- toter (city trash cart), front = -Y
-reset()
-body = mat("toter_body", (0.09, 0.16, 0.11), 0.55); lid = mat("toter_lid", (0.08, 0.14, 0.1), 0.5); blk = mat("rubber", (0.03, 0.03, 0.03), 0.8)
-bm = bmesh.new()
-# tapered body: 0.56 x 0.66 at the bottom to 0.62 x 0.74 at 1.0 m
-bot = [(-0.28, -0.33), (0.28, -0.33), (0.28, 0.33), (-0.28, 0.33)]
-top = [(-0.31, -0.37), (0.31, -0.37), (0.31, 0.37), (-0.31, 0.37)]
-vb = [bm.verts.new((x, y, 0.05)) for x, y in bot]; vt = [bm.verts.new((x, y, 1.0)) for x, y in top]
-bm.faces.new(vb[::-1])
-for i in range(4): bm.faces.new([vb[i], vb[(i + 1) % 4], vt[(i + 1) % 4], vt[i]])
-bm.faces.new(vt)
-obj("toter_body", bm, body)
-box("toter_lid", (0, 0.02, 1.03), (0.66, 0.8, 0.05), lid)
-box("toter_handle", (0, 0.4, 0.98), (0.5, 0.05, 0.05), lid)
-for sx in (-1, 1): cyl("toter_wheel%d" % sx, (sx * 0.3, 0.33, 0.1), (sx * 0.36, 0.33, 0.1), 0.1, blk)
-export("yard_toter")
+# -------------------------------------------------------------- toters (city trash / recycling carts), front = -Y
+def toter(name, body_rgb, lid_rgb):
+    reset()
+    body = mat("toter_body", body_rgb, 0.5); lid = mat("toter_lid", lid_rgb, 0.45); blk = mat("rubber", (0.03, 0.03, 0.03), 0.8)
+    grey = mat("axle", (0.25, 0.25, 0.26), 0.5, 0.4)
+    bm = bmesh.new()
+    # tapered body with rounded vertical corners: 0.54 x 0.62 at the bottom, 0.6 x 0.72 at the rim (1.0 m)
+    def ring(z, hx, hy, r, seg=4):
+        pts = []
+        for cx, cy, a0 in ((hx - r, hy - r, 0), (-(hx - r), hy - r, 90), (-(hx - r), -(hy - r), 180), (hx - r, -(hy - r), 270)):
+            for k in range(seg + 1):
+                a = math.radians(a0 + 90 * k / seg)
+                pts.append(bm.verts.new((cx + math.cos(a) * r, cy + math.sin(a) * r, z)))
+        return pts
+    rings = [ring(0.06, 0.27, 0.31, 0.06), ring(0.5, 0.285, 0.34, 0.07), ring(0.96, 0.3, 0.36, 0.08), ring(1.0, 0.31, 0.37, 0.08)]
+    bm.faces.new(rings[0][::-1])
+    for r0, r1 in zip(rings, rings[1:]):
+        n = len(r0)
+        for i in range(n): bm.faces.new([r0[i], r0[(i + 1) % n], r1[(i + 1) % n], r1[i]])
+    bm.faces.new(rings[-1])
+    o = obj("toter_body", bm, body)
+    for p_ in o.data.polygons: p_.use_smooth = True
+    # lid: overhanging slab with a hinge bar at the back and a molded grip at the front
+    box("toter_lid", (0, 0.0, 1.035), (0.66, 0.8, 0.045), lid)
+    box("toter_lid_lip", (0, -0.41, 1.0), (0.6, 0.04, 0.08), lid)
+    box("toter_hinge", (0, 0.42, 1.0), (0.62, 0.07, 0.07), lid)
+    # handle bar and wheel housing at the back
+    cyl("toter_handle", (-0.24, 0.47, 0.96), (0.24, 0.47, 0.96), 0.018, grey)
+    box("toter_wheelwell", (0, 0.36, 0.14), (0.62, 0.14, 0.2), body)
+    cyl("toter_axle", (-0.33, 0.39, 0.12), (0.33, 0.39, 0.12), 0.015, grey)
+    for sx in (-1, 1): cyl("toter_wheel%d" % sx, (sx * 0.3, 0.39, 0.12), (sx * 0.37, 0.39, 0.12), 0.12, blk, 16)
+    # front lifting bar (the truck arm grabs it)
+    box("toter_bar", (0, -0.37, 0.78), (0.42, 0.05, 0.05), lid)
+    export(name)
+toter("yard_toter", (0.11, 0.2, 0.13), (0.09, 0.17, 0.11))         # trash: dark green
+toter("yard_toter_k", (0.05, 0.05, 0.055), (0.06, 0.06, 0.065))    # trash: black
+toter("yard_toter_b", (0.07, 0.17, 0.42), (0.06, 0.14, 0.36))      # recycling: blue
 
 # -------------------------------------------------------------- kid's bike on its kickstand
 reset()

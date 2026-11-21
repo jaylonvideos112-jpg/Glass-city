@@ -27,19 +27,19 @@ func _ready() -> void:
 	_mat = ShaderMaterial.new(); _mat.shader = load("res://shaders/grass.gdshader")
 	_mat.set_shader_parameter("fade_start", RADIUS - 12.0); _mat.set_shader_parameter("fade_end", RADIUS)
 
-## One clump: 7 tapered blades, each 3 segments with a forward curve, 0.09-0.2 m tall (a mowed, lush lawn).
+## One clump: 14 fine tapered blades, each 3 segments with a forward curve, 6-13 cm tall (a mowed lawn).
 func _clump_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new(); st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var rng := RandomNumberGenerator.new(); rng.seed = 7
-	for b in 10:
+	for b in 14:
 		var a := rng.randf() * TAU
-		var r := rng.randf() * 0.1
+		var r := rng.randf() * 0.12
 		var base := Vector3(cos(a) * r, 0.0, sin(a) * r)
 		var yaw := rng.randf() * TAU
 		var dir := Vector3(cos(yaw), 0.0, sin(yaw))
 		var side := Vector3(-dir.z, 0.0, dir.x)
-		var hgt := rng.randf_range(0.07, 0.15)
-		var w := rng.randf_range(0.009, 0.015)
+		var hgt := rng.randf_range(0.06, 0.13)
+		var w := rng.randf_range(0.005, 0.009)
 		var lean := rng.randf_range(0.03, 0.09)
 		var pts: Array[Vector3] = []; var ws: Array[float] = []; var vs: Array[float] = []
 		for i in 4:
@@ -152,7 +152,7 @@ func _build_cell(root: Node3D, tris: PackedVector3Array, key: Vector2i, dist: fl
 		var u := rng.randf(); var v := rng.randf()
 		if u + v > 1.0: u = 1.0 - u; v = 1.0 - v
 		var p := t0 + (t1 - t0) * u + (t2 - t0) * v
-		var s := rng.randf_range(0.8, 1.25)
+		var s := rng.randf_range(0.75, 1.1)
 		var b := Basis(Vector3.UP, rng.randf() * TAU).scaled(Vector3(s, s * rng.randf_range(0.85, 1.2), s))
 		# real yards: thinner, drier patches (worn spots, shade) instead of a perfect carpet
 		var wp := p + root.global_position
