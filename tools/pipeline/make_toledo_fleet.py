@@ -152,6 +152,12 @@ F = sorted(F, key=lambda r: -r[4])[:200]
 tot = sum(r[4] for r in F)
 out = [dict(rank=i + 1, make=m, model=md, years=y, body=b, weight=round(1000.0 * w / tot, 2))
        for i, (m, md, y, b, w) in enumerate(F)]
+# off-brand names (tools/pipeline/fleet_names.py, owner: "pick all of them")
+import sys as _s; _s.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import fleet_names as _N
+for v in out:
+    v["parody_make"] = _N.MAKE_OVERRIDE.get((v["make"], v["model"]), _N.BRANDS[v["make"]])
+    v["parody_model"] = _N.MODELS[(v["make"], v["model"])]
 # per model year share within each generation (runtime picks a year: older = more faded, rust, dents, mismatched panels)
 for v in out:
     lo, hi = yrs(v["years"])

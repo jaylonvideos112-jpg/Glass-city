@@ -8,6 +8,8 @@
    "years": "2007-2013",
    "body": "pickup",
    "weight": 19.88,
+   "parody_make": "Corvane",
+   "parody_model": "Stockman 1500",
    "year_weights": {
     "2007": 0.226,
     "2008": 0.129,
@@ -25,6 +27,8 @@
    "years": "2006-2013",
    "body": "sedan_big",
    "weight": 19.69,
+   "parody_make": "Corvane",
+   "parody_model": "Dutchess",
    "year_weights": {
     "2006": 0.185,
     "2007": 0.185,
@@ -43,6 +47,8 @@
    "years": "2009-2014",
    "body": "pickup",
    "weight": 17.97,
+   "parody_make": "Halden",
+   "parody_model": "Workhorse 150",
    "year_weights": {
     "2009": 0.179,
     "2010": 0.179,
@@ -59,6 +65,8 @@
    "years": "2004-2008",
    "body": "pickup",
    "weight": 15.5,
+   "parody_make": "Halden",
+   "parody_model": "Workhorse 150",
    "year_weights": {
     "2004": 0.219,
     "2005": 0.219,
@@ -74,6 +82,8 @@
    "years": "1999-2006",
    "body": "pickup",
    "weight": 15.49,
+   "parody_make": "Corvane",
+   "parody_model": "Stockman 1500",
    "year_weights": {
     "1999": 0.113,
     "2000": 0.113,
@@ -92,6 +102,8 @@
    "years": "2007-2018",
    "body": "jeep",
    "weight": 13.84,
+   "parody_make": "Overmark",
+   "parody_model": "Trailhand",
    "year_weights": {
     "2007": 0.175,
     "2008": 0.1,
@@ -114,6 +126,8 @@
    "years": "2008-2020",
    "body": "minivan",
    "weight": 13.09,
+   "parody_make": "Swerve",
+   "parody_model": "Grand Convoy",
    "year_weights": {
     "2008": 0.114,
     "2009": 0.114,
@@ -137,6 +151,8 @@
    "years": "2009-2018",
    "body": "pickup",
    "weight": 12.05,
+   "parody_make": "Bulward",
+   "parody_model": "Haul 1500",
    "year_weights": {
     "2009": 0.138,
     "2010": 0.138,
@@ -157,6 +173,8 @@
    "years": "2006-2012",
    "body": "sedan",
    "weight": 11.75,
+   "parody_make": "Halden",
+   "parody_model": "Fairway",
    "year_weights": {
     "2006": 0.206,
     "2007": 0.206,
@@ -174,6 +192,8 @@
    "years": "2002-2012",
    "body": "suv_box",
    "weight": 11.47,
+   "parody_make": "Overmark",
+   "parody_model": "Freedom",
    "year_weights": {
     "2002": 0.095,
     "2003": 0.115,
@@ -195,6 +215,8 @@
    "years": "2011-2021",
    "body": "suv_m",
    "weight": 11.44,
+   "parody_make": "Overmark",
+   "parody_model": "Grand Ridgeback",
    "year_weights": {
     "2011": 0.165,
     "2012": 0.165,
@@ -216,6 +238,8 @@
    "years": "2005-2010",
    "body": "suv_m",
    "weight": 11.41,
+   "parody_make": "Overmark",
+   "parody_model": "Grand Ridgeback",
    "year_weights": {
     "2005": 0.212,
     "2006": 0.212,
@@ -232,6 +256,8 @@
    "years": "2002-2008",
    "body": "pickup",
    "weight": 11.07,
+   "parody_make": "Bulward",
+   "parody_model": "Haul 1500",
    "year_weights": {
     "2002": 0.129,
     "2003": 0.156,
@@ -249,6 +275,8 @@
    "years": "2011-2016",
    "body": "sedan_small",
    "weight": 10.89,
+   "parody_make": "Corvane",
+   "parody_model": "Drifter",
    "year_weights": {
     "2011": 0.211,
     "2012": 0.211,
@@ -265,6 +293,8 @@
    "years": "2010-2017",
    "body": "suv_c",
    "weight": 10.36,
+   "parody_make": "Corvane",
+   "parody_model": "Halcyon",
    "year_weights": {
     "2010": 0.167,
     "2011": 0.167,
@@ -283,6 +313,8 @@
    "years": "2002-2010",
    "body": "suv_box",
    "weight": 10.14,
+   "parody_make": "Halden",
+   "parody_model": "Wayfarer",
    "year_weights": {
     "2002": 0.11,
     "2003": 0.133,
@@ -302,6 +334,8 @@
    "years": "2008-2012",
    "body": "sedan",
    "weight": 9.66,
+   "parody_make": "Corvane",
+   "parody_model": "Sandbar",
    "year_weights": {
     "2008": 0.2,
     "2009": 0.2,
@@ -317,6 +351,8 @@
    "years": "2007-2011",
    "body": "sedan",
    "weight": 9.53,
+   "parody_make": "Takumi",
+   "parody_model": "Corsa",
    "year_weights": {
     "2007": 0.305,
     "2008": 0.174,
@@ -332,6 +368,8 @@
    "years": "2005-2010",
    "body": "sedan_big",
    "weight": 9.51,
+   "parody_make": "Kreisler",
+   "parody_model": "400",
    "year_weights": {
     "2005": 0.212,
     "2006": 0.212,
@@ -348,6 +386,8 @@
    "years": "2005-2010",
    "body": "sedan_small",
    "weight": 9.51,
+   "parody_make": "Corvane",
+   "parody_model": "Garnet",
    "year_weights": {
     "2005": 0.212,
     "2006": 0.212,
@@ -364,6 +404,8 @@
    "years": "2008-2016",
    "body": "minivan",
    "weight": 9.49,
+   "parody_make": "Kreisler",
+   "parody_model": "Country Club",
    "year_weights": {
     "2008": 0.129,
     "2009": 0.129,
@@ -383,6 +425,8 @@
    "years": "2014-2018",
    "body": "pickup",
    "weight": 9.41,
+   "parody_make": "Corvane",
+   "parody_model": "Stockman 1500",
    "year_weights": {
     "2014": 0.255,
     "2015": 0.255,
@@ -398,6 +442,8 @@
    "years": "2007-2012",
    "body": "sedan",
    "weight": 9.32,
+   "parody_make": "Nasso",
+   "parody_model": "Ultima",
    "year_weights": {
     "2007": 0.26,
     "2008": 0.148,
@@ -414,6 +460,8 @@
    "years": "1997-2006",
    "body": "jeep",
    "weight": 8.69,
+   "parody_make": "Overmark",
+   "parody_model": "Trailhand",
    "year_weights": {
     "1997": 0.092,
     "1998": 0.092,
@@ -434,6 +482,8 @@
    "years": "2006-2011",
    "body": "sedan_small",
    "weight": 8.64,
+   "parody_make": "Hanzo",
+   "parody_model": "Civet",
    "year_weights": {
     "2006": 0.234,
     "2007": 0.234,
@@ -450,6 +500,8 @@
    "years": "2011-2019",
    "body": "suv_m",
    "weight": 8.5,
+   "parody_make": "Halden",
+   "parody_model": "Wayfarer",
    "year_weights": {
     "2011": 0.18,
     "2012": 0.18,
@@ -469,6 +521,8 @@
    "years": "2002-2009",
    "body": "suv_box",
    "weight": 8.44,
+   "parody_make": "Corvane",
+   "parody_model": "Pathcutter",
    "year_weights": {
     "2002": 0.119,
     "2003": 0.144,
@@ -487,6 +541,8 @@
    "years": "2012-2017",
    "body": "sedan",
    "weight": 8.29,
+   "parody_make": "Takumi",
+   "parody_model": "Corsa",
    "year_weights": {
     "2012": 0.25,
     "2013": 0.25,
@@ -503,6 +559,8 @@
    "years": "2008-2012",
    "body": "sedan",
    "weight": 8.28,
+   "parody_make": "Hanzo",
+   "parody_model": "Harmony",
    "year_weights": {
     "2008": 0.2,
     "2009": 0.2,
@@ -518,6 +576,8 @@
    "years": "1997-2003",
    "body": "pickup",
    "weight": 8.25,
+   "parody_make": "Halden",
+   "parody_model": "Workhorse 150",
    "year_weights": {
     "1997": 0.139,
     "1998": 0.139,
@@ -535,6 +595,8 @@
    "years": "2015-2020",
    "body": "pickup",
    "weight": 8.21,
+   "parody_make": "Halden",
+   "parody_model": "Workhorse 150",
    "year_weights": {
     "2015": 0.259,
     "2016": 0.259,
@@ -551,6 +613,8 @@
    "years": "2005-2009",
    "body": "suv_c",
    "weight": 8.02,
+   "parody_make": "Corvane",
+   "parody_model": "Halcyon",
    "year_weights": {
     "2005": 0.242,
     "2006": 0.242,
@@ -566,6 +630,8 @@
    "years": "1998-2011",
    "body": "pickup_mid",
    "weight": 7.9,
+   "parody_make": "Halden",
+   "parody_model": "Warden",
    "year_weights": {
     "1998": 0.072,
     "1999": 0.072,
@@ -590,6 +656,8 @@
    "years": "2013-2020",
    "body": "sedan",
    "weight": 7.89,
+   "parody_make": "Halden",
+   "parody_model": "Fairway",
    "year_weights": {
     "2013": 0.263,
     "2014": 0.152,
@@ -608,6 +676,8 @@
    "years": "2007-2013",
    "body": "pickup",
    "weight": 7.65,
+   "parody_make": "GMT",
+   "parody_model": "Summit 1500",
    "year_weights": {
     "2007": 0.226,
     "2008": 0.129,
@@ -625,6 +695,8 @@
    "years": "2005-2010",
    "body": "sedan",
    "weight": 7.61,
+   "parody_make": "Pontier",
+   "parody_model": "P6",
    "year_weights": {
     "2005": 0.212,
     "2006": 0.212,
@@ -641,6 +713,8 @@
    "years": "2003-2007",
    "body": "sedan",
    "weight": 7.27,
+   "parody_make": "Hanzo",
+   "parody_model": "Harmony",
    "year_weights": {
     "2003": 0.2,
     "2004": 0.2,
@@ -656,6 +730,8 @@
    "years": "2012-2016",
    "body": "suv_c",
    "weight": 7.22,
+   "parody_make": "Hanzo",
+   "parody_model": "KR-V",
    "year_weights": {
     "2012": 0.268,
     "2013": 0.268,
@@ -671,6 +747,8 @@
    "years": "2007-2014",
    "body": "suv_f",
    "weight": 7.19,
+   "parody_make": "Corvane",
+   "parody_model": "Superior",
    "year_weights": {
     "2007": 0.211,
     "2008": 0.12,
@@ -689,6 +767,8 @@
    "years": "2013-2019",
    "body": "suv_c",
    "weight": 6.98,
+   "parody_make": "Halden",
+   "parody_model": "Getaway",
    "year_weights": {
     "2013": 0.282,
     "2014": 0.163,
@@ -706,6 +786,8 @@
    "years": "2001-2007",
    "body": "minivan",
    "weight": 6.91,
+   "parody_make": "Swerve",
+   "parody_model": "Grand Convoy",
    "year_weights": {
     "2001": 0.124,
     "2002": 0.124,
@@ -723,6 +805,8 @@
    "years": "2008-2012",
    "body": "suv_box",
    "weight": 6.9,
+   "parody_make": "Halden",
+   "parody_model": "Getaway",
    "year_weights": {
     "2008": 0.2,
     "2009": 0.2,
@@ -738,6 +822,8 @@
    "years": "2013-2018",
    "body": "sedan",
    "weight": 6.78,
+   "parody_make": "Nasso",
+   "parody_model": "Ultima",
    "year_weights": {
     "2013": 0.306,
     "2014": 0.177,
@@ -754,6 +840,8 @@
    "years": "2003-2008",
    "body": "sedan_small",
    "weight": 6.75,
+   "parody_make": "Takumi",
+   "parody_model": "Coralia",
    "year_weights": {
     "2003": 0.18,
     "2004": 0.18,
@@ -770,6 +858,8 @@
    "years": "2012-2018",
    "body": "sedan_small",
    "weight": 6.74,
+   "parody_make": "Halden",
+   "parody_model": "Glance",
    "year_weights": {
     "2012": 0.234,
     "2013": 0.234,
@@ -787,6 +877,8 @@
    "years": "2000-2005",
    "body": "sedan_big",
    "weight": 6.64,
+   "parody_make": "Corvane",
+   "parody_model": "Dutchess",
    "year_weights": {
     "2000": 0.151,
     "2001": 0.151,
@@ -803,6 +895,8 @@
    "years": "2000-2005",
    "body": "sedan_big",
    "weight": 6.64,
+   "parody_make": "Bewick",
+   "parody_model": "LeRapier",
    "year_weights": {
     "2000": 0.151,
     "2001": 0.151,
@@ -819,6 +913,8 @@
    "years": "2013-2017",
    "body": "sedan",
    "weight": 6.63,
+   "parody_make": "Hanzo",
+   "parody_model": "Harmony",
    "year_weights": {
     "2013": 0.333,
     "2014": 0.193,
@@ -834,6 +930,8 @@
    "years": "2012-2015",
    "body": "sedan_small",
    "weight": 6.54,
+   "parody_make": "Hanzo",
+   "parody_model": "Civet",
    "year_weights": {
     "2012": 0.317,
     "2013": 0.317,
@@ -848,6 +946,8 @@
    "years": "1996-2007",
    "body": "sedan_big",
    "weight": 6.54,
+   "parody_make": "Halden",
+   "parody_model": "Bullock",
    "year_weights": {
     "1996": 0.077,
     "1997": 0.077,
@@ -870,6 +970,8 @@
    "years": "1999-2004",
    "body": "suv_m",
    "weight": 6.43,
+   "parody_make": "Overmark",
+   "parody_model": "Grand Ridgeback",
    "year_weights": {
     "1999": 0.156,
     "2000": 0.156,
@@ -886,6 +988,8 @@
    "years": "1997-2008",
    "body": "sedan_big",
    "weight": 6.38,
+   "parody_make": "Pontier",
+   "parody_model": "Grand Slam",
    "year_weights": {
     "1997": 0.079,
     "1998": 0.079,
@@ -908,6 +1012,8 @@
    "years": "2007-2011",
    "body": "suv_c",
    "weight": 6.36,
+   "parody_make": "Hanzo",
+   "parody_model": "KR-V",
    "year_weights": {
     "2007": 0.305,
     "2008": 0.174,
@@ -923,6 +1029,8 @@
    "years": "2005-2015",
    "body": "pickup_mid",
    "weight": 6.24,
+   "parody_make": "Takumi",
+   "parody_model": "Rainier",
    "year_weights": {
     "2005": 0.141,
     "2006": 0.141,
@@ -944,6 +1052,8 @@
    "years": "2007-2017",
    "body": "suv_box",
    "weight": 6.12,
+   "parody_make": "Overmark",
+   "parody_model": "Minuteman",
    "year_weights": {
     "2007": 0.18,
     "2008": 0.102,
@@ -965,6 +1075,8 @@
    "years": "2002-2010",
    "body": "suv_c",
    "weight": 6.09,
+   "parody_make": "Satellite",
+   "parody_model": "Vista",
    "year_weights": {
     "2002": 0.11,
     "2003": 0.133,
@@ -984,6 +1096,8 @@
    "years": "2001-2010",
    "body": "sedan",
    "weight": 6.08,
+   "parody_make": "Kreisler",
+   "parody_model": "Lakeside",
    "year_weights": {
     "2001": 0.099,
     "2002": 0.099,
@@ -1004,6 +1118,8 @@
    "years": "2001-2010",
    "body": "hatch_box",
    "weight": 6.08,
+   "parody_make": "Kreisler",
+   "parody_model": "PB Cruisette",
    "year_weights": {
     "2001": 0.099,
     "2002": 0.099,
@@ -1024,6 +1140,8 @@
    "years": "1984-2001",
    "body": "suv_box",
    "weight": 6.01,
+   "parody_make": "Overmark",
+   "parody_model": "Ridgeback",
    "year_weights": {
     "1984": 0.056,
     "1985": 0.056,
@@ -1052,6 +1170,8 @@
    "years": "2011-2019",
    "body": "sedan",
    "weight": 5.95,
+   "parody_make": "Pellam",
+   "parody_model": "Sonnet",
    "year_weights": {
     "2011": 0.18,
     "2012": 0.18,
@@ -1071,6 +1191,8 @@
    "years": "1998-2011",
    "body": "sedan_big",
    "weight": 5.93,
+   "parody_make": "Mercurio",
+   "parody_model": "Grand Duke",
    "year_weights": {
     "1998": 0.072,
     "1999": 0.072,
@@ -1095,6 +1217,8 @@
    "years": "2007-2014",
    "body": "suv_m",
    "weight": 5.75,
+   "parody_make": "Halden",
+   "parody_model": "Ledge",
    "year_weights": {
     "2007": 0.211,
     "2008": 0.12,
@@ -1113,6 +1237,8 @@
    "years": "1992-2014",
    "body": "van",
    "weight": 5.64,
+   "parody_make": "Halden",
+   "parody_model": "E-Hauler",
    "year_weights": {
     "1992": 0.046,
     "1993": 0.046,
@@ -1146,6 +1272,8 @@
    "years": "2011-2020",
    "body": "sedan_small",
    "weight": 5.61,
+   "parody_make": "Pellam",
+   "parody_model": "Elara",
    "year_weights": {
     "2011": 0.172,
     "2012": 0.172,
@@ -1166,6 +1294,8 @@
    "years": "2009-2013",
    "body": "sedan_small",
    "weight": 5.52,
+   "parody_make": "Takumi",
+   "parody_model": "Coralia",
    "year_weights": {
     "2009": 0.2,
     "2010": 0.2,
@@ -1181,6 +1311,8 @@
    "years": "2008-2011",
    "body": "sedan_small",
    "weight": 5.52,
+   "parody_make": "Halden",
+   "parody_model": "Glance",
    "year_weights": {
     "2008": 0.25,
     "2009": 0.25,
@@ -1195,6 +1327,8 @@
    "years": "2011-2023",
    "body": "sedan_big",
    "weight": 5.46,
+   "parody_make": "Swerve",
+   "parody_model": "Thunderer",
    "year_weights": {
     "2011": 0.156,
     "2012": 0.156,
@@ -1218,6 +1352,8 @@
    "years": "2010-2019",
    "body": "sedan_big",
    "weight": 5.42,
+   "parody_make": "Halden",
+   "parody_model": "Bullock",
    "year_weights": {
     "2010": 0.153,
     "2011": 0.153,
@@ -1238,6 +1374,8 @@
    "years": "2006-2010",
    "body": "sedan_big",
    "weight": 5.39,
+   "parody_make": "Swerve",
+   "parody_model": "Thunderer",
    "year_weights": {
     "2006": 0.27,
     "2007": 0.27,
@@ -1253,6 +1391,8 @@
    "years": "2007-2016",
    "body": "suv_f",
    "weight": 5.24,
+   "parody_make": "GMT",
+   "parody_model": "Appalachia",
    "year_weights": {
     "2007": 0.185,
     "2008": 0.105,
@@ -1273,6 +1413,8 @@
    "years": "2006-2011",
    "body": "sedan_big",
    "weight": 5.18,
+   "parody_make": "Bewick",
+   "parody_model": "Geneva",
    "year_weights": {
     "2006": 0.234,
     "2007": 0.234,
@@ -1289,6 +1431,8 @@
    "years": "2006-2012",
    "body": "suv_c",
    "weight": 5.03,
+   "parody_make": "Takumi",
+   "parody_model": "TAV-4",
    "year_weights": {
     "2006": 0.206,
     "2007": 0.206,
@@ -1306,6 +1450,8 @@
    "years": "2014-2020",
    "body": "suv_c",
    "weight": 4.99,
+   "parody_make": "Nasso",
+   "parody_model": "Bandit",
    "year_weights": {
     "2014": 0.206,
     "2015": 0.206,
@@ -1323,6 +1469,8 @@
    "years": "2007-2021",
    "body": "pickup",
    "weight": 4.98,
+   "parody_make": "Takumi",
+   "parody_model": "Taiga",
    "year_weights": {
     "2007": 0.162,
     "2008": 0.092,
@@ -1348,6 +1496,8 @@
    "years": "2005-2014",
    "body": "coupe",
    "weight": 4.91,
+   "parody_make": "Halden",
+   "parody_model": "Wildhorse",
    "year_weights": {
     "2005": 0.148,
     "2006": 0.148,
@@ -1368,6 +1518,8 @@
    "years": "2011-2023",
    "body": "sedan_big",
    "weight": 4.78,
+   "parody_make": "Kreisler",
+   "parody_model": "400",
    "year_weights": {
     "2011": 0.156,
     "2012": 0.156,
@@ -1391,6 +1543,8 @@
    "years": "2008-2016",
    "body": "pickup_hd",
    "weight": 4.75,
+   "parody_make": "Halden",
+   "parody_model": "Workhorse 250 Heavy",
    "year_weights": {
     "2008": 0.129,
     "2009": 0.129,
@@ -1410,6 +1564,8 @@
    "years": "2002-2007",
    "body": "suv_m",
    "weight": 4.71,
+   "parody_make": "Bewick",
+   "parody_model": "Gathering",
    "year_weights": {
     "2002": 0.142,
     "2003": 0.172,
@@ -1426,6 +1582,8 @@
    "years": "2014-2019",
    "body": "sedan_small",
    "weight": 4.68,
+   "parody_make": "Takumi",
+   "parody_model": "Coralia",
    "year_weights": {
     "2014": 0.228,
     "2015": 0.228,
@@ -1442,6 +1600,8 @@
    "years": "2001-2006",
    "body": "sedan",
    "weight": 4.57,
+   "parody_make": "Swerve",
+   "parody_model": "Nimbus",
    "year_weights": {
     "2001": 0.146,
     "2002": 0.146,
@@ -1458,6 +1618,8 @@
    "years": "2000-2007",
    "body": "sedan_small",
    "weight": 4.53,
+   "parody_make": "Halden",
+   "parody_model": "Glance",
    "year_weights": {
     "2000": 0.111,
     "2001": 0.111,
@@ -1476,6 +1638,8 @@
    "years": "2013-2018",
    "body": "suv_c",
    "weight": 4.52,
+   "parody_make": "Takumi",
+   "parody_model": "TAV-4",
    "year_weights": {
     "2013": 0.306,
     "2014": 0.177,
@@ -1492,6 +1656,8 @@
    "years": "2001-2005",
    "body": "sedan_small",
    "weight": 4.51,
+   "parody_make": "Hanzo",
+   "parody_model": "Civet",
    "year_weights": {
     "2001": 0.178,
     "2002": 0.178,
@@ -1507,6 +1673,8 @@
    "years": "2009-2020",
    "body": "suv_c",
    "weight": 4.49,
+   "parody_make": "Swerve",
+   "parody_model": "Roamer",
    "year_weights": {
     "2009": 0.128,
     "2010": 0.128,
@@ -1529,6 +1697,8 @@
    "years": "2000-2006",
    "body": "suv_f",
    "weight": 4.49,
+   "parody_make": "Corvane",
+   "parody_model": "Superior",
    "year_weights": {
     "2000": 0.128,
     "2001": 0.128,
@@ -1546,6 +1716,8 @@
    "years": "2000-2005",
    "body": "sedan_big",
    "weight": 4.43,
+   "parody_make": "Corvane",
+   "parody_model": "Dutchess",
    "year_weights": {
     "2000": 0.151,
     "2001": 0.151,
@@ -1562,6 +1734,8 @@
    "years": "1999-2005",
    "body": "sedan",
    "weight": 4.37,
+   "parody_make": "Pontier",
+   "parody_model": "Grand Tour",
    "year_weights": {
     "1999": 0.131,
     "2000": 0.131,
@@ -1579,6 +1753,8 @@
    "years": "2016-2025",
    "body": "sedan",
    "weight": 4.34,
+   "parody_make": "Corvane",
+   "parody_model": "Sandbar",
    "year_weights": {
     "2016": 0.221,
     "2017": 0.102,
@@ -1599,6 +1775,8 @@
    "years": "2003-2026",
    "body": "van",
    "weight": 4.31,
+   "parody_make": "Corvane",
+   "parody_model": "Courier",
    "year_weights": {
     "2003": 0.094,
     "2004": 0.094,
@@ -1633,6 +1811,8 @@
    "years": "2009-2017",
    "body": "suv_f",
    "weight": 4.3,
+   "parody_make": "Corvane",
+   "parody_model": "Crossway",
    "year_weights": {
     "2009": 0.143,
     "2010": 0.143,
@@ -1652,6 +1832,8 @@
    "years": "1997-2005",
    "body": "sedan_big",
    "weight": 4.29,
+   "parody_make": "Bewick",
+   "parody_model": "Centennial",
    "year_weights": {
     "1997": 0.104,
     "1998": 0.104,
@@ -1671,6 +1853,8 @@
    "years": "2014-2023",
    "body": "suv_c",
    "weight": 4.26,
+   "parody_make": "Overmark",
+   "parody_model": "Ridgeback",
    "year_weights": {
     "2014": 0.169,
     "2015": 0.169,
@@ -1691,6 +1875,8 @@
    "years": "1995-2005",
    "body": "sedan_small",
    "weight": 4.24,
+   "parody_make": "Corvane",
+   "parody_model": "Cadet",
    "year_weights": {
     "1995": 0.086,
     "1996": 0.086,
@@ -1712,6 +1898,8 @@
    "years": "1995-2005",
    "body": "suv_box",
    "weight": 4.24,
+   "parody_make": "Corvane",
+   "parody_model": "Scorcher",
    "year_weights": {
     "1995": 0.086,
     "1996": 0.086,
@@ -1733,6 +1921,8 @@
    "years": "2002-2009",
    "body": "suv_box",
    "weight": 4.22,
+   "parody_make": "GMT",
+   "parody_model": "Emissary",
    "year_weights": {
     "2002": 0.119,
     "2003": 0.144,
@@ -1751,6 +1941,8 @@
    "years": "2013-2019",
    "body": "sedan_small",
    "weight": 4.19,
+   "parody_make": "Nasso",
+   "parody_model": "Centro",
    "year_weights": {
     "2013": 0.282,
     "2014": 0.163,
@@ -1768,6 +1960,8 @@
    "years": "1994-2004",
    "body": "pickup_mid",
    "weight": 4.16,
+   "parody_make": "Corvane",
+   "parody_model": "S-Pack",
    "year_weights": {
     "1994": 0.088,
     "1995": 0.088,
@@ -1789,6 +1983,8 @@
    "years": "2008-2013",
    "body": "suv_c",
    "weight": 4.14,
+   "parody_make": "Nasso",
+   "parody_model": "Bandit",
    "year_weights": {
     "2008": 0.167,
     "2009": 0.167,
@@ -1805,6 +2001,8 @@
    "years": "2018-2024",
    "body": "suv_c",
    "weight": 4.1,
+   "parody_make": "Corvane",
+   "parody_model": "Halcyon",
    "year_weights": {
     "2018": 0.168,
     "2019": 0.168,
@@ -1822,6 +2020,8 @@
    "years": "2016-2021",
    "body": "sedan_small",
    "weight": 3.98,
+   "parody_make": "Hanzo",
+   "parody_model": "Civet",
    "year_weights": {
     "2016": 0.301,
     "2017": 0.14,
@@ -1838,6 +2038,8 @@
    "years": "2013-2015",
    "body": "sedan",
    "weight": 3.97,
+   "parody_make": "Corvane",
+   "parody_model": "Sandbar",
    "year_weights": {
     "2013": 0.464,
     "2014": 0.268,
@@ -1851,6 +2053,8 @@
    "years": "1998-2011",
    "body": "sedan_big",
    "weight": 3.95,
+   "parody_make": "Halden",
+   "parody_model": "Crown Regent",
    "year_weights": {
     "1998": 0.072,
     "1999": 0.072,
@@ -1875,6 +2079,8 @@
    "years": "2011-2017",
    "body": "sedan",
    "weight": 3.95,
+   "parody_make": "Kreisler",
+   "parody_model": "250",
    "year_weights": {
     "2011": 0.2,
     "2012": 0.2,
@@ -1892,6 +2098,8 @@
    "years": "2000-2011",
    "body": "sedan_big",
    "weight": 3.94,
+   "parody_make": "Cavalcade",
+   "parody_model": "Del Mar",
    "year_weights": {
     "2000": 0.085,
     "2001": 0.085,
@@ -1914,6 +2122,8 @@
    "years": "2007-2016",
    "body": "suv_c",
    "weight": 3.93,
+   "parody_make": "Overmark",
+   "parody_model": "Bearing",
    "year_weights": {
     "2007": 0.185,
     "2008": 0.105,
@@ -1934,6 +2144,8 @@
    "years": "2008-2014",
    "body": "sedan",
    "weight": 3.89,
+   "parody_make": "Swerve",
+   "parody_model": "Vengeance",
    "year_weights": {
     "2008": 0.152,
     "2009": 0.152,
@@ -1951,6 +2163,8 @@
    "years": "2006-2009",
    "body": "suv_c",
    "weight": 3.8,
+   "parody_make": "Pontier",
+   "parody_model": "Rapids",
    "year_weights": {
     "2006": 0.319,
     "2007": 0.319,
@@ -1965,6 +2179,8 @@
    "years": "2004-2011",
    "body": "hatch",
    "weight": 3.8,
+   "parody_make": "Corvane",
+   "parody_model": "Pip",
    "year_weights": {
     "2004": 0.159,
     "2005": 0.159,
@@ -1983,6 +2199,8 @@
    "years": "2019-2026",
    "body": "pickup",
    "weight": 3.77,
+   "parody_make": "Corvane",
+   "parody_model": "Stockman 1500",
    "year_weights": {
     "2019": 0.16,
     "2020": 0.16,
@@ -2001,6 +2219,8 @@
    "years": "2014-2018",
    "body": "pickup",
    "weight": 3.76,
+   "parody_make": "GMT",
+   "parody_model": "Summit 1500",
    "year_weights": {
     "2014": 0.255,
     "2015": 0.255,
@@ -2016,6 +2236,8 @@
    "years": "2002-2013",
    "body": "pickup",
    "weight": 3.73,
+   "parody_make": "Corvane",
+   "parody_model": "Rockslide",
    "year_weights": {
     "2002": 0.089,
     "2003": 0.108,
@@ -2038,6 +2260,8 @@
    "years": "2004-2012",
    "body": "pickup_mid",
    "weight": 3.69,
+   "parody_make": "Corvane",
+   "parody_model": "Mesa",
    "year_weights": {
     "2004": 0.146,
     "2005": 0.146,
@@ -2057,6 +2281,8 @@
    "years": "2005-2011",
    "body": "pickup_mid",
    "weight": 3.65,
+   "parody_make": "Swerve",
+   "parody_model": "Prairie",
    "year_weights": {
     "2005": 0.189,
     "2006": 0.189,
@@ -2074,6 +2300,8 @@
    "years": "2010-2019",
    "body": "sedan_big",
    "weight": 3.61,
+   "parody_make": "Bewick",
+   "parody_model": "LaCrescent",
    "year_weights": {
     "2010": 0.153,
     "2011": 0.153,
@@ -2094,6 +2322,8 @@
    "years": "2011-2026",
    "body": "minivan",
    "weight": 3.6,
+   "parody_make": "Hanzo",
+   "parody_model": "Iliad",
    "year_weights": {
     "2011": 0.144,
     "2012": 0.144,
@@ -2120,6 +2350,8 @@
    "years": "2006-2010",
    "body": "suv_box",
    "weight": 3.59,
+   "parody_make": "Overmark",
+   "parody_model": "Captain",
    "year_weights": {
     "2006": 0.27,
     "2007": 0.27,
@@ -2135,6 +2367,8 @@
    "years": "2018-2026",
    "body": "jeep",
    "weight": 3.59,
+   "parody_make": "Overmark",
+   "parody_model": "Trailhand",
    "year_weights": {
     "2018": 0.138,
     "2019": 0.138,
@@ -2154,6 +2388,8 @@
    "years": "2005-2021",
    "body": "pickup_mid",
    "weight": 3.49,
+   "parody_make": "Nasso",
+   "parody_model": "Outpost",
    "year_weights": {
     "2005": 0.122,
     "2006": 0.122,
@@ -2181,6 +2417,8 @@
    "years": "2006-2011",
    "body": "hatch_box",
    "weight": 3.46,
+   "parody_make": "Corvane",
+   "parody_model": "Heritage",
    "year_weights": {
     "2006": 0.234,
     "2007": 0.234,
@@ -2197,6 +2435,8 @@
    "years": "2004-2014",
    "body": "sedan",
    "weight": 3.41,
+   "parody_make": "Nasso",
+   "parody_model": "Grandia",
    "year_weights": {
     "2004": 0.129,
     "2005": 0.129,
@@ -2218,6 +2458,8 @@
    "years": "2014-2020",
    "body": "sedan_big",
    "weight": 3.32,
+   "parody_make": "Corvane",
+   "parody_model": "Dutchess",
    "year_weights": {
     "2014": 0.206,
     "2015": 0.206,
@@ -2235,6 +2477,8 @@
    "years": "2007-2010",
    "body": "sedan_small",
    "weight": 3.28,
+   "parody_make": "Pellam",
+   "parody_model": "Elara",
    "year_weights": {
     "2007": 0.369,
     "2008": 0.21,
@@ -2249,6 +2493,8 @@
    "years": "2008-2023",
    "body": "coupe",
    "weight": 3.25,
+   "parody_make": "Swerve",
+   "parody_model": "Contender",
    "year_weights": {
     "2008": 0.106,
     "2009": 0.106,
@@ -2275,6 +2521,8 @@
    "years": "2007-2026",
    "body": "suv_f",
    "weight": 3.23,
+   "parody_make": "GMT",
+   "parody_model": "Klondike",
    "year_weights": {
     "2007": 0.15,
     "2008": 0.085,
@@ -2305,6 +2553,8 @@
    "years": "2019-2026",
    "body": "pickup",
    "weight": 3.19,
+   "parody_make": "Bulward",
+   "parody_model": "Haul 1500",
    "year_weights": {
     "2019": 0.16,
     "2020": 0.16,
@@ -2323,6 +2573,8 @@
    "years": "2007-2011",
    "body": "suv_box",
    "weight": 3.18,
+   "parody_make": "Swerve",
+   "parody_model": "Fuse",
    "year_weights": {
     "2007": 0.305,
     "2008": 0.174,
@@ -2338,6 +2590,8 @@
    "years": "2021-2026",
    "body": "pickup",
    "weight": 3.16,
+   "parody_make": "Halden",
+   "parody_model": "Workhorse 150",
    "year_weights": {
     "2021": 0.235,
     "2022": 0.153,
@@ -2354,6 +2608,8 @@
    "years": "2017-2022",
    "body": "suv_c",
    "weight": 3.14,
+   "parody_make": "Hanzo",
+   "parody_model": "KR-V",
    "year_weights": {
     "2017": 0.177,
     "2018": 0.177,
@@ -2370,6 +2626,8 @@
    "years": "2007-2012",
    "body": "hatch",
    "weight": 3.11,
+   "parody_make": "Swerve",
+   "parody_model": "Bore",
    "year_weights": {
     "2007": 0.26,
     "2008": 0.148,
@@ -2386,6 +2644,8 @@
    "years": "2007-2012",
    "body": "suv_m",
    "weight": 3.11,
+   "parody_make": "Pellam",
+   "parody_model": "Santa Rosa",
    "year_weights": {
     "2007": 0.26,
     "2008": 0.148,
@@ -2402,6 +2662,8 @@
    "years": "2010-2017",
    "body": "suv_box",
    "weight": 3.11,
+   "parody_make": "GMT",
+   "parody_model": "Landform",
    "year_weights": {
     "2010": 0.167,
     "2011": 0.167,
@@ -2420,6 +2682,8 @@
    "years": "2011-2026",
    "body": "suv_m",
    "weight": 3.0,
+   "parody_make": "Swerve",
+   "parody_model": "Pueblo",
    "year_weights": {
     "2011": 0.144,
     "2012": 0.144,
@@ -2446,6 +2710,8 @@
    "years": "2011-2026",
    "body": "sedan",
    "weight": 3.0,
+   "parody_make": "Kaiya",
+   "parody_model": "Prima",
    "year_weights": {
     "2011": 0.144,
     "2012": 0.144,
@@ -2472,6 +2738,8 @@
    "years": "2011-2026",
    "body": "minivan",
    "weight": 3.0,
+   "parody_make": "Takumi",
+   "parody_model": "Tuscana",
    "year_weights": {
     "2011": 0.144,
     "2012": 0.144,
@@ -2498,6 +2766,8 @@
    "years": "2008-2026",
    "body": "suv_f",
    "weight": 2.89,
+   "parody_make": "Bewick",
+   "parody_model": "Estate",
    "year_weights": {
     "2008": 0.1,
     "2009": 0.1,
@@ -2527,6 +2797,8 @@
    "years": "2007-2014",
    "body": "pickup_hd",
    "weight": 2.88,
+   "parody_make": "Corvane",
+   "parody_model": "Stockman 2500HD",
    "year_weights": {
     "2007": 0.211,
     "2008": 0.12,
@@ -2545,6 +2817,8 @@
    "years": "2018-2024",
    "body": "sedan",
    "weight": 2.84,
+   "parody_make": "Takumi",
+   "parody_model": "Corsa",
    "year_weights": {
     "2018": 0.168,
     "2019": 0.168,
@@ -2562,6 +2836,8 @@
    "years": "2010-2024",
    "body": "coupe",
    "weight": 2.8,
+   "parody_make": "Corvane",
+   "parody_model": "Ravager",
    "year_weights": {
     "2010": 0.132,
     "2011": 0.132,
@@ -2587,6 +2863,8 @@
    "years": "2008-2013",
    "body": "suv_m",
    "weight": 2.76,
+   "parody_make": "Takumi",
+   "parody_model": "Highcrest",
    "year_weights": {
     "2008": 0.167,
     "2009": 0.167,
@@ -2603,6 +2881,8 @@
    "years": "2019-2025",
    "body": "suv_c",
    "weight": 2.67,
+   "parody_make": "Takumi",
+   "parody_model": "TAV-4",
    "year_weights": {
     "2019": 0.178,
     "2020": 0.178,
@@ -2620,6 +2900,8 @@
    "years": "2006-2017",
    "body": "sedan_small",
    "weight": 2.65,
+   "parody_make": "Pellam",
+   "parody_model": "Tidy",
    "year_weights": {
     "2006": 0.152,
     "2007": 0.152,
@@ -2642,6 +2924,8 @@
    "years": "2006-2017",
    "body": "sedan_small",
    "weight": 2.65,
+   "parody_make": "Kaiya",
+   "parody_model": "Delta",
    "year_weights": {
     "2006": 0.152,
     "2007": 0.152,
@@ -2664,6 +2948,8 @@
    "years": "2010-2026",
    "body": "pickup_hd",
    "weight": 2.58,
+   "parody_make": "Bulward",
+   "parody_model": "Haul 2500",
    "year_weights": {
     "2010": 0.126,
     "2011": 0.126,
@@ -2691,6 +2977,8 @@
    "years": "2009-2014",
    "body": "suv_m",
    "weight": 2.57,
+   "parody_make": "Nasso",
+   "parody_model": "Lagoon",
    "year_weights": {
     "2009": 0.179,
     "2010": 0.179,
@@ -2707,6 +2995,8 @@
    "years": "2015-2020",
    "body": "suv_f",
    "weight": 2.57,
+   "parody_make": "Corvane",
+   "parody_model": "Superior",
    "year_weights": {
     "2015": 0.259,
     "2016": 0.259,
@@ -2723,6 +3013,8 @@
    "years": "2017-2026",
    "body": "suv_c",
    "weight": 2.45,
+   "parody_make": "Overmark",
+   "parody_model": "Bearing",
    "year_weights": {
     "2017": 0.121,
     "2018": 0.121,
@@ -2743,6 +3035,8 @@
    "years": "2009-2015",
    "body": "suv_box",
    "weight": 2.43,
+   "parody_make": "Hanzo",
+   "parody_model": "Helmsman",
    "year_weights": {
     "2009": 0.162,
     "2010": 0.162,
@@ -2760,6 +3054,8 @@
    "years": "2007-2026",
    "body": "suv_f",
    "weight": 2.42,
+   "parody_make": "Corvane",
+   "parody_model": "Township",
    "year_weights": {
     "2007": 0.15,
     "2008": 0.085,
@@ -2790,6 +3086,8 @@
    "years": "2007-2026",
    "body": "suv_f",
    "weight": 2.42,
+   "parody_make": "Halden",
+   "parody_model": "Voyageur",
    "year_weights": {
     "2007": 0.15,
     "2008": 0.085,
@@ -2820,6 +3118,8 @@
    "years": "2003-2007",
    "body": "sedan_small",
    "weight": 2.42,
+   "parody_make": "Satellite",
+   "parody_model": "Ionic",
    "year_weights": {
     "2003": 0.2,
     "2004": 0.2,
@@ -2835,6 +3135,8 @@
    "years": "2005-2007",
    "body": "sedan_big",
    "weight": 2.42,
+   "parody_make": "Halden",
+   "parody_model": "Five Fifty",
    "year_weights": {
     "2005": 0.333,
     "2006": 0.333,
@@ -2848,6 +3150,8 @@
    "years": "2016-2019",
    "body": "sedan_small",
    "weight": 2.39,
+   "parody_make": "Corvane",
+   "parody_model": "Drifter",
    "year_weights": {
     "2016": 0.418,
     "2017": 0.194,
@@ -2862,6 +3166,8 @@
    "years": "2016-2023",
    "body": "pickup_mid",
    "weight": 2.35,
+   "parody_make": "Takumi",
+   "parody_model": "Rainier",
    "year_weights": {
     "2016": 0.255,
     "2017": 0.118,
@@ -2880,6 +3186,8 @@
    "years": "2013-2022",
    "body": "suv_sub",
    "weight": 2.35,
+   "parody_make": "Bewick",
+   "parody_model": "Bravo",
    "year_weights": {
     "2013": 0.235,
     "2014": 0.136,
@@ -2900,6 +3208,8 @@
    "years": "2000-2007",
    "body": "coupe",
    "weight": 2.27,
+   "parody_make": "Corvane",
+   "parody_model": "Casino",
    "year_weights": {
     "2000": 0.111,
     "2001": 0.111,
@@ -2918,6 +3228,8 @@
    "years": "2004-2008",
    "body": "suv_m",
    "weight": 2.21,
+   "parody_make": "Kreisler",
+   "parody_model": "Pacifico",
    "year_weights": {
     "2004": 0.219,
     "2005": 0.219,
@@ -2933,6 +3245,8 @@
    "years": "2000-2005",
    "body": "sedan_small",
    "weight": 2.21,
+   "parody_make": "Swerve",
+   "parody_model": "Halogen",
    "year_weights": {
     "2000": 0.151,
     "2001": 0.151,
@@ -2949,6 +3263,8 @@
    "years": "2000-2005",
    "body": "sedan_big",
    "weight": 2.21,
+   "parody_make": "Mercurio",
+   "parody_model": "Mink",
    "year_weights": {
     "2000": 0.151,
     "2001": 0.151,
@@ -2965,6 +3281,8 @@
    "years": "2012-2020",
    "body": "hatch",
    "weight": 2.21,
+   "parody_make": "Corvane",
+   "parody_model": "Zippy",
    "year_weights": {
     "2012": 0.208,
     "2013": 0.208,
@@ -2984,6 +3302,8 @@
    "years": "2012-2026",
    "body": "sedan_small",
    "weight": 2.19,
+   "parody_make": "Nasso",
+   "parody_model": "Versi",
    "year_weights": {
     "2012": 0.168,
     "2013": 0.168,
@@ -3009,6 +3329,8 @@
    "years": "2005-2008",
    "body": "minivan",
    "weight": 2.16,
+   "parody_make": "Corvane",
+   "parody_model": "Homestead",
    "year_weights": {
     "2005": 0.28,
     "2006": 0.28,
@@ -3023,6 +3345,8 @@
    "years": "2005-2008",
    "body": "wagon",
    "weight": 2.16,
+   "parody_make": "Swerve",
+   "parody_model": "Gauge",
    "year_weights": {
     "2005": 0.28,
     "2006": 0.28,
@@ -3037,6 +3361,8 @@
    "years": "1999-2004",
    "body": "sedan",
    "weight": 2.14,
+   "parody_make": "Oldham",
+   "parody_model": "Aero",
    "year_weights": {
     "1999": 0.156,
     "2000": 0.156,
@@ -3053,6 +3379,8 @@
    "years": "1997-2005",
    "body": "sedan_big",
    "weight": 2.14,
+   "parody_make": "Bewick",
+   "parody_model": "Boulevard",
    "year_weights": {
     "1997": 0.104,
     "1998": 0.104,
@@ -3072,6 +3400,8 @@
    "years": "1997-2005",
    "body": "minivan",
    "weight": 2.14,
+   "parody_make": "Corvane",
+   "parody_model": "Voyage",
    "year_weights": {
     "1997": 0.104,
     "1998": 0.104,
@@ -3091,6 +3421,8 @@
    "years": "2017-2026",
    "body": "minivan",
    "weight": 2.14,
+   "parody_make": "Kreisler",
+   "parody_model": "Atlantica",
    "year_weights": {
     "2017": 0.121,
     "2018": 0.121,
@@ -3111,6 +3443,8 @@
    "years": "1995-2005",
    "body": "van",
    "weight": 2.12,
+   "parody_make": "Corvane",
+   "parody_model": "Orbiter",
    "year_weights": {
     "1995": 0.086,
     "1996": 0.086,
@@ -3132,6 +3466,8 @@
    "years": "2010-2024",
    "body": "suv_box",
    "weight": 2.1,
+   "parody_make": "Takumi",
+   "parody_model": "Trailrunner",
    "year_weights": {
     "2010": 0.132,
     "2011": 0.132,
@@ -3157,6 +3493,8 @@
    "years": "2014-2026",
    "body": "suv_c",
    "weight": 2.1,
+   "parody_make": "Subara",
+   "parody_model": "Woodsman",
    "year_weights": {
     "2014": 0.146,
     "2015": 0.146,
@@ -3180,6 +3518,8 @@
    "years": "2014-2026",
    "body": "suv_m",
    "weight": 2.1,
+   "parody_make": "Takumi",
+   "parody_model": "Highcrest",
    "year_weights": {
     "2014": 0.146,
     "2015": 0.146,
@@ -3203,6 +3543,8 @@
    "years": "1999-2003",
    "body": "minivan",
    "weight": 2.09,
+   "parody_make": "Halden",
+   "parody_model": "Brood",
    "year_weights": {
     "1999": 0.192,
     "2000": 0.192,
@@ -3218,6 +3560,8 @@
    "years": "2015-2024",
    "body": "suv_m",
    "weight": 2.09,
+   "parody_make": "Halden",
+   "parody_model": "Ledge",
    "year_weights": {
     "2015": 0.191,
     "2016": 0.191,
@@ -3238,6 +3582,8 @@
    "years": "2004-2009",
    "body": "sedan_small",
    "weight": 2.08,
+   "parody_make": "Kaiya",
+   "parody_model": "Spectrum",
    "year_weights": {
     "2004": 0.195,
     "2005": 0.195,
@@ -3254,6 +3600,8 @@
    "years": "1998-2003",
    "body": "suv_box",
    "weight": 2.07,
+   "parody_make": "Swerve",
+   "parody_model": "Pueblo",
    "year_weights": {
     "1998": 0.161,
     "1999": 0.161,
@@ -3270,6 +3618,8 @@
    "years": "2018-2022",
    "body": "sedan",
    "weight": 2.07,
+   "parody_make": "Hanzo",
+   "parody_model": "Harmony",
    "year_weights": {
     "2018": 0.215,
     "2019": 0.215,
@@ -3285,6 +3635,8 @@
    "years": "2003-2010",
    "body": "hatch",
    "weight": 2.03,
+   "parody_make": "Pontier",
+   "parody_model": "Groove",
    "year_weights": {
     "2003": 0.149,
     "2004": 0.149,
@@ -3303,6 +3655,8 @@
    "years": "2002-2010",
    "body": "suv_box",
    "weight": 2.03,
+   "parody_make": "Mercurio",
+   "parody_model": "Alpinist",
    "year_weights": {
     "2002": 0.11,
     "2003": 0.133,
@@ -3322,6 +3676,8 @@
    "years": "2005-2009",
    "body": "sedan_big",
    "weight": 2.01,
+   "parody_make": "Halden",
+   "parody_model": "Five Fifty Wagon",
    "year_weights": {
     "2005": 0.242,
     "2006": 0.242,
@@ -3337,6 +3693,8 @@
    "years": "1997-2002",
    "body": "suv_f",
    "weight": 2.0,
+   "parody_make": "Halden",
+   "parody_model": "Voyageur",
    "year_weights": {
     "1997": 0.167,
     "1998": 0.167,
@@ -3353,6 +3711,8 @@
    "years": "1998-2002",
    "body": "sedan",
    "weight": 2.0,
+   "parody_make": "Oldham",
+   "parody_model": "Mystery",
    "year_weights": {
     "1998": 0.2,
     "1999": 0.2,
@@ -3368,6 +3728,8 @@
    "years": "1996-2000",
    "body": "minivan",
    "weight": 2.0,
+   "parody_make": "Plymore",
+   "parody_model": "Wanderer",
    "year_weights": {
     "1996": 0.2,
     "1997": 0.2,
@@ -3383,6 +3745,8 @@
    "years": "1995-2001",
    "body": "suv_box",
    "weight": 2.0,
+   "parody_make": "Halden",
+   "parody_model": "Wayfarer",
    "year_weights": {
     "1995": 0.143,
     "1996": 0.143,
@@ -3400,6 +3764,8 @@
    "years": "1995-2001",
    "body": "sedan_big",
    "weight": 2.0,
+   "parody_make": "Corvane",
+   "parody_model": "Lumen",
    "year_weights": {
     "1995": 0.143,
     "1996": 0.143,
@@ -3417,6 +3783,8 @@
    "years": "1996-2002",
    "body": "sedan_small",
    "weight": 2.0,
+   "parody_make": "Satellite",
+   "parody_model": "S-Line",
    "year_weights": {
     "1996": 0.143,
     "1997": 0.143,
@@ -3434,6 +3802,8 @@
    "years": "2011-2017",
    "body": "sedan",
    "weight": 1.97,
+   "parody_make": "Bewick",
+   "parody_model": "Royale",
    "year_weights": {
     "2011": 0.2,
     "2012": 0.2,
@@ -3451,6 +3821,8 @@
    "years": "2001-2011",
    "body": "suv_box",
    "weight": 1.97,
+   "parody_make": "Mazura",
+   "parody_model": "Homage",
    "year_weights": {
     "2001": 0.093,
     "2002": 0.093,
@@ -3472,6 +3844,8 @@
    "years": "2003-2011",
    "body": "sedan_big",
    "weight": 1.96,
+   "parody_make": "Lancaster",
+   "parody_model": "Town Coach",
    "year_weights": {
     "2003": 0.137,
     "2004": 0.137,
@@ -3491,6 +3865,8 @@
    "years": "2003-2011",
    "body": "suv_box",
    "weight": 1.96,
+   "parody_make": "Hanzo",
+   "parody_model": "Atom",
    "year_weights": {
     "2003": 0.137,
     "2004": 0.137,
@@ -3510,6 +3886,8 @@
    "years": "2013-2026",
    "body": "suv_m",
    "weight": 1.95,
+   "parody_make": "Pellam",
+   "parody_model": "Santa Rosa",
    "year_weights": {
     "2013": 0.202,
     "2014": 0.117,
@@ -3534,6 +3912,8 @@
    "years": "2020-2026",
    "body": "suv_m",
    "weight": 1.95,
+   "parody_make": "Halden",
+   "parody_model": "Wayfarer",
    "year_weights": {
     "2020": 0.19,
     "2021": 0.19,
@@ -3551,6 +3931,8 @@
    "years": "2015-2026",
    "body": "wagon",
    "weight": 1.94,
+   "parody_make": "Subara",
+   "parody_model": "Backcountry",
    "year_weights": {
     "2015": 0.171,
     "2016": 0.171,
@@ -3573,6 +3955,8 @@
    "years": "2010-2026",
    "body": "hatch",
    "weight": 1.94,
+   "parody_make": "Mazura",
+   "parody_model": "3",
    "year_weights": {
     "2010": 0.126,
     "2011": 0.126,
@@ -3600,6 +3984,8 @@
    "years": "2022-2026",
    "body": "suv_m",
    "weight": 1.93,
+   "parody_make": "Overmark",
+   "parody_model": "Grand Ridgeback",
    "year_weights": {
     "2022": 0.2,
     "2023": 0.2,
@@ -3615,6 +4001,8 @@
    "years": "2013-2016",
    "body": "sedan_small",
    "weight": 1.89,
+   "parody_make": "Swerve",
+   "parody_model": "Fletch",
    "year_weights": {
     "2013": 0.366,
     "2014": 0.211,
@@ -3629,6 +4017,8 @@
    "years": "2015-2022",
    "body": "pickup_mid",
    "weight": 1.85,
+   "parody_make": "Corvane",
+   "parody_model": "Mesa",
    "year_weights": {
     "2015": 0.216,
     "2016": 0.216,
@@ -3647,6 +4037,8 @@
    "years": "2005-2011",
    "body": "suv_box",
    "weight": 1.83,
+   "parody_make": "Mercurio",
+   "parody_model": "Seafarer",
    "year_weights": {
     "2005": 0.189,
     "2006": 0.189,
@@ -3664,6 +4056,8 @@
    "years": "2014-2024",
    "body": "sedan_small",
    "weight": 1.81,
+   "parody_make": "Kaiya",
+   "parody_model": "Forta",
    "year_weights": {
     "2014": 0.161,
     "2015": 0.161,
@@ -3685,6 +4079,8 @@
    "years": "2011-2026",
    "body": "sedan_small",
    "weight": 1.8,
+   "parody_make": "Volksmobil",
+   "parody_model": "Jetstream",
    "year_weights": {
     "2011": 0.144,
     "2012": 0.144,
@@ -3711,6 +4107,8 @@
    "years": "2016-2021",
    "body": "suv_c",
    "weight": 1.77,
+   "parody_make": "Pellam",
+   "parody_model": "Tempe",
    "year_weights": {
     "2016": 0.301,
     "2017": 0.14,
@@ -3727,6 +4125,8 @@
    "years": "2015-2023",
    "body": "suv_sub",
    "weight": 1.75,
+   "parody_make": "Overmark",
+   "parody_model": "Rascal",
    "year_weights": {
     "2015": 0.203,
     "2016": 0.203,

@@ -81,6 +81,12 @@ It is the owner's passion project for his own city.
       - local factors: Jeep's Toledo plant, domestic-brand loyalty, Chrysler minivans.
     - **Second-hand cars included** (owner: "I'm talking about second-hand cars too"): weights are re-balanced so the model-year mix matches what is actually driven, not new sales: 2022+ 15%, 2017–21 23%, 2012–16 25%, 2007–11 19%, 2002–06 11%, 2001 and older 7%. That's a little older than the US fleet (average age 12.8 years), for Toledo.
       - **Owner's observation (2026-11-21): "driving around Toledo it is mostly 2013 to 2003 cars".** The target is now 2022+ 5%, 2017–21 10%, 2014–16 13%, 2008–13 36%, 2003–07 26%, 2002 and older 10%. The fleet comes out about 65% model years 2003–2013. Added more 2003–2013 cars: '05–'09 Equinox, Torrent, Vue, Rendezvous, Aveo, G5, Five Hundred, Sable, Mariner, Mountaineer, Stratus, Pacifica wagon, Avalanche, Santa Fe, Spectra, Maxima, '03–'08 Corolla, '01–'05 Civic, Accent, Rio, Commander, Magnum, Colorado, Envoy, Town Car, DTS, Highlander, Murano, Element and Tribute.
+      - **Off-brand names chosen** (owner: "pick all of them"): `tools/pipeline/fleet_names.py` → `parody_make` / `parody_model` in `toledo_fleet.json`. Makes:
+        - Chevrolet→Corvane, Ford→Halden, Jeep→Overmark, Dodge→Swerve, Toyota→Takumi, Honda→Hanzo, Chrysler→Kreisler, Nissan→Nasso;
+        - Buick→Bewick, GMC→GMT, Hyundai→Pellam, Pontiac→Pontier, Ram (and the old Dodge Rams)→Bulward, Kia→Kaiya, Mercury→Mercurio, Cadillac→Cavalcade;
+        - Lincoln→Lancaster, Saturn→Satellite, Subaru→Subara, Mazda→Mazura, VW→Volksmobil, Oldsmobile→Oldham, Plymouth→Plymore.
+
+        All 139 models have their own name, for example Silverado→Stockman 1500, Impala→Dutchess, F-150→Workhorse 150, Grand Caravan→Grand Convoy, Liberty→Freedom, Grand Cherokee→Grand Ridgeback, Cobalt→Garnet, PT Cruiser→PB Cruisette.
       - **Off-brand names are worked out with the owner** in the "GLASS CITY – Toledo's 200 Cars" Sheet artifact. Its "Brands" tab maps each real make to a parody make; brands already in the game are prefilled (Corvane, Halden, Overmark, Takumi, Hanzo, Pellam, Bulward). The "Cars" tab has an off-brand model column to fill in. When it's done, the names get read back into `toledo_fleet.json`.
       - Old beaters are in the list too: 1999–2006 Silverado, '97–'03 F-150, Jeep XJ Cherokee, Liberty, Impala, Grand Marquis, LeSabre, PT Cruiser, Windstar, Astro and more.
       - The boost per age bucket is capped at 2.2×, so a thin bucket can't vault one model to #1.
@@ -968,6 +974,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/pipeline/fetch_named.py` | Download named Wikimedia Commons files (960px thumbnails) as reference photos for one replica, via curl (urllib gets throttled where curl does not). Reference only, never shipped. usage: fetch_named.py <refs dir>/<key> "File name.jpg" ... |
 | `tools/pipeline/fetch_polyhaven.py` | Download CC0 PBR textures / models from Poly Haven (polyhaven.com, CC0 1.0) via its public API. usage: fetch_polyhaven.py OUTDIR RES asset[:maps] ... maps default: Diffuse,nor_gl,Rough (RES: 1k/2k) fetch_polyhaven.py --model OUTDIR RES asset ... (glTF + its textures) Generic User-Agent only. |
 | `tools/pipeline/fetch_refs.py` | Reference photos for replica buildings: Wikidata image (P18) + up to N files from the building's Commons category (P373), as 960px thumbnails. Polite: generic UA, a few seconds between requests, backoff on 429. Photos are reference only (looked at to model from); they never ship. usage: fetch_refs.py <repo> <out dir> [N] [key ...] |
+| `tools/pipeline/fleet_names.py` | GLASS CITY off-brand names for Toledo's 200 cars (owner, 2026-11-21: "pick all of them"). Real make -> parody make, and (real make, real model) -> parody model. Brands already in the game keep their names (Corvane, Halden, Overmark, Takumi, Hanzo, Pellam, Bulward); existing game models are reused where they fit (Corvane Stockman / Dutchess / Ravager, Halden Fairway / Wayfarer / Brood, Overmark Trailhand, Takumi Corsa, Hanzo Civet, Pellam Tidy, Bulward Haul). Read by make_toledo_fleet.py; mirrored in the owner's naming Sheet. |
 | `tools/pipeline/house_clip.py` | Zero-shot architectural attributes from the county reference photos with CLIP (ONNX, CPU). Only the attribute labels go into the game; photos stay local. usage: house_clip.py PHOTO_DIR CLIP_DIR out.json out: {assr: {"style": name, "porch": full/small/enclosed/none, "dormer": 0/1, "shutters": 0/1, "piers": 0/1, "conf": {...}}} |
 | `tools/pipeline/house_fit.py` | Per-wing LiDAR fit for every house: splits each small-building footprint into rectangular wings (same split as build_city.rect_parts) and measures each wing on its own - eave height, ridge height, roof shape (gable along / gable across / hip / flat) - so one-storey additions, attached garages and porches get their real heights and roofs instead of the whole house being extruded to one height with a guessed roof. usage: house_fit.py <buckets dir> <buildings.pkl (lidar measurements: key -> {g, h, ...})> <osm_blds.pkl> <out.pkl> out: key -> [{"rect": [(x, y) x4], "eave": m, "h": m, "shape": str, "n": points}, ...] (heights above ground) |
 | `tools/pipeline/house_looks.py` | Extract per-house appearance from county reference photos (photos stay local; only colours/flags go in the game). usage: house_looks.py PHOTO_DIR SEG_MODEL.onnx out.json [debug_dir] out: {assr: {"wall":[r,g,b], "trim":[r,g,b], "roof":[r,g,b], "porch":0..1, "q":0..1}} |
@@ -2990,7 +2997,7 @@ Top-level keys: `_doc`, `_fixed`, `101st Street`, `102nd Street`, `103rd Street`
 
  …4416 streets renamed (full table in the appendix at the end). Hand-fixed: {}
 
-### `toledo_fleet.json` (64 KB)
+### `toledo_fleet.json` (75 KB)
 Top-level keys: `note`, `vehicles`
 
 ### `toledo_traffic_study.json` (2 KB)
