@@ -8,7 +8,9 @@ There is no public per-model registration count for Toledo / Lucas County, so th
   * Toledo new sales (CarEdge, late 2026: Ram 1500 #1, RAV4, Grand Cherokee, CR-V, Camry ...),
   * local factors: Jeep's Toledo Assembly (Wrangler / Gladiator, earlier Liberty / Cherokee / Nitro), union and
     domestic-brand loyalty, Chrysler minivans, GM Toledo Transmission, old Big-3 sedans kept running.
-weight = relative share on the road (sums to 1000). body = the GLASS CITY car body family it is modelled from.
+weight = relative share on the road (sums to 1000), INCLUDING second-hand cars: weights are re-balanced so the
+model-year mix matches the cars actually driven (old beaters included), not new sales; year_weights = how a
+generation's cars spread over its model years. body = the GLASS CITY car body family it is modelled from.
 usage: python3 tools/pipeline/make_toledo_fleet.py   -> source_data/toledo_fleet.json"""
 import json, os
 
@@ -108,16 +110,49 @@ F = [  # make, model, years, body, weight (raw, normalized below)
 ("Kia", "Sedona/Carnival", "2015-2026", "minivan", 2), ("Chrysler", "Voyager", "2020-2025", "minivan", 1), ("Chevrolet", "Uplander", "2005-2008", "minivan", 1),
 ("Ford", "Transit", "2015-2026", "van", 4), ("Chevrolet", "Express", "2003-2026", "van", 4), ("Ford", "E-Series", "1992-2014", "van", 3),
 ("Ram", "ProMaster", "2014-2026", "van", 2), ("Ford", "Transit Connect", "2010-2023", "van_small", 2), ("GMC", "Savana", "2003-2026", "van", 1),
+# ---- old second-hand beaters still running in Toledo (1990s-early 2000s)
+("Chevrolet", "Blazer (S-10)", "1995-2005", "suv_box", 2), ("Ford", "Windstar", "1999-2003", "minivan", 1), ("Dodge", "Durango", "1998-2003", "suv_box", 1),
+("Buick", "Park Avenue", "1997-2005", "sedan_big", 1), ("Chevrolet", "Venture", "1997-2005", "minivan", 1), ("Ford", "Expedition", "1997-2002", "suv_f", 1),
+("Chevrolet", "Astro", "1995-2005", "van", 1), ("Ford", "Explorer", "1995-2001", "suv_box", 1), ("Chevrolet", "Lumina", "1995-2001", "sedan_big", 1),
+("Oldsmobile", "Intrigue", "1998-2002", "sedan", 1), ("Plymouth", "Voyager", "1996-2000", "minivan", 1), ("Saturn", "S-Series", "1996-2002", "sedan_small", 1),
 ]
 assert len(F) >= 200, len(F)
+# ---- used cars: re-balance so the AGE mix matches what is actually on the road, not what sells new.
+# Target share of vehicles by model year (US VIO: average age 12.8 years, ~1 in 5 is 15+ years old, 8.3% older
+# than 25 model years; 4 in 5 are model year 2007 or newer), skewed a little older for Toledo (older,
+# lower-income city: more second-hand beaters kept running).
+AGE_TARGET = [(2022, 2027, 0.17), (2017, 2021, 0.23), (2012, 2016, 0.24), (2007, 2011, 0.18), (2002, 2006, 0.11), (1980, 2001, 0.07)]
+def yrs(y):
+    a_, b_ = (y.split("-") + [y])[:2]; return int(a_), int(b_)
+def bucket(year): return next(i for i, (lo, hi, _) in enumerate(AGE_TARGET) if lo <= year <= hi)
+share = [0.0] * len(AGE_TARGET)
+for m, md, y, b, w in F:
+    lo, hi = yrs(y)
+    for yr in range(lo, hi + 1): share[bucket(yr)] += w / (hi - lo + 1)
+tot0 = sum(share)
+k = [min(2.2, max(0.6, AGE_TARGET[i][2] / (share[i] / tot0))) if share[i] else 1.0 for i in range(len(AGE_TARGET))]   # capped: a thin bucket must not vault one model to #1
+F2 = []
+for m, md, y, b, w in F:
+    lo, hi = yrs(y)
+    F2.append((m, md, y, b, sum(w / (hi - lo + 1) * k[bucket(yr)] for yr in range(lo, hi + 1))))
+F = F2
 F = sorted(F, key=lambda r: -r[4])[:200]
 tot = sum(r[4] for r in F)
 out = [dict(rank=i + 1, make=m, model=md, years=y, body=b, weight=round(1000.0 * w / tot, 2))
        for i, (m, md, y, b, w) in enumerate(F)]
+# per model year share within each generation (runtime picks a year: older = more faded, rust, dents, mismatched panels)
+for v in out:
+    lo, hi = yrs(v["years"])
+    ws = [k[bucket(yr)] for yr in range(lo, hi + 1)]; t_ = sum(ws)
+    v["year_weights"] = {str(yr): round(x / t_, 3) for yr, x in zip(range(lo, hi + 1), ws)}
 R = os.path.join(os.path.dirname(__file__), "..", "..", "source_data", "toledo_fleet.json")
 json.dump({"note": __doc__.split("\n\n")[1].strip(), "vehicles": out}, open(R, "w"), indent=1)
 from collections import Counter
 bc = Counter(); mk = Counter()
 for v in out: bc[v["body"]] += v["weight"]; mk[v["make"]] += v["weight"]
 print(len(out), "vehicles; by body:", {k: round(x) for k, x in bc.most_common()})
+ages = [0.0] * len(AGE_TARGET)
+for v in out:
+    for yr, x in v["year_weights"].items(): ages[bucket(int(yr))] += v["weight"] * x
+print("by model year:", {"%d-%d" % (lo, hi): round(a_ / 10, 1) for (lo, hi, _), a_ in zip(AGE_TARGET, ages)}, "%")
 print("by make:", {k: round(x) for k, x in mk.most_common(12)})

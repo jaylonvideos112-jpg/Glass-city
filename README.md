@@ -79,6 +79,10 @@ It is the owner's passion project for his own city.
       - US vehicles in operation (F-150 3.7%, Silverado 2.8%, Ram 1500 1.3%; average age 12.8 years);
       - Toledo new-car sales;
       - local factors: Jeep's Toledo plant, domestic-brand loyalty, Chrysler minivans.
+    - **Second-hand cars included** (owner: "I'm talking about second-hand cars too"): weights are re-balanced so the model-year mix matches what is actually driven, not new sales: 2022+ 15%, 2017–21 23%, 2012–16 25%, 2007–11 19%, 2002–06 11%, 2001 and older 7%. That's a little older than the US fleet (average age 12.8 years), for Toledo.
+      - Old beaters are in the list too: 1999–2006 Silverado, '97–'03 F-150, Jeep XJ Cherokee, Liberty, Impala, Grand Marquis, LeSabre, PT Cruiser, Windstar, Astro and more.
+      - The boost per age bucket is capped at 2.2×, so a thin bucket can't vault one model to #1.
+      - `year_weights` spreads each generation over its model years. At runtime the year will drive how worn the car is (fade, rust, dents, mismatched panels).
     - Body mix: about 39% SUVs and crossovers, 35% cars, 21% pickups, 5% vans. That's close to Ohio's registrations (UVs 40%, cars 33.5%, pickups 18.4%, vans 6.3%).
     - In-game every vehicle gets a parody brand and name (no real names). The owner picks the brand names.
   - **Lived-in cars** (`shaders/car_paint.gdshader`): road grime creeps up the lower body, the clear coat dulls there, and the lower glass is dusty. About 28% of cars (seeded by paint colour, so a car keeps its look while it drives) are faded beaters with rust round the arches and rockers.
@@ -2970,7 +2974,7 @@ Top-level keys: `_doc`, `_fixed`, `101st Street`, `102nd Street`, `103rd Street`
 
  …4416 streets renamed (full table in the appendix at the end). Hand-fixed: {}
 
-### `toledo_fleet.json` (27 KB)
+### `toledo_fleet.json` (65 KB)
 Top-level keys: `note`, `vehicles`
 
 ### `traffic.json` (3 KB)
