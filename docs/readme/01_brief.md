@@ -71,6 +71,16 @@ It is the owner's passion project for his own city.
     - alleys every 10 m (50%), and beside footpaths every 10 m (35%);
     - parking lots one item per 260 m², industrial yards one per 420 m²;
     - an item must land on the road (gutter) or off it, as intended, and never inside a building.
+  - **Toledo's 200 most-driven vehicles** (owner, 2026-11-21: "study Toledo traffic and look at the 200 most driven cars"): `source_data/toledo_fleet.json`, made by `tools/pipeline/make_toledo_fleet.py`.
+    - It lists model and generation, a GLASS CITY body family, and a weight that is a share of the road per 1000.
+    - It is an **estimate**: no public per-model registration counts exist for Lucas County. It is built from:
+      - the Toledo used-car market;
+      - Ohio DMV data (Chevrolet the top make, Silverado 1500 3.9%);
+      - US vehicles in operation (F-150 3.7%, Silverado 2.8%, Ram 1500 1.3%; average age 12.8 years);
+      - Toledo new-car sales;
+      - local factors: Jeep's Toledo plant, domestic-brand loyalty, Chrysler minivans.
+    - Body mix: about 39% SUVs and crossovers, 35% cars, 21% pickups, 5% vans. That's close to Ohio's registrations (UVs 40%, cars 33.5%, pickups 18.4%, vans 6.3%).
+    - In-game every vehicle gets a parody brand and name (no real names). The owner picks the brand names.
   - **Lived-in cars** (`shaders/car_paint.gdshader`): road grime creeps up the lower body, the clear coat dulls there, and the lower glass is dusty. About 28% of cars (seeded by paint colour, so a car keeps its look while it drives) are faded beaters with rust round the arches and rockers.
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.

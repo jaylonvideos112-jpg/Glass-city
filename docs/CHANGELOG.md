@@ -8,6 +8,7 @@
 * Back-yard fences (chain-link / wood, instanced panels) and Toledo-style trash and clutter: 30 models, 5 per kind of
   place (litter, residential bulk, alley, business, parking, industrial) on gutters, sidewalks, grass strips, paths, lots.
 * Sidewalk wear (cracks, weeds, gum, dirt) and lived-in cars (grime, faded beaters with rust).
+* `source_data/toledo_fleet.json`: estimated top-200 vehicles on Toledo roads (model + generation, body family, share).
 * 20-minute work backups (`tools/backup.py`).
 
 ## Bully look and 3D grass (2026-11-21)

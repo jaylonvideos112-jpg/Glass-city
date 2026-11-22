@@ -1,0 +1,1605 @@
+{
+ "note": "There is no public per-model registration count for Toledo / Lucas County, so this is an ESTIMATE built from:\n  * Toledo used-car market (CarGurus \"popular models\" for Toledo, 2026) - what is actually on local roads,\n  * Ohio DMV registrations (Vinitel 2026: Chevrolet top make, Silverado 1500 = 3.9% of Ohio cars),\n  * US vehicles-in-operation (Experian Q2 2026: F-150 3.7%, Silverado 2.8%, Ram 1500 1.3%, Tundra 0.9%;\n    US fleet average age 12.8 years, ~1 in 5 vehicles 15+ years old, 8.3% older than 25 model years),\n  * Toledo new sales (CarEdge, late 2026: Ram 1500 #1, RAV4, Grand Cherokee, CR-V, Camry ...),\n  * local factors: Jeep's Toledo Assembly (Wrangler / Gladiator, earlier Liberty / Cherokee / Nitro), union and\n    domestic-brand loyalty, Chrysler minivans, GM Toledo Transmission, old Big-3 sedans kept running.\nweight = relative share on the road (sums to 1000). body = the GLASS CITY car body family it is modelled from.\nusage: python3 tools/pipeline/make_toledo_fleet.py   -> source_data/toledo_fleet.json",
+ "vehicles": [
+  {
+   "rank": 1,
+   "make": "Ford",
+   "model": "F-150",
+   "years": "2015-2020",
+   "body": "pickup",
+   "weight": 15.62
+  },
+  {
+   "rank": 2,
+   "make": "Chevrolet",
+   "model": "Silverado 1500",
+   "years": "2014-2018",
+   "body": "pickup",
+   "weight": 14.65
+  },
+  {
+   "rank": 3,
+   "make": "Jeep",
+   "model": "Grand Cherokee",
+   "years": "2011-2021",
+   "body": "suv_m",
+   "weight": 14.65
+  },
+  {
+   "rank": 4,
+   "make": "Ford",
+   "model": "F-150",
+   "years": "2009-2014",
+   "body": "pickup",
+   "weight": 13.67
+  },
+  {
+   "rank": 5,
+   "make": "Dodge",
+   "model": "Grand Caravan",
+   "years": "2008-2020",
+   "body": "minivan",
+   "weight": 13.67
+  },
+  {
+   "rank": 6,
+   "make": "Chevrolet",
+   "model": "Silverado 1500",
+   "years": "2007-2013",
+   "body": "pickup",
+   "weight": 12.7
+  },
+  {
+   "rank": 7,
+   "make": "Chevrolet",
+   "model": "Silverado 1500",
+   "years": "2019-2026",
+   "body": "pickup",
+   "weight": 12.7
+  },
+  {
+   "rank": 8,
+   "make": "Chevrolet",
+   "model": "Equinox",
+   "years": "2018-2024",
+   "body": "suv_c",
+   "weight": 12.7
+  },
+  {
+   "rank": 9,
+   "make": "Ford",
+   "model": "F-150",
+   "years": "2021-2026",
+   "body": "pickup",
+   "weight": 11.72
+  },
+  {
+   "rank": 10,
+   "make": "Ram",
+   "model": "1500",
+   "years": "2009-2018",
+   "body": "pickup",
+   "weight": 11.72
+  },
+  {
+   "rank": 11,
+   "make": "Jeep",
+   "model": "Wrangler",
+   "years": "2018-2026",
+   "body": "jeep",
+   "weight": 11.72
+  },
+  {
+   "rank": 12,
+   "make": "Jeep",
+   "model": "Wrangler",
+   "years": "2007-2018",
+   "body": "jeep",
+   "weight": 11.72
+  },
+  {
+   "rank": 13,
+   "make": "Chevrolet",
+   "model": "Impala",
+   "years": "2006-2013",
+   "body": "sedan_big",
+   "weight": 11.72
+  },
+  {
+   "rank": 14,
+   "make": "Chevrolet",
+   "model": "Malibu",
+   "years": "2016-2025",
+   "body": "sedan",
+   "weight": 11.72
+  },
+  {
+   "rank": 15,
+   "make": "Ford",
+   "model": "Fusion",
+   "years": "2013-2020",
+   "body": "sedan",
+   "weight": 11.72
+  },
+  {
+   "rank": 16,
+   "make": "Ram",
+   "model": "1500",
+   "years": "2019-2026",
+   "body": "pickup",
+   "weight": 10.74
+  },
+  {
+   "rank": 17,
+   "make": "Chevrolet",
+   "model": "Equinox",
+   "years": "2010-2017",
+   "body": "suv_c",
+   "weight": 9.77
+  },
+  {
+   "rank": 18,
+   "make": "Ford",
+   "model": "Escape",
+   "years": "2013-2019",
+   "body": "suv_c",
+   "weight": 9.77
+  },
+  {
+   "rank": 19,
+   "make": "Ford",
+   "model": "Explorer",
+   "years": "2011-2019",
+   "body": "suv_m",
+   "weight": 9.77
+  },
+  {
+   "rank": 20,
+   "make": "Chevrolet",
+   "model": "Cruze",
+   "years": "2011-2016",
+   "body": "sedan_small",
+   "weight": 9.77
+  },
+  {
+   "rank": 21,
+   "make": "Jeep",
+   "model": "Cherokee",
+   "years": "2014-2023",
+   "body": "suv_c",
+   "weight": 8.79
+  },
+  {
+   "rank": 22,
+   "make": "Honda",
+   "model": "CR-V",
+   "years": "2017-2022",
+   "body": "suv_c",
+   "weight": 8.79
+  },
+  {
+   "rank": 23,
+   "make": "Toyota",
+   "model": "RAV4",
+   "years": "2019-2025",
+   "body": "suv_c",
+   "weight": 8.79
+  },
+  {
+   "rank": 24,
+   "make": "Nissan",
+   "model": "Rogue",
+   "years": "2014-2020",
+   "body": "suv_c",
+   "weight": 8.79
+  },
+  {
+   "rank": 25,
+   "make": "Toyota",
+   "model": "Camry",
+   "years": "2018-2024",
+   "body": "sedan",
+   "weight": 8.79
+  },
+  {
+   "rank": 26,
+   "make": "Toyota",
+   "model": "Camry",
+   "years": "2012-2017",
+   "body": "sedan",
+   "weight": 8.79
+  },
+  {
+   "rank": 27,
+   "make": "Nissan",
+   "model": "Altima",
+   "years": "2013-2018",
+   "body": "sedan",
+   "weight": 8.79
+  },
+  {
+   "rank": 28,
+   "make": "Honda",
+   "model": "Civic",
+   "years": "2016-2021",
+   "body": "sedan_small",
+   "weight": 8.79
+  },
+  {
+   "rank": 29,
+   "make": "Jeep",
+   "model": "Grand Cherokee",
+   "years": "2022-2026",
+   "body": "suv_m",
+   "weight": 7.81
+  },
+  {
+   "rank": 30,
+   "make": "Jeep",
+   "model": "Compass",
+   "years": "2017-2026",
+   "body": "suv_c",
+   "weight": 7.81
+  },
+  {
+   "rank": 31,
+   "make": "Honda",
+   "model": "Accord",
+   "years": "2013-2017",
+   "body": "sedan",
+   "weight": 7.81
+  },
+  {
+   "rank": 32,
+   "make": "Dodge",
+   "model": "Charger",
+   "years": "2011-2023",
+   "body": "sedan_big",
+   "weight": 7.81
+  },
+  {
+   "rank": 33,
+   "make": "Toyota",
+   "model": "Corolla",
+   "years": "2014-2019",
+   "body": "sedan_small",
+   "weight": 7.81
+  },
+  {
+   "rank": 34,
+   "make": "Ford",
+   "model": "Focus",
+   "years": "2012-2018",
+   "body": "sedan_small",
+   "weight": 7.81
+  },
+  {
+   "rank": 35,
+   "make": "Chrysler",
+   "model": "Town & Country",
+   "years": "2008-2016",
+   "body": "minivan",
+   "weight": 7.81
+  },
+  {
+   "rank": 36,
+   "make": "Ford",
+   "model": "F-150",
+   "years": "2004-2008",
+   "body": "pickup",
+   "weight": 6.84
+  },
+  {
+   "rank": 37,
+   "make": "Chevrolet",
+   "model": "Silverado 1500",
+   "years": "1999-2006",
+   "body": "pickup",
+   "weight": 6.84
+  },
+  {
+   "rank": 38,
+   "make": "Honda",
+   "model": "CR-V",
+   "years": "2012-2016",
+   "body": "suv_c",
+   "weight": 6.84
+  },
+  {
+   "rank": 39,
+   "make": "Ford",
+   "model": "Explorer",
+   "years": "2020-2026",
+   "body": "suv_m",
+   "weight": 6.84
+  },
+  {
+   "rank": 40,
+   "make": "Chevrolet",
+   "model": "Malibu",
+   "years": "2008-2012",
+   "body": "sedan",
+   "weight": 6.84
+  },
+  {
+   "rank": 41,
+   "make": "Ford",
+   "model": "Fusion",
+   "years": "2006-2012",
+   "body": "sedan",
+   "weight": 6.84
+  },
+  {
+   "rank": 42,
+   "make": "Hyundai",
+   "model": "Sonata",
+   "years": "2011-2019",
+   "body": "sedan",
+   "weight": 6.84
+  },
+  {
+   "rank": 43,
+   "make": "Chrysler",
+   "model": "300",
+   "years": "2011-2023",
+   "body": "sedan_big",
+   "weight": 6.84
+  },
+  {
+   "rank": 44,
+   "make": "Hyundai",
+   "model": "Elantra",
+   "years": "2011-2020",
+   "body": "sedan_small",
+   "weight": 6.84
+  },
+  {
+   "rank": 45,
+   "make": "Chrysler",
+   "model": "Pacifica",
+   "years": "2017-2026",
+   "body": "minivan",
+   "weight": 6.84
+  },
+  {
+   "rank": 46,
+   "make": "GMC",
+   "model": "Sierra 1500",
+   "years": "2014-2018",
+   "body": "pickup",
+   "weight": 5.86
+  },
+  {
+   "rank": 47,
+   "make": "GMC",
+   "model": "Sierra 1500",
+   "years": "2019-2026",
+   "body": "pickup",
+   "weight": 5.86
+  },
+  {
+   "rank": 48,
+   "make": "Toyota",
+   "model": "Tacoma",
+   "years": "2016-2023",
+   "body": "pickup_mid",
+   "weight": 5.86
+  },
+  {
+   "rank": 49,
+   "make": "Jeep",
+   "model": "Gladiator",
+   "years": "2020-2026",
+   "body": "pickup_mid",
+   "weight": 5.86
+  },
+  {
+   "rank": 50,
+   "make": "Jeep",
+   "model": "Grand Cherokee",
+   "years": "2005-2010",
+   "body": "suv_m",
+   "weight": 5.86
+  },
+  {
+   "rank": 51,
+   "make": "Jeep",
+   "model": "Liberty",
+   "years": "2002-2012",
+   "body": "suv_box",
+   "weight": 5.86
+  },
+  {
+   "rank": 52,
+   "make": "Toyota",
+   "model": "RAV4",
+   "years": "2013-2018",
+   "body": "suv_c",
+   "weight": 5.86
+  },
+  {
+   "rank": 53,
+   "make": "Chevrolet",
+   "model": "Impala",
+   "years": "2014-2020",
+   "body": "sedan_big",
+   "weight": 5.86
+  },
+  {
+   "rank": 54,
+   "make": "Ford",
+   "model": "Taurus",
+   "years": "2010-2019",
+   "body": "sedan_big",
+   "weight": 5.86
+  },
+  {
+   "rank": 55,
+   "make": "Toyota",
+   "model": "Camry",
+   "years": "2007-2011",
+   "body": "sedan",
+   "weight": 5.86
+  },
+  {
+   "rank": 56,
+   "make": "Honda",
+   "model": "Accord",
+   "years": "2008-2012",
+   "body": "sedan",
+   "weight": 5.86
+  },
+  {
+   "rank": 57,
+   "make": "Honda",
+   "model": "Accord",
+   "years": "2018-2022",
+   "body": "sedan",
+   "weight": 5.86
+  },
+  {
+   "rank": 58,
+   "make": "Nissan",
+   "model": "Altima",
+   "years": "2007-2012",
+   "body": "sedan",
+   "weight": 5.86
+  },
+  {
+   "rank": 59,
+   "make": "Honda",
+   "model": "Civic",
+   "years": "2012-2015",
+   "body": "sedan_small",
+   "weight": 5.86
+  },
+  {
+   "rank": 60,
+   "make": "Toyota",
+   "model": "Corolla",
+   "years": "2020-2026",
+   "body": "sedan_small",
+   "weight": 5.86
+  },
+  {
+   "rank": 61,
+   "make": "Nissan",
+   "model": "Sentra",
+   "years": "2013-2019",
+   "body": "sedan_small",
+   "weight": 5.86
+  },
+  {
+   "rank": 62,
+   "make": "Honda",
+   "model": "Odyssey",
+   "years": "2011-2026",
+   "body": "minivan",
+   "weight": 5.86
+  },
+  {
+   "rank": 63,
+   "make": "Dodge",
+   "model": "Ram 1500",
+   "years": "2002-2008",
+   "body": "pickup",
+   "weight": 4.88
+  },
+  {
+   "rank": 64,
+   "make": "GMC",
+   "model": "Sierra 1500",
+   "years": "2007-2013",
+   "body": "pickup",
+   "weight": 4.88
+  },
+  {
+   "rank": 65,
+   "make": "Toyota",
+   "model": "Tundra",
+   "years": "2007-2021",
+   "body": "pickup",
+   "weight": 4.88
+  },
+  {
+   "rank": 66,
+   "make": "Ford",
+   "model": "F-250 Super Duty",
+   "years": "2017-2026",
+   "body": "pickup_hd",
+   "weight": 4.88
+  },
+  {
+   "rank": 67,
+   "make": "Jeep",
+   "model": "Patriot",
+   "years": "2007-2017",
+   "body": "suv_box",
+   "weight": 4.88
+  },
+  {
+   "rank": 68,
+   "make": "Honda",
+   "model": "CR-V",
+   "years": "2023-2026",
+   "body": "suv_c",
+   "weight": 4.88
+  },
+  {
+   "rank": 69,
+   "make": "Ford",
+   "model": "Escape",
+   "years": "2020-2026",
+   "body": "suv_c",
+   "weight": 4.88
+  },
+  {
+   "rank": 70,
+   "make": "Ford",
+   "model": "Escape",
+   "years": "2008-2012",
+   "body": "suv_box",
+   "weight": 4.88
+  },
+  {
+   "rank": 71,
+   "make": "Nissan",
+   "model": "Rogue",
+   "years": "2021-2026",
+   "body": "suv_c",
+   "weight": 4.88
+  },
+  {
+   "rank": 72,
+   "make": "Mazda",
+   "model": "CX-5",
+   "years": "2017-2026",
+   "body": "suv_c",
+   "weight": 4.88
+  },
+  {
+   "rank": 73,
+   "make": "Subaru",
+   "model": "Forester",
+   "years": "2014-2026",
+   "body": "suv_c",
+   "weight": 4.88
+  },
+  {
+   "rank": 74,
+   "make": "Dodge",
+   "model": "Journey",
+   "years": "2009-2020",
+   "body": "suv_c",
+   "weight": 4.88
+  },
+  {
+   "rank": 75,
+   "make": "Ford",
+   "model": "Edge",
+   "years": "2015-2024",
+   "body": "suv_m",
+   "weight": 4.88
+  },
+  {
+   "rank": 76,
+   "make": "Ford",
+   "model": "Explorer",
+   "years": "2002-2010",
+   "body": "suv_box",
+   "weight": 4.88
+  },
+  {
+   "rank": 77,
+   "make": "Chevrolet",
+   "model": "Traverse",
+   "years": "2018-2023",
+   "body": "suv_f",
+   "weight": 4.88
+  },
+  {
+   "rank": 78,
+   "make": "Toyota",
+   "model": "Highlander",
+   "years": "2014-2026",
+   "body": "suv_m",
+   "weight": 4.88
+  },
+  {
+   "rank": 79,
+   "make": "Dodge",
+   "model": "Durango",
+   "years": "2011-2026",
+   "body": "suv_m",
+   "weight": 4.88
+  },
+  {
+   "rank": 80,
+   "make": "Subaru",
+   "model": "Outback",
+   "years": "2015-2026",
+   "body": "wagon",
+   "weight": 4.88
+  },
+  {
+   "rank": 81,
+   "make": "Chevrolet",
+   "model": "Tahoe",
+   "years": "2015-2020",
+   "body": "suv_f",
+   "weight": 4.88
+  },
+  {
+   "rank": 82,
+   "make": "Chevrolet",
+   "model": "Tahoe",
+   "years": "2007-2014",
+   "body": "suv_f",
+   "weight": 4.88
+  },
+  {
+   "rank": 83,
+   "make": "Nissan",
+   "model": "Altima",
+   "years": "2019-2026",
+   "body": "sedan",
+   "weight": 4.88
+  },
+  {
+   "rank": 84,
+   "make": "Kia",
+   "model": "Optima/K5",
+   "years": "2011-2026",
+   "body": "sedan",
+   "weight": 4.88
+  },
+  {
+   "rank": 85,
+   "make": "Chrysler",
+   "model": "300",
+   "years": "2005-2010",
+   "body": "sedan_big",
+   "weight": 4.88
+  },
+  {
+   "rank": 86,
+   "make": "Honda",
+   "model": "Civic",
+   "years": "2006-2011",
+   "body": "sedan_small",
+   "weight": 4.88
+  },
+  {
+   "rank": 87,
+   "make": "Chevrolet",
+   "model": "Cruze",
+   "years": "2016-2019",
+   "body": "sedan_small",
+   "weight": 4.88
+  },
+  {
+   "rank": 88,
+   "make": "Chevrolet",
+   "model": "Cobalt",
+   "years": "2005-2010",
+   "body": "sedan_small",
+   "weight": 4.88
+  },
+  {
+   "rank": 89,
+   "make": "Toyota",
+   "model": "Sienna",
+   "years": "2011-2026",
+   "body": "minivan",
+   "weight": 4.88
+  },
+  {
+   "rank": 90,
+   "make": "Ford",
+   "model": "F-150",
+   "years": "1997-2003",
+   "body": "pickup",
+   "weight": 3.91
+  },
+  {
+   "rank": 91,
+   "make": "Ford",
+   "model": "F-250 Super Duty",
+   "years": "2008-2016",
+   "body": "pickup_hd",
+   "weight": 3.91
+  },
+  {
+   "rank": 92,
+   "make": "Chevrolet",
+   "model": "Silverado 2500HD",
+   "years": "2015-2026",
+   "body": "pickup_hd",
+   "weight": 3.91
+  },
+  {
+   "rank": 93,
+   "make": "Ram",
+   "model": "2500",
+   "years": "2010-2026",
+   "body": "pickup_hd",
+   "weight": 3.91
+  },
+  {
+   "rank": 94,
+   "make": "Toyota",
+   "model": "Tacoma",
+   "years": "2005-2015",
+   "body": "pickup_mid",
+   "weight": 3.91
+  },
+  {
+   "rank": 95,
+   "make": "Chevrolet",
+   "model": "Colorado",
+   "years": "2015-2022",
+   "body": "pickup_mid",
+   "weight": 3.91
+  },
+  {
+   "rank": 96,
+   "make": "Ford",
+   "model": "Ranger",
+   "years": "2019-2026",
+   "body": "pickup_mid",
+   "weight": 3.91
+  },
+  {
+   "rank": 97,
+   "make": "Ford",
+   "model": "Ranger",
+   "years": "1998-2011",
+   "body": "pickup_mid",
+   "weight": 3.91
+  },
+  {
+   "rank": 98,
+   "make": "Jeep",
+   "model": "Wrangler",
+   "years": "1997-2006",
+   "body": "jeep",
+   "weight": 3.91
+  },
+  {
+   "rank": 99,
+   "make": "Jeep",
+   "model": "Renegade",
+   "years": "2015-2023",
+   "body": "suv_sub",
+   "weight": 3.91
+  },
+  {
+   "rank": 100,
+   "make": "Honda",
+   "model": "CR-V",
+   "years": "2007-2011",
+   "body": "suv_c",
+   "weight": 3.91
+  },
+  {
+   "rank": 101,
+   "make": "Hyundai",
+   "model": "Tucson",
+   "years": "2016-2021",
+   "body": "suv_c",
+   "weight": 3.91
+  },
+  {
+   "rank": 102,
+   "make": "Hyundai",
+   "model": "Tucson",
+   "years": "2022-2026",
+   "body": "suv_c",
+   "weight": 3.91
+  },
+  {
+   "rank": 103,
+   "make": "Subaru",
+   "model": "Crosstrek",
+   "years": "2018-2026",
+   "body": "suv_sub",
+   "weight": 3.91
+  },
+  {
+   "rank": 104,
+   "make": "GMC",
+   "model": "Terrain",
+   "years": "2018-2026",
+   "body": "suv_c",
+   "weight": 3.91
+  },
+  {
+   "rank": 105,
+   "make": "Buick",
+   "model": "Encore",
+   "years": "2013-2022",
+   "body": "suv_sub",
+   "weight": 3.91
+  },
+  {
+   "rank": 106,
+   "make": "Kia",
+   "model": "Soul",
+   "years": "2014-2025",
+   "body": "hatch_box",
+   "weight": 3.91
+  },
+  {
+   "rank": 107,
+   "make": "Ford",
+   "model": "Edge",
+   "years": "2007-2014",
+   "body": "suv_m",
+   "weight": 3.91
+  },
+  {
+   "rank": 108,
+   "make": "Chevrolet",
+   "model": "Traverse",
+   "years": "2009-2017",
+   "body": "suv_f",
+   "weight": 3.91
+  },
+  {
+   "rank": 109,
+   "make": "GMC",
+   "model": "Acadia",
+   "years": "2007-2016",
+   "body": "suv_f",
+   "weight": 3.91
+  },
+  {
+   "rank": 110,
+   "make": "Buick",
+   "model": "Enclave",
+   "years": "2008-2026",
+   "body": "suv_f",
+   "weight": 3.91
+  },
+  {
+   "rank": 111,
+   "make": "Honda",
+   "model": "Pilot",
+   "years": "2016-2026",
+   "body": "suv_m",
+   "weight": 3.91
+  },
+  {
+   "rank": 112,
+   "make": "Kia",
+   "model": "Sorento",
+   "years": "2016-2026",
+   "body": "suv_m",
+   "weight": 3.91
+  },
+  {
+   "rank": 113,
+   "make": "Hyundai",
+   "model": "Santa Fe",
+   "years": "2013-2026",
+   "body": "suv_m",
+   "weight": 3.91
+  },
+  {
+   "rank": 114,
+   "make": "Chevrolet",
+   "model": "TrailBlazer",
+   "years": "2002-2009",
+   "body": "suv_box",
+   "weight": 3.91
+  },
+  {
+   "rank": 115,
+   "make": "GMC",
+   "model": "Yukon",
+   "years": "2007-2026",
+   "body": "suv_f",
+   "weight": 3.91
+  },
+  {
+   "rank": 116,
+   "make": "Chevrolet",
+   "model": "Malibu",
+   "years": "2013-2015",
+   "body": "sedan",
+   "weight": 3.91
+  },
+  {
+   "rank": 117,
+   "make": "Chrysler",
+   "model": "200",
+   "years": "2011-2017",
+   "body": "sedan",
+   "weight": 3.91
+  },
+  {
+   "rank": 118,
+   "make": "Pontiac",
+   "model": "G6",
+   "years": "2005-2010",
+   "body": "sedan",
+   "weight": 3.91
+  },
+  {
+   "rank": 119,
+   "make": "Buick",
+   "model": "LaCrosse",
+   "years": "2010-2019",
+   "body": "sedan_big",
+   "weight": 3.91
+  },
+  {
+   "rank": 120,
+   "make": "Dodge",
+   "model": "Challenger",
+   "years": "2008-2023",
+   "body": "coupe",
+   "weight": 3.91
+  },
+  {
+   "rank": 121,
+   "make": "Chevrolet",
+   "model": "Camaro",
+   "years": "2010-2024",
+   "body": "coupe",
+   "weight": 3.91
+  },
+  {
+   "rank": 122,
+   "make": "Ford",
+   "model": "Mustang",
+   "years": "2015-2023",
+   "body": "coupe",
+   "weight": 3.91
+  },
+  {
+   "rank": 123,
+   "make": "Honda",
+   "model": "Civic",
+   "years": "2022-2026",
+   "body": "sedan_small",
+   "weight": 3.91
+  },
+  {
+   "rank": 124,
+   "make": "Toyota",
+   "model": "Corolla",
+   "years": "2009-2013",
+   "body": "sedan_small",
+   "weight": 3.91
+  },
+  {
+   "rank": 125,
+   "make": "Ford",
+   "model": "Focus",
+   "years": "2008-2011",
+   "body": "sedan_small",
+   "weight": 3.91
+  },
+  {
+   "rank": 126,
+   "make": "Nissan",
+   "model": "Sentra",
+   "years": "2020-2026",
+   "body": "sedan_small",
+   "weight": 3.91
+  },
+  {
+   "rank": 127,
+   "make": "Nissan",
+   "model": "Versa",
+   "years": "2012-2026",
+   "body": "sedan_small",
+   "weight": 3.91
+  },
+  {
+   "rank": 128,
+   "make": "Kia",
+   "model": "Forte",
+   "years": "2014-2024",
+   "body": "sedan_small",
+   "weight": 3.91
+  },
+  {
+   "rank": 129,
+   "make": "Ford",
+   "model": "Transit",
+   "years": "2015-2026",
+   "body": "van",
+   "weight": 3.91
+  },
+  {
+   "rank": 130,
+   "make": "Chevrolet",
+   "model": "Express",
+   "years": "2003-2026",
+   "body": "van",
+   "weight": 3.91
+  },
+  {
+   "rank": 131,
+   "make": "Nissan",
+   "model": "Frontier",
+   "years": "2005-2021",
+   "body": "pickup_mid",
+   "weight": 2.93
+  },
+  {
+   "rank": 132,
+   "make": "Jeep",
+   "model": "Grand Cherokee",
+   "years": "1999-2004",
+   "body": "suv_m",
+   "weight": 2.93
+  },
+  {
+   "rank": 133,
+   "make": "Jeep",
+   "model": "Cherokee",
+   "years": "1984-2001",
+   "body": "suv_box",
+   "weight": 2.93
+  },
+  {
+   "rank": 134,
+   "make": "Jeep",
+   "model": "Compass",
+   "years": "2007-2016",
+   "body": "suv_c",
+   "weight": 2.93
+  },
+  {
+   "rank": 135,
+   "make": "Toyota",
+   "model": "RAV4",
+   "years": "2006-2012",
+   "body": "suv_c",
+   "weight": 2.93
+  },
+  {
+   "rank": 136,
+   "make": "Nissan",
+   "model": "Rogue",
+   "years": "2008-2013",
+   "body": "suv_c",
+   "weight": 2.93
+  },
+  {
+   "rank": 137,
+   "make": "Kia",
+   "model": "Sportage",
+   "years": "2017-2022",
+   "body": "suv_c",
+   "weight": 2.93
+  },
+  {
+   "rank": 138,
+   "make": "GMC",
+   "model": "Terrain",
+   "years": "2010-2017",
+   "body": "suv_box",
+   "weight": 2.93
+  },
+  {
+   "rank": 139,
+   "make": "Chevrolet",
+   "model": "Trax",
+   "years": "2015-2022",
+   "body": "suv_sub",
+   "weight": 2.93
+  },
+  {
+   "rank": 140,
+   "make": "Chevrolet",
+   "model": "Trax",
+   "years": "2024-2026",
+   "body": "suv_sub",
+   "weight": 2.93
+  },
+  {
+   "rank": 141,
+   "make": "Honda",
+   "model": "HR-V",
+   "years": "2016-2026",
+   "body": "suv_sub",
+   "weight": 2.93
+  },
+  {
+   "rank": 142,
+   "make": "Chevrolet",
+   "model": "Blazer",
+   "years": "2019-2026",
+   "body": "suv_m",
+   "weight": 2.93
+  },
+  {
+   "rank": 143,
+   "make": "Ford",
+   "model": "Bronco",
+   "years": "2021-2026",
+   "body": "jeep",
+   "weight": 2.93
+  },
+  {
+   "rank": 144,
+   "make": "GMC",
+   "model": "Acadia",
+   "years": "2017-2026",
+   "body": "suv_m",
+   "weight": 2.93
+  },
+  {
+   "rank": 145,
+   "make": "Nissan",
+   "model": "Pathfinder",
+   "years": "2013-2026",
+   "body": "suv_m",
+   "weight": 2.93
+  },
+  {
+   "rank": 146,
+   "make": "Toyota",
+   "model": "4Runner",
+   "years": "2010-2024",
+   "body": "suv_box",
+   "weight": 2.93
+  },
+  {
+   "rank": 147,
+   "make": "Chevrolet",
+   "model": "Tahoe",
+   "years": "2021-2026",
+   "body": "suv_f",
+   "weight": 2.93
+  },
+  {
+   "rank": 148,
+   "make": "Chevrolet",
+   "model": "Suburban",
+   "years": "2007-2026",
+   "body": "suv_f",
+   "weight": 2.93
+  },
+  {
+   "rank": 149,
+   "make": "Ford",
+   "model": "Expedition",
+   "years": "2007-2026",
+   "body": "suv_f",
+   "weight": 2.93
+  },
+  {
+   "rank": 150,
+   "make": "Chevrolet",
+   "model": "Impala",
+   "years": "2000-2005",
+   "body": "sedan_big",
+   "weight": 2.93
+  },
+  {
+   "rank": 151,
+   "make": "Ford",
+   "model": "Taurus",
+   "years": "1996-2007",
+   "body": "sedan_big",
+   "weight": 2.93
+  },
+  {
+   "rank": 152,
+   "make": "Honda",
+   "model": "Accord",
+   "years": "2003-2007",
+   "body": "sedan",
+   "weight": 2.93
+  },
+  {
+   "rank": 153,
+   "make": "Dodge",
+   "model": "Avenger",
+   "years": "2008-2014",
+   "body": "sedan",
+   "weight": 2.93
+  },
+  {
+   "rank": 154,
+   "make": "Chrysler",
+   "model": "Sebring",
+   "years": "2001-2010",
+   "body": "sedan",
+   "weight": 2.93
+  },
+  {
+   "rank": 155,
+   "make": "Pontiac",
+   "model": "Grand Prix",
+   "years": "1997-2008",
+   "body": "sedan_big",
+   "weight": 2.93
+  },
+  {
+   "rank": 156,
+   "make": "Buick",
+   "model": "LeSabre",
+   "years": "2000-2005",
+   "body": "sedan_big",
+   "weight": 2.93
+  },
+  {
+   "rank": 157,
+   "make": "Buick",
+   "model": "Lucerne",
+   "years": "2006-2011",
+   "body": "sedan_big",
+   "weight": 2.93
+  },
+  {
+   "rank": 158,
+   "make": "Mercury",
+   "model": "Grand Marquis",
+   "years": "1998-2011",
+   "body": "sedan_big",
+   "weight": 2.93
+  },
+  {
+   "rank": 159,
+   "make": "Volkswagen",
+   "model": "Jetta",
+   "years": "2011-2026",
+   "body": "sedan_small",
+   "weight": 2.93
+  },
+  {
+   "rank": 160,
+   "make": "Dodge",
+   "model": "Charger",
+   "years": "2006-2010",
+   "body": "sedan_big",
+   "weight": 2.93
+  },
+  {
+   "rank": 161,
+   "make": "Ford",
+   "model": "Mustang",
+   "years": "2005-2014",
+   "body": "coupe",
+   "weight": 2.93
+  },
+  {
+   "rank": 162,
+   "make": "Hyundai",
+   "model": "Elantra",
+   "years": "2021-2026",
+   "body": "sedan_small",
+   "weight": 2.93
+  },
+  {
+   "rank": 163,
+   "make": "Chevrolet",
+   "model": "Sonic",
+   "years": "2012-2020",
+   "body": "hatch",
+   "weight": 2.93
+  },
+  {
+   "rank": 164,
+   "make": "Mazda",
+   "model": "Mazda3",
+   "years": "2010-2026",
+   "body": "hatch",
+   "weight": 2.93
+  },
+  {
+   "rank": 165,
+   "make": "Chrysler",
+   "model": "PT Cruiser",
+   "years": "2001-2010",
+   "body": "hatch_box",
+   "weight": 2.93
+  },
+  {
+   "rank": 166,
+   "make": "Dodge",
+   "model": "Grand Caravan",
+   "years": "2001-2007",
+   "body": "minivan",
+   "weight": 2.93
+  },
+  {
+   "rank": 167,
+   "make": "Ford",
+   "model": "E-Series",
+   "years": "1992-2014",
+   "body": "van",
+   "weight": 2.93
+  },
+  {
+   "rank": 168,
+   "make": "Toyota",
+   "model": "Tundra",
+   "years": "2022-2026",
+   "body": "pickup",
+   "weight": 1.95
+  },
+  {
+   "rank": 169,
+   "make": "Ford",
+   "model": "F-350 Super Duty",
+   "years": "2017-2026",
+   "body": "pickup_hd",
+   "weight": 1.95
+  },
+  {
+   "rank": 170,
+   "make": "Chevrolet",
+   "model": "Silverado 2500HD",
+   "years": "2007-2014",
+   "body": "pickup_hd",
+   "weight": 1.95
+  },
+  {
+   "rank": 171,
+   "make": "GMC",
+   "model": "Sierra 2500HD",
+   "years": "2015-2026",
+   "body": "pickup_hd",
+   "weight": 1.95
+  },
+  {
+   "rank": 172,
+   "make": "GMC",
+   "model": "Canyon",
+   "years": "2015-2022",
+   "body": "pickup_mid",
+   "weight": 1.95
+  },
+  {
+   "rank": 173,
+   "make": "Honda",
+   "model": "Ridgeline",
+   "years": "2017-2026",
+   "body": "pickup_mid",
+   "weight": 1.95
+  },
+  {
+   "rank": 174,
+   "make": "Dodge",
+   "model": "Dakota",
+   "years": "2005-2011",
+   "body": "pickup_mid",
+   "weight": 1.95
+  },
+  {
+   "rank": 175,
+   "make": "Chevrolet",
+   "model": "S-10",
+   "years": "1994-2004",
+   "body": "pickup_mid",
+   "weight": 1.95
+  },
+  {
+   "rank": 176,
+   "make": "Jeep",
+   "model": "Grand Cherokee L",
+   "years": "2021-2026",
+   "body": "suv_f",
+   "weight": 1.95
+  },
+  {
+   "rank": 177,
+   "make": "Dodge",
+   "model": "Nitro",
+   "years": "2007-2011",
+   "body": "suv_box",
+   "weight": 1.95
+  },
+  {
+   "rank": 178,
+   "make": "Chevrolet",
+   "model": "Equinox",
+   "years": "2025-2026",
+   "body": "suv_c",
+   "weight": 1.95
+  },
+  {
+   "rank": 179,
+   "make": "Buick",
+   "model": "Envision",
+   "years": "2016-2026",
+   "body": "suv_c",
+   "weight": 1.95
+  },
+  {
+   "rank": 180,
+   "make": "Buick",
+   "model": "Envista",
+   "years": "2024-2026",
+   "body": "suv_sub",
+   "weight": 1.95
+  },
+  {
+   "rank": 181,
+   "make": "Ford",
+   "model": "EcoSport",
+   "years": "2018-2022",
+   "body": "suv_sub",
+   "weight": 1.95
+  },
+  {
+   "rank": 182,
+   "make": "Nissan",
+   "model": "Kicks",
+   "years": "2018-2026",
+   "body": "suv_sub",
+   "weight": 1.95
+  },
+  {
+   "rank": 183,
+   "make": "Hyundai",
+   "model": "Kona",
+   "years": "2018-2026",
+   "body": "suv_sub",
+   "weight": 1.95
+  },
+  {
+   "rank": 184,
+   "make": "Kia",
+   "model": "Seltos",
+   "years": "2021-2026",
+   "body": "suv_sub",
+   "weight": 1.95
+  },
+  {
+   "rank": 185,
+   "make": "Mitsubishi",
+   "model": "Outlander Sport",
+   "years": "2011-2024",
+   "body": "suv_sub",
+   "weight": 1.95
+  },
+  {
+   "rank": 186,
+   "make": "Volkswagen",
+   "model": "Tiguan",
+   "years": "2018-2026",
+   "body": "suv_c",
+   "weight": 1.95
+  },
+  {
+   "rank": 187,
+   "make": "Mazda",
+   "model": "CX-30",
+   "years": "2020-2026",
+   "body": "suv_sub",
+   "weight": 1.95
+  },
+  {
+   "rank": 188,
+   "make": "Ford",
+   "model": "Bronco Sport",
+   "years": "2021-2026",
+   "body": "suv_box",
+   "weight": 1.95
+  },
+  {
+   "rank": 189,
+   "make": "Honda",
+   "model": "Pilot",
+   "years": "2009-2015",
+   "body": "suv_box",
+   "weight": 1.95
+  },
+  {
+   "rank": 190,
+   "make": "Kia",
+   "model": "Telluride",
+   "years": "2020-2026",
+   "body": "suv_m",
+   "weight": 1.95
+  },
+  {
+   "rank": 191,
+   "make": "Lincoln",
+   "model": "MKX/Nautilus",
+   "years": "2011-2023",
+   "body": "suv_m",
+   "weight": 1.95
+  },
+  {
+   "rank": 192,
+   "make": "Cadillac",
+   "model": "XT5/SRX",
+   "years": "2010-2026",
+   "body": "suv_m",
+   "weight": 1.95
+  },
+  {
+   "rank": 193,
+   "make": "Lexus",
+   "model": "RX",
+   "years": "2010-2026",
+   "body": "suv_m",
+   "weight": 1.95
+  },
+  {
+   "rank": 194,
+   "make": "Cadillac",
+   "model": "Escalade",
+   "years": "2007-2026",
+   "body": "suv_f",
+   "weight": 1.95
+  },
+  {
+   "rank": 195,
+   "make": "Chevrolet",
+   "model": "Tahoe",
+   "years": "2000-2006",
+   "body": "suv_f",
+   "weight": 1.95
+  },
+  {
+   "rank": 196,
+   "make": "Toyota",
+   "model": "Camry",
+   "years": "2025-2026",
+   "body": "sedan",
+   "weight": 1.95
+  },
+  {
+   "rank": 197,
+   "make": "Hyundai",
+   "model": "Sonata",
+   "years": "2020-2026",
+   "body": "sedan",
+   "weight": 1.95
+  },
+  {
+   "rank": 198,
+   "make": "Buick",
+   "model": "Century",
+   "years": "1997-2005",
+   "body": "sedan_big",
+   "weight": 1.95
+  },
+  {
+   "rank": 199,
+   "make": "Buick",
+   "model": "Regal",
+   "years": "2011-2017",
+   "body": "sedan",
+   "weight": 1.95
+  },
+  {
+   "rank": 200,
+   "make": "Ford",
+   "model": "Crown Victoria",
+   "years": "1998-2011",
+   "body": "sedan_big",
+   "weight": 1.95
+  }
+ ]
+}

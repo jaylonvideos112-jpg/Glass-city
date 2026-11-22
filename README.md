@@ -71,6 +71,16 @@ It is the owner's passion project for his own city.
     - alleys every 10 m (50%), and beside footpaths every 10 m (35%);
     - parking lots one item per 260 m², industrial yards one per 420 m²;
     - an item must land on the road (gutter) or off it, as intended, and never inside a building.
+  - **Toledo's 200 most-driven vehicles** (owner, 2026-11-21: "study Toledo traffic and look at the 200 most driven cars"): `source_data/toledo_fleet.json`, made by `tools/pipeline/make_toledo_fleet.py`.
+    - It lists model and generation, a GLASS CITY body family, and a weight that is a share of the road per 1000.
+    - It is an **estimate**: no public per-model registration counts exist for Lucas County. It is built from:
+      - the Toledo used-car market;
+      - Ohio DMV data (Chevrolet the top make, Silverado 1500 3.9%);
+      - US vehicles in operation (F-150 3.7%, Silverado 2.8%, Ram 1500 1.3%; average age 12.8 years);
+      - Toledo new-car sales;
+      - local factors: Jeep's Toledo plant, domestic-brand loyalty, Chrysler minivans.
+    - Body mix: about 39% SUVs and crossovers, 35% cars, 21% pickups, 5% vans. That's close to Ohio's registrations (UVs 40%, cars 33.5%, pickups 18.4%, vans 6.3%).
+    - In-game every vehicle gets a parody brand and name (no real names). The owner picks the brand names.
   - **Lived-in cars** (`shaders/car_paint.gdshader`): road grime creeps up the lower body, the clear coat dulls there, and the lower glass is dusty. About 28% of cars (seeded by paint colour, so a car keeps its look while it drives) are faded beaters with rust round the arches and rockers.
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
@@ -958,6 +968,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/pipeline/make_phone_map.py` | The phone's map (scripts/phone.gd Maps app): a styled map of the whole island with the real road network, water, parks, the made-up countryside and town/river labels. usage: make_phone_map.py <out png> [width px] (bounds are written next to it as phone_map.json) |
 | `tools/pipeline/make_street_names.py` | Give every street a parody name (owner decision 2026-11-15): a sound-alike of the real name that is not itself a real street here; if no good sound-alike exists, a random name from the word bank. usage: make_street_names.py <osm tiles dir> [more tile dirs...] <out json> Keeps the direction (North/South/...) and the type (Street/Avenue/...). Numbered streets ("15th Street") and route numbers (Interstate 75, US 24) keep their numbers. Hand edits in the output file are preserved on re-runs (entries marked "fixed": true, or any entry whose value differs from what this script would generate is left alone only if listed under "_fixed"). |
 | `tools/pipeline/make_textures.py` | Procedural low-poly-friendly textures (512px, tileable) for the city. |
+| `tools/pipeline/make_toledo_fleet.py` | Toledo's 200 most-driven vehicles (model + generation), as weights for GLASS CITY traffic and parked cars. There is no public per-model registration count for Toledo / Lucas County, so this is an ESTIMATE built from: * Toledo used-car market (CarGurus "popular models" for Toledo, 2026) - what is actually on local roads, * Ohio DMV registrations (Vinitel 2026: Chevrolet top make, Silverado 1500 = 3.9% of Ohio cars), * US vehicles-in-operation (Experian Q2 2026: F-150 3.7%, Silverado 2.8%, Ram 1500 1.3%, Tundra 0.9%; US fleet average age 12.8 years, ~1 in 5 vehicles 15+ years old, 8.3% older than 25 model years), * Toledo new sales (CarEdge, late 2026: Ram 1500 #1, RAV4, Grand Cherokee, CR-V, … |
 | `tools/pipeline/make_workplaces.py` | Workplaces for jobs (scripts/jobs.gd) and businesses for sale (scripts/business.gd). usage: make_workplaces.py <osm tiles dir> <island.json> <out workplaces.json> Shops, restaurants, gas stations, warehouses, factories and construction sites in the real area. Real names and brands are replaced with made-up ones (seeded, so the same place keeps its name). |
 | `tools/pipeline/massing_rects.py` | Break a building's LiDAR roof into rectangular masses with their heights, in replica-local coordinates (relative to the footprint centroid, the anchor tools/pipeline/replica_massing.py uses). Used to write replica specs. usage: massing_rects.py WORK KEY [height bands, e.g. 3,9,13] prints one line per rectangle: band, [cx, cy, w, d, angle], h10/h50/h97 above ground; writes /tmp/rects_<KEY>.json |
 | `tools/pipeline/merge_osm.py` | — |
@@ -2959,6 +2970,9 @@ Top-level keys: `_doc`, `_fixed`, `101st Street`, `102nd Street`, `103rd Street`
 
  …4416 streets renamed (full table in the appendix at the end). Hand-fixed: {}
 
+### `toledo_fleet.json` (27 KB)
+Top-level keys: `note`, `vehicles`
+
 ### `traffic.json` (3 KB)
 Ambient traffic (Bible section 5 and 8). Shares follow ordinary Toledo traffic: mostly sedans, SUVs, pickups and minivans, older cars common, sports/luxury rare. Makers and models are fictional. Sizes in metres (length, width, height).
 
@@ -3401,6 +3415,7 @@ Changes to the development bible made by the project owner. The latest explicit 
 * Back-yard fences (chain-link / wood, instanced panels) and Toledo-style trash and clutter: 30 models, 5 per kind of
   place (litter, residential bulk, alley, business, parking, industrial) on gutters, sidewalks, grass strips, paths, lots.
 * Sidewalk wear (cracks, weeds, gum, dirt) and lived-in cars (grime, faded beaters with rust).
+* `source_data/toledo_fleet.json`: estimated top-200 vehicles on Toledo roads (model + generation, body family, share).
 * 20-minute work backups (`tools/backup.py`).
 
 #### Bully look and 3D grass (2026-11-21)
