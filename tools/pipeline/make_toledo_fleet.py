@@ -115,13 +115,25 @@ F = [  # make, model, years, body, weight (raw, normalized below)
 ("Buick", "Park Avenue", "1997-2005", "sedan_big", 1), ("Chevrolet", "Venture", "1997-2005", "minivan", 1), ("Ford", "Expedition", "1997-2002", "suv_f", 1),
 ("Chevrolet", "Astro", "1995-2005", "van", 1), ("Ford", "Explorer", "1995-2001", "suv_box", 1), ("Chevrolet", "Lumina", "1995-2001", "sedan_big", 1),
 ("Oldsmobile", "Intrigue", "1998-2002", "sedan", 1), ("Plymouth", "Voyager", "1996-2000", "minivan", 1), ("Saturn", "S-Series", "1996-2002", "sedan_small", 1),
+# ---- more 2003-2013 cars (owner, driving Toledo: "mostly 2013 to 2003 cars")
+("Chevrolet", "Equinox", "2005-2009", "suv_c", 4), ("Pontiac", "Torrent", "2006-2009", "suv_c", 2), ("Saturn", "Vue", "2002-2010", "suv_c", 3),
+("Buick", "Rendezvous", "2002-2007", "suv_m", 2), ("Chevrolet", "Aveo", "2004-2011", "hatch", 2), ("Pontiac", "G5", "2007-2009", "sedan_small", 1),
+("Ford", "Five Hundred", "2005-2007", "sedan_big", 1), ("Mercury", "Sable", "2000-2005", "sedan_big", 1), ("Mercury", "Mariner", "2005-2011", "suv_box", 1),
+("Mercury", "Mountaineer", "2002-2010", "suv_box", 1), ("Dodge", "Stratus", "2001-2006", "sedan", 2), ("Chrysler", "Pacifica (wagon)", "2004-2008", "suv_m", 1),
+("Chevrolet", "Avalanche", "2002-2013", "pickup", 2), ("Hyundai", "Santa Fe", "2007-2012", "suv_m", 2), ("Kia", "Spectra", "2004-2009", "sedan_small", 1),
+("Nissan", "Maxima", "2004-2014", "sedan", 2), ("Toyota", "Corolla", "2003-2008", "sedan_small", 3), ("Honda", "Civic", "2001-2005", "sedan_small", 2),
+("Hyundai", "Elantra", "2007-2010", "sedan_small", 2), ("Hyundai", "Accent", "2006-2017", "sedan_small", 2), ("Kia", "Rio", "2006-2017", "sedan_small", 2),
+("Chevrolet", "Impala", "2000-2005", "sedan_big", 2), ("Ford", "Taurus", "2008-2009", "sedan_big", 1), ("Jeep", "Commander", "2006-2010", "suv_box", 2),
+("Dodge", "Magnum", "2005-2008", "wagon", 1), ("Chevrolet", "Colorado", "2004-2012", "pickup_mid", 2), ("GMC", "Envoy", "2002-2009", "suv_box", 2),
+("Lincoln", "Town Car", "2003-2011", "sedan_big", 1), ("Cadillac", "DeVille/DTS", "2000-2011", "sedan_big", 2), ("Toyota", "Highlander", "2008-2013", "suv_m", 2),
+("Nissan", "Murano", "2009-2014", "suv_m", 2), ("Honda", "Element", "2003-2011", "suv_box", 1), ("Mazda", "Tribute", "2001-2011", "suv_box", 1),
 ]
 assert len(F) >= 200, len(F)
 # ---- used cars: re-balance so the AGE mix matches what is actually on the road, not what sells new.
-# Target share of vehicles by model year (US VIO: average age 12.8 years, ~1 in 5 is 15+ years old, 8.3% older
-# than 25 model years; 4 in 5 are model year 2007 or newer), skewed a little older for Toledo (older,
-# lower-income city: more second-hand beaters kept running).
-AGE_TARGET = [(2022, 2027, 0.17), (2017, 2021, 0.23), (2012, 2016, 0.24), (2007, 2011, 0.18), (2002, 2006, 0.11), (1980, 2001, 0.07)]
+# (Published US fleet numbers - average age 12.8 years, 8.3% older than 25 model years - are a floor; Toledo's
+# streets run older: lower-income city, beaters kept running.)
+# OWNER'S OBSERVATION (2026-11-21): driving around Toledo it is mostly 2003-2013 cars. The age mix follows that:
+AGE_TARGET = [(2022, 2027, 0.05), (2017, 2021, 0.10), (2014, 2016, 0.13), (2008, 2013, 0.36), (2003, 2007, 0.26), (1980, 2002, 0.10)]
 def yrs(y):
     a_, b_ = (y.split("-") + [y])[:2]; return int(a_), int(b_)
 def bucket(year): return next(i for i, (lo, hi, _) in enumerate(AGE_TARGET) if lo <= year <= hi)
@@ -130,7 +142,7 @@ for m, md, y, b, w in F:
     lo, hi = yrs(y)
     for yr in range(lo, hi + 1): share[bucket(yr)] += w / (hi - lo + 1)
 tot0 = sum(share)
-k = [min(2.2, max(0.6, AGE_TARGET[i][2] / (share[i] / tot0))) if share[i] else 1.0 for i in range(len(AGE_TARGET))]   # capped: a thin bucket must not vault one model to #1
+k = [min(6.0, max(0.15, AGE_TARGET[i][2] / (share[i] / tot0))) if share[i] else 1.0 for i in range(len(AGE_TARGET))]   # capped: a thin bucket must not vault one model to #1
 F2 = []
 for m, md, y, b, w in F:
     lo, hi = yrs(y)
