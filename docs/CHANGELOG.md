@@ -9,6 +9,7 @@
   place (litter, residential bulk, alley, business, parking, industrial) on gutters, sidewalks, grass strips, paths, lots.
 * Sidewalk wear (cracks, weeds, gum, dirt) and lived-in cars (grime, faded beaters with rust).
 * `source_data/toledo_fleet.json`: estimated top-200 vehicles on Toledo roads (model + generation, body family, share).
+* Toledo traffic study + driver styles (calm/rushed/reckless/elderly/impaired at night), weekday traffic pattern.
 * 20-minute work backups (`tools/backup.py`).
 
 ## Bully look and 3D grass (2026-11-21)

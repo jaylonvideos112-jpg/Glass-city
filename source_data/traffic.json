@@ -181,5 +181,69 @@
   "pull_over_speed": 2.5,
   "police_patrol_share": 0.012
  },
- "_doc_vehicles": "service vehicles only; civilian traffic comes from source_data/vehicles.json (traffic_share)"
+ "_doc_vehicles": "service vehicles only; civilian traffic comes from source_data/vehicles.json (traffic_share)",
+ "driver_styles": {
+  "_doc": "Toledo driver mix (owner: 'analyze real traffic'; docs/readme toledo traffic study). share by day / at night (22-04 h). speed = multiplier on the posted speed; headway = multiplier on following time; yellow_push = extra metres they will still go from on a yellow; red_run = chance to blow a fresh red; roll_stop = chance to roll a stop sign; weave = lane-change eagerness.",
+  "calm": {
+   "day": 0.58,
+   "night": 0.5,
+   "speed": 0.97,
+   "headway": 1.15,
+   "yellow_push": 0.0,
+   "red_run": 0.0,
+   "roll_stop": 0.05,
+   "weave": 0.2
+  },
+  "rushed": {
+   "day": 0.27,
+   "night": 0.22,
+   "speed": 1.08,
+   "headway": 0.85,
+   "yellow_push": 8.0,
+   "red_run": 0.02,
+   "roll_stop": 0.45,
+   "weave": 0.6
+  },
+  "reckless": {
+   "day": 0.09,
+   "night": 0.12,
+   "speed": 1.25,
+   "headway": 0.6,
+   "yellow_push": 20.0,
+   "red_run": 0.12,
+   "roll_stop": 0.8,
+   "weave": 1.0
+  },
+  "elderly": {
+   "day": 0.05,
+   "night": 0.02,
+   "speed": 0.85,
+   "headway": 1.4,
+   "yellow_push": 0.0,
+   "red_run": 0.0,
+   "roll_stop": 0.0,
+   "weave": 0.05
+  },
+  "impaired": {
+   "day": 0.01,
+   "night": 0.14,
+   "speed": 1.05,
+   "headway": 0.7,
+   "yellow_push": 12.0,
+   "red_run": 0.08,
+   "roll_stop": 0.6,
+   "weave": 0.9,
+   "drift": 0.6
+  }
+ },
+ "day_of_week": {
+  "_doc": "relative traffic by weekday (Ohio county crash-by-day pattern: Friday busiest, Sunday quietest)",
+  "Monday": 0.97,
+  "Tuesday": 1.0,
+  "Wednesday": 1.0,
+  "Thursday": 1.0,
+  "Friday": 1.06,
+  "Saturday": 0.86,
+  "Sunday": 0.7
+ }
 }

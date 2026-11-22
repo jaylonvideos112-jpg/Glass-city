@@ -85,6 +85,20 @@ It is the owner's passion project for his own city.
       - `year_weights` spreads each generation over its model years. At runtime the year will drive how worn the car is (fade, rust, dents, mismatched panels).
     - Body mix: about 39% SUVs and crossovers, 35% cars, 21% pickups, 5% vans. That's close to Ohio's registrations (UVs 40%, cars 33.5%, pickups 18.4%, vans 6.3%).
     - In-game every vehicle gets a parody brand and name (no real names). The owner picks the brand names.
+  - **Toledo traffic study** (owner: "look at the news, random videos, analyze real traffic"): `source_data/toledo_traffic_study.json`.
+    - Facts:
+      - Lucas County crashes: 11,381 in 2024 and 11,069 in 2025.
+      - Toledo traffic deaths in 2025: 24.
+      - 30 of 51 Lucas County fatal crashes in 2023 were OVI-related.
+      - Crash weather in Toledo: 81% clear, about 10% rain, 2% snow.
+      - Residents complain about neighbourhood speeding.
+      - I-75 rush-hour backups at the DiSalle Bridge; I-475 widening.
+    - The 25 most crash-prone intersections (Airport and Byrne first).
+    - I couldn't watch videos; the study uses written news and public data.
+    - In the game (`source_data/traffic.json`):
+      - `driver_styles`: every car gets calm, rushed, reckless, elderly or impaired (impaired mostly 22:00–04:00). The style changes speed and following distance. Rushed and reckless drivers push yellows, sometimes run a fresh red (decided once per light) and roll stop signs.
+      - `day_of_week`: Friday busiest, Sunday quietest.
+      - Tests pin their own test cars to `calm`. New test: `traffic_driver_styles`.
   - **Lived-in cars** (`shaders/car_paint.gdshader`): road grime creeps up the lower body, the clear coat dulls there, and the lower glass is dusty. About 28% of cars (seeded by paint colour, so a car keeps its look while it drives) are faded beaters with rust round the arches and rockers.
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.

@@ -554,12 +554,31 @@ func _spawn_on(eid: int, s: float, type_id := "") -> Dictionary:
 	var c := {"node": body, "type": v["id"], "paint": paint, "len": float(v["size"][0]), "edge": eid, "ea": e["a"], "eb": e["b"], "s": s,
 		"lane": rng.randi() % per_dir, "v": 0.0, "pers": 1.0 + rng.randf_range(-1.0, 1.0) * float(T["driver"]["speed_jitter"]),
 		"y": 0.0, "ray_t": 0.0, "wait": 0.0, "stopped_at": -1, "next": -1, "pos": Vector3.ZERO, "yaw": 0.0}
+	c["style"] = _pick_style()
+	var st_: Dictionary = T.get("driver_styles", {}).get(c["style"], {})
+	c["pers"] = float(c["pers"]) * float(st_.get("speed", 1.0))
 	c["v"] = e["speed"] * 0.6
 	c["next"] = _choose_next(c)
 	cars.append(c)
 	spawned_total += 1
 	_place(c, 1.0, true)
 	return c
+
+## Toledo driver mix (source_data/traffic.json driver_styles): calm, rushed, reckless, elderly, and impaired drivers
+## (mostly at night, 22-04 h)
+func _pick_style() -> String:
+	var DS: Dictionary = T.get("driver_styles", {})
+	if DS.is_empty(): return "calm"
+	var h := int(main.tod.hour()) % 24 if main.tod else 12
+	var key := "night" if (h >= 22 or h < 4) else "day"
+	var tot := 0.0
+	for k in DS: if k != "_doc": tot += float(DS[k].get(key, 0.0))
+	var r := rng.randf() * tot
+	for k in DS:
+		if k == "_doc": continue
+		r -= float(DS[k].get(key, 0.0))
+		if r <= 0.0: return k
+	return "calm"
 
 func _despawn(c: Dictionary) -> void:
 	if is_instance_valid(c["node"]): c["node"].queue_free()
@@ -602,7 +621,8 @@ func target_count() -> int:
 	var tod = main.tod
 	var h := int(tod.hour()) % 24
 	var d: float = T["density_by_hour"][h]
-	if tod.weekday_name() in ["Saturday", "Sunday"]: d *= float(T["weekend_factor"])
+	if T.has("day_of_week"): d *= float(T["day_of_week"].get(tod.weekday_name(), 1.0))
+	elif tod.weekday_name() in ["Saturday", "Sunday"]: d *= float(T["weekend_factor"])
 	d *= float(T["weather_density"].get(main.weather.state, 1.0)) if main.weather else 1.0
 	var cap := float(T["budget"]["max_cars"])
 	if Time.get_ticks_msec() - _road_km_ms > 1500 and not edges.is_empty(): _update_road_km(main.focus_world())   # stale (sim paused)
@@ -769,9 +789,20 @@ func _step(c: Dictionary, dt: float, wspeed: float, on_edge: Dictionary) -> void
 	if halt:
 		var g3: float = maxf(to_end - 1.5, 0.0)
 		if g3 < gap: gap = g3; lv = 0.0
+	var ST: Dictionary = T.get("driver_styles", {}).get(c.get("style", "calm"), {})
 	if ctrl == "yellow":
-		# go if we can't stop comfortably
-		ctrl = "go" if c["v"] * c["v"] / (2.0 * float(D["decel"])) > stop_line else "stop"
+		# go if we can't stop comfortably; rushed / reckless drivers push it from further back
+		ctrl = "go" if c["v"] * c["v"] / (2.0 * float(D["decel"])) + float(ST.get("yellow_push", 0.0)) > stop_line else "stop"
+	if ctrl == "stop" and c.get("ran_red", -1) != e["b"] and stop_line > 0.0 and stop_line < 14.0 and c["v"] > 6.0 \
+			and control_for(e, e["b"]) == "stop" and float(ST.get("red_run", 0.0)) > 0.0:
+		# a fresh red: some drivers blow it (decided once per light)
+		if not c.has("red_roll") or c["red_roll"][0] != e["b"]: c["red_roll"] = [e["b"], rng.randf() < float(ST["red_run"])]
+		if c["red_roll"][1]: ctrl = "go"; c["ran_red"] = e["b"]
+	if ctrl == "stopsign" and c["stopped_at"] != e["b"] and float(ST.get("roll_stop", 0.0)) > 0.0:
+		if not c.has("roll_sign") or c["roll_sign"][0] != e["b"]: c["roll_sign"] = [e["b"], rng.randf() < float(ST["roll_stop"])]
+		if c["roll_sign"][1]:
+			v0 = min(v0, 3.0)                       # a rolling stop: slow to walking pace, never fully stop
+			if stop_line < 1.0: c["stopped_at"] = e["b"]
 	if ctrl == "stopsign":
 		if c["stopped_at"] == e["b"]:
 			ctrl = "go"
@@ -791,7 +822,7 @@ func _step(c: Dictionary, dt: float, wspeed: float, on_edge: Dictionary) -> void
 		if turn < 0.7: v0 = min(v0, lerp(5.0, v0, clamp((turn + 0.2) / 0.9, 0.0, 1.0)))
 	# Intelligent Driver Model
 	var a_max: float = D["accel"]; var b: float = D["decel"]
-	var s0: float = D["min_gap_m"]; var Tg: float = D["headway_s"]
+	var s0: float = D["min_gap_m"]; var Tg: float = float(D["headway_s"]) * float(ST.get("headway", 1.0))
 	var v: float = c["v"]
 	var s_star: float = s0 + max(0.0, v * Tg + v * (v - lv) / (2.0 * sqrt(a_max * b)))
 	var acc: float = a_max * (1.0 - pow(v / max(v0, 0.1), 4.0) - pow(s_star / max(gap, 0.1), 2.0))

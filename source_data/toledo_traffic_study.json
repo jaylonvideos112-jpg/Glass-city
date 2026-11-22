@@ -1,0 +1,141 @@
+{
+ "_doc": "Toledo traffic study (2026-11-21) from news and public data. Used by traffic.json driver_styles / day_of_week; hotspots for future crash and congestion events.",
+ "facts": {
+  "lucas_county_crashes": {
+   "2024": 11381,
+   "2025": 11069,
+   "source": "Spectrum News / OSHP dashboard"
+  },
+  "toledo_traffic_deaths_2025": "24 people in 23 crashes (City of Toledo)",
+  "lucas_fatal_2023": {
+   "total": 51,
+   "ovi_related": 30,
+   "urban": 46,
+   "motorcycle": 8,
+   "source": "OSHP Lucas fatal crash map 2021-2023"
+  },
+  "crash_weather_toledo": {
+   "clear": 0.81,
+   "rain": 0.098,
+   "snow": 0.02,
+   "source": "city-data (ODPS reports)"
+  },
+  "residential_speeding": "Residents complain of speeders ignoring 25 mph limits in neighbourhoods (WTOL 11 Investigates)",
+  "freeways": "I-75 reconstruction and rush-hour backups across the DiSalle Bridge; I-475 widening (Angola-Bancroft, Dorr St interchange); short ramps on I-475; over-height truck strikes on I-75 bridges",
+  "dangerous_roads": [
+   "Byrne Rd",
+   "Airport Hwy",
+   "Hill Ave",
+   "Arlington Ave",
+   "Alexis Rd",
+   "S Reynolds Rd"
+  ]
+ },
+ "hotspots_2014_2019": [
+  [
+   "Airport Hwy & Byrne Rd",
+   78
+  ],
+  [
+   "Byrne Rd & Hill Ave",
+   46
+  ],
+  [
+   "Byrne Rd & Arlington Ave",
+   48
+  ],
+  [
+   "Airport Hwy & Reynolds Rd",
+   55
+  ],
+  [
+   "Holland Sylvania Rd & Airport Hwy",
+   52
+  ],
+  [
+   "Alexis Rd & Lewis Ave",
+   45
+  ],
+  [
+   "Secor Rd & Central Ave",
+   34
+  ],
+  [
+   "Dorr St & Detroit Ave",
+   26
+  ],
+  [
+   "Central Ave & Talmadge Rd",
+   34
+  ],
+  [
+   "Reynolds Rd & Hill Ave",
+   50
+  ],
+  [
+   "Hill Ave & Westwood Ave",
+   24
+  ],
+  [
+   "Cherry St & Summit St",
+   29
+  ],
+  [
+   "Dorr St & Secor Rd",
+   34
+  ],
+  [
+   "Talmadge Rd & Sylvania Ave",
+   40
+  ],
+  [
+   "Alexis Rd & Douglas Rd",
+   37
+  ],
+  [
+   "Holland Sylvania Rd & Angola Rd",
+   26
+  ],
+  [
+   "Jackman Rd & Sylvania Ave",
+   37
+  ],
+  [
+   "Secor Rd & Laskey Rd",
+   37
+  ],
+  [
+   "Telegraph Rd & Alexis Rd",
+   27
+  ],
+  [
+   "Upton Ave & Monroe St",
+   24
+  ],
+  [
+   "Monroe St & Douglas Rd",
+   33
+  ],
+  [
+   "Anthony Wayne Trail & South Ave",
+   37
+  ],
+  [
+   "Secor Rd & Monroe St",
+   36
+  ],
+  [
+   "Holland Sylvania Rd & Bancroft St",
+   25
+  ],
+  [
+   "Sylvania Ave & Douglas Rd",
+   26
+  ]
+ ],
+ "game_use": [
+  "driver mix: calm / rushed / reckless / elderly / impaired (night) - traffic.json driver_styles",
+  "Friday busiest, Sunday quietest - traffic.json day_of_week",
+  "TODO: more fender-benders and police stops at the hotspots; rush-hour backups on I-75 at the DiSalle; snow/rain slowdowns"
+ ]
+}

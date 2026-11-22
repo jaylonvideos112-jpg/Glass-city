@@ -86,6 +86,7 @@ func _run() -> void:
 		["grass_grows_on_lawns", t_grass],
 		["parked_cars_line_side_streets", t_parked],
 		["utility_poles_and_wires", t_utility],
+		["traffic_driver_styles", t_driver_styles],
 		["house_windows_lived_in", t_windows],
 	]
 	for a in OS.get_cmdline_user_args():    # --only=substring runs a subset (debugging)
@@ -1152,6 +1153,7 @@ func t_tr_red() -> Array:
 	var guard := 0
 	while tr.signal_state(eid) != "stop" and guard < 2000: tr.time_s += 0.1; guard += 1
 	var c: Dictionary = tr._spawn_on(eid, 1.0)
+	c["style"] = "calm"            # a law-abiding driver: reckless styles may run a fresh red on purpose
 	c["v"] = 6.0
 	var stop_at: float = e2["len"] - float(tr.T["driver"]["stop_line_m"])
 	var crossed := false
@@ -1178,6 +1180,7 @@ func t_tr_player() -> Array:
 	var block: Vector3 = tr.lane_point(e2, e2["len"] - 4.0, 0)
 	main.player.global_position = block - main.world_offset + Vector3(0, 0.5, 0)
 	var c: Dictionary = tr._spawn_on(eid, max(1.0, e2["len"] - 50.0))
+	c["style"] = "calm"
 	c["lane"] = 0; c["v"] = 5.0
 	for f in 1440:
 		await get_tree().physics_frame   # 12 s
@@ -1279,6 +1282,7 @@ func t_pd_car_stops() -> Array:
 	var spot: Vector3 = tr.lane_point(e2, e2["len"] - 5.0, 0)
 	p["state"] = "cross"; p["cross"] = [spot, spot, eid, e2["b"]]; p["pos"] = spot
 	var c: Dictionary = tr._spawn_on(eid, max(1.0, e2["len"] - 40.0))
+	c["style"] = "calm"
 	c["lane"] = 0; c["v"] = 5.0
 	for f in 1080:
 		await get_tree().physics_frame
@@ -1771,4 +1775,15 @@ func t_windows() -> Array:
 	var sh: Shader = wm.shader
 	if sh == null or not sh.code.contains("night_level"): return [false, "window shader missing"]
 	return [true, "window-interior shader on house panes"]
+
+## Toledo driver mix: every spawned car gets a style; reckless / impaired drivers exist and are commoner at night
+func t_driver_styles() -> Array:
+	var tr = main.traffic
+	var n := {}
+	for i in 400:
+		var k: String = tr._pick_style()
+		n[k] = n.get(k, 0) + 1
+	if n.size() < 4: return [false, "only %s" % str(n)]
+	if int(n.get("calm", 0)) < int(n.get("reckless", 0)): return [false, "more reckless than calm drivers: %s" % str(n)]
+	return [true, "400 drivers: %s" % str(n)]
 

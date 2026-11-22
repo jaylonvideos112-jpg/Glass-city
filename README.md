@@ -85,6 +85,20 @@ It is the owner's passion project for his own city.
       - `year_weights` spreads each generation over its model years. At runtime the year will drive how worn the car is (fade, rust, dents, mismatched panels).
     - Body mix: about 39% SUVs and crossovers, 35% cars, 21% pickups, 5% vans. That's close to Ohio's registrations (UVs 40%, cars 33.5%, pickups 18.4%, vans 6.3%).
     - In-game every vehicle gets a parody brand and name (no real names). The owner picks the brand names.
+  - **Toledo traffic study** (owner: "look at the news, random videos, analyze real traffic"): `source_data/toledo_traffic_study.json`.
+    - Facts:
+      - Lucas County crashes: 11,381 in 2024 and 11,069 in 2025.
+      - Toledo traffic deaths in 2025: 24.
+      - 30 of 51 Lucas County fatal crashes in 2023 were OVI-related.
+      - Crash weather in Toledo: 81% clear, about 10% rain, 2% snow.
+      - Residents complain about neighbourhood speeding.
+      - I-75 rush-hour backups at the DiSalle Bridge; I-475 widening.
+    - The 25 most crash-prone intersections (Airport and Byrne first).
+    - I couldn't watch videos; the study uses written news and public data.
+    - In the game (`source_data/traffic.json`):
+      - `driver_styles`: every car gets calm, rushed, reckless, elderly or impaired (impaired mostly 22:00–04:00). The style changes speed and following distance. Rushed and reckless drivers push yellows, sometimes run a fresh red (decided once per light) and roll stop signs.
+      - `day_of_week`: Friday busiest, Sunday quietest.
+      - Tests pin their own test cars to `calm`. New test: `traffic_driver_styles`.
   - **Lived-in cars** (`shaders/car_paint.gdshader`): road grime creeps up the lower body, the clear coat dulls there, and the lower glass is dusty. About 28% of cars (seeded by paint colour, so a car keeps its look while it drives) are faded beaters with rust round the arches and rockers.
   - **Bully trees:** `tools/blender/bully_trees.py` builds round and oval trees: a thick trunk and branches, and crowns of painted leaf-cluster cards with outward normals.
     - They are baked to billboards with `tools/dbg/bake_impostor.gd`, then cropped into `textures_bully/trees/` (same names plus `meta.json`). They replace the photo-scan tree cutouts automatically.
@@ -2977,10 +2991,159 @@ Top-level keys: `_doc`, `_fixed`, `101st Street`, `102nd Street`, `103rd Street`
 ### `toledo_fleet.json` (65 KB)
 Top-level keys: `note`, `vehicles`
 
-### `traffic.json` (3 KB)
+### `toledo_traffic_study.json` (2 KB)
+Toledo traffic study (2026-11-21) from news and public data. Used by traffic.json driver_styles / day_of_week; hotspots for future crash and congestion events.
+
+Top-level keys: `_doc`, `facts`, `hotspots_2014_2019`, `game_use`
+
+```json
+{
+ "_doc": "Toledo traffic study (2026-11-21) from news and public data. Used by traffic.json driver_styles / day_of_week; hotspots for future crash and congestion events.",
+ "facts": {
+  "lucas_county_crashes": {
+   "2024": 11381,
+   "2025": 11069,
+   "source": "Spectrum News / OSHP dashboard"
+  },
+  "toledo_traffic_deaths_2025": "24 people in 23 crashes (City of Toledo)",
+  "lucas_fatal_2023": {
+   "total": 51,
+   "ovi_related": 30,
+   "urban": 46,
+   "motorcycle": 8,
+   "source": "OSHP Lucas fatal crash map 2021-2023"
+  },
+  "crash_weather_toledo": {
+   "clear": 0.81,
+   "rain": 0.098,
+   "snow": 0.02,
+   "source": "city-data (ODPS reports)"
+  },
+  "residential_speeding": "Residents complain of speeders ignoring 25 mph limits in neighbourhoods (WTOL 11 Investigates)",
+  "freeways": "I-75 reconstruction and rush-hour backups across the DiSalle Bridge; I-475 widening (Angola-Bancroft, Dorr St interchange); short ramps on I-475; over-height truck strikes on I-75 bridges",
+  "dangerous_roads": [
+   "Byrne Rd",
+   "Airport Hwy",
+   "Hill Ave",
+   "Arlington Ave",
+   "Alexis Rd",
+   "S Reynolds Rd"
+  ]
+ },
+ "hotspots_2014_2019": [
+  [
+   "Airport Hwy & Byrne Rd",
+   78
+  ],
+  [
+   "Byrne Rd & Hill Ave",
+   46
+  ],
+  [
+   "Byrne Rd & Arlington Ave",
+   48
+  ],
+  [
+   "Airport Hwy & Reynolds Rd",
+   55
+  ],
+  [
+   "Holland Sylvania Rd & Airport Hwy",
+   52
+  ],
+  [
+   "Alexis Rd & Lewis Ave",
+   45
+  ],
+  [
+   "Secor Rd & Central Ave",
+   34
+  ],
+  [
+   "Dorr St & Detroit Ave",
+   26
+  ],
+  [
+   "Central Ave & Talmadge Rd",
+   34
+  ],
+  [
+   "Reynolds Rd & Hill Ave",
+   50
+  ],
+  [
+   "Hill Ave & Westwood Ave",
+   24
+  ],
+  [
+   "Cherry St & Summit St",
+   29
+  ],
+  [
+   "Dorr St & Secor Rd",
+   34
+  ],
+  [
+   "Talmadge Rd & Sylvania Ave",
+   40
+  ],
+  [
+   "Alexis Rd & Douglas Rd",
+   37
+  ],
+  [
+   "Holland Sylvania Rd & Angola Rd",
+   26
+  ],
+  [
+   "Jackman Rd & Sylvania Ave",
+   37
+  ],
+  [
+   "Secor Rd & Laskey Rd",
+   37
+  ],
+  [
+   "Telegraph Rd & Alexis Rd",
+   27
+  ],
+  [
+   "Upton Ave & Monroe St",
+   24
+  ],
+  [
+   "Monroe St & Douglas Rd",
+   33
+  ],
+  [
+   "Anthony Wayne Trail & South Ave",
+   37
+  ],
+  [
+   "Secor Rd & Monroe St",
+   36
+  ],
+  [
+   "Holland Sylvania Rd & Bancroft St",
+   25
+  ],
+  [
+   "Sylvania Ave & Douglas Rd",
+   26
+  ]
+ ],
+ "game_use": [
+  "driver mix: calm / rushed / reckless / elderly / impaired (night) - traffic.json driver_styles",
+  "Friday busiest, Sunday quietest - traffic.json day_of_week",
+  "TODO: more fender-benders and police stops at the hotspots; rush-hour backups on I-75 at the DiSalle; snow/rain slowdowns"
+ ]
+}
+```
+
+### `traffic.json` (4 KB)
 Ambient traffic (Bible section 5 and 8). Shares follow ordinary Toledo traffic: mostly sedans, SUVs, pickups and minivans, older cars common, sports/luxury rare. Makers and models are fictional. Sizes in metres (length, width, height).
 
-Top-level keys: `_doc`, `budget`, `density_by_hour`, `weekend_factor`, `weather_density`, `weather_speed`, `signals`, `driver`, `vehicles`, `paint`, `bus_paint`, `services`, `_doc_vehicles`
+Top-level keys: `_doc`, `budget`, `density_by_hour`, `weekend_factor`, `weather_density`, `weather_speed`, `signals`, `driver`, `vehicles`, `paint`, `bus_paint`, `services`, `_doc_vehicles`, `driver_styles`, `day_of_week`
 
 4 named records: Glass City Transit, Glass City Police Cruiser, Glass City EMS Ambulance, Glass City Fire Engine
 
@@ -3028,7 +3191,7 @@ Top-level keys: `_doc`, `places`
 
 ## 20. Every automated test
 
-In-game tests (`tests/test_runner.gd`, 62): `manifest_and_world_bounds`, `chunk_data_schema`, `streaming_loads_around_player`, `player_spawns_on_ground`, `player_can_walk`, `car_enter_drive_exit`, `bar_enter_exit`, `bar_exit_after_origin_rebase`, `respawn_from_river`, `clock_one_real_hour_per_day`, `sun_path_by_season`, `night_lights_switch_on`, `weather_respects_seasons`, `weather_changes_the_look`, `world_state_save_load`, `street_lamps_light_at_night`, `car_headlights_at_night`, `rain_wets_and_dries_the_ground`, `snow_builds_and_melts`, `traffic_road_graph`, `traffic_density_follows_hour`, `traffic_spawns_and_moves_in_lanes`, `traffic_no_overlapping_cars`, `traffic_stops_at_red_light`, `traffic_stops_for_player`, `peds_density_follows_hour`, `peds_spawn_and_walk_on_sidewalks`, `peds_cross_only_at_intersections`, `traffic_stops_for_crossing_ped`, `peds_umbrellas_in_rain`, `wet_and_snowy_roads_lose_grip`, `audio_follows_car_and_weather`, `far_city_hlod_covers_horizon`, `world_state_sections_round_trip`, `buses_follow_routes_and_stop`, `npc_schedules_shape_who_is_out`, `money_cash_wallet_atm`, `wanted_level_chase_escape_bust`, `traffic_stop_ticket_or_flee`, `jobs_hire_shift_tasks_paycheck_strikes`, `business_buy_income_collect`, `homes_rent_buy_sleep_garage`, `vehicle_roster_in_traffic`, `steal_car_from_traffic`, `buy_car_new_and_used`, `car_damage_repair_upgrade_views`, `needs_hunger_stamina_fitness_weight`, `activities_food_gym_games_fishing_bowling`, `phone_apps_gps_tow_photo`, `police_close_in_offroad_and_helicopter`, `driving_feel_metrics`, `falls_hurt_and_wasted_wakes_in_hospital`, `car_knocks_down_pedestrian_crowd_scatters`, `melee_punch_kick_ko_fight_back_block`, `fight_ai_takedown_pin_sweep_parry_adapt`, `weapons_shoot_reload_store_grenade_police`, `on_foot_feel_metrics`, `emergency_responds_with_siren`, `grass_grows_on_lawns`, `parked_cars_line_side_streets`, `utility_poles_and_wires`, `house_windows_lived_in`
+In-game tests (`tests/test_runner.gd`, 63): `manifest_and_world_bounds`, `chunk_data_schema`, `streaming_loads_around_player`, `player_spawns_on_ground`, `player_can_walk`, `car_enter_drive_exit`, `bar_enter_exit`, `bar_exit_after_origin_rebase`, `respawn_from_river`, `clock_one_real_hour_per_day`, `sun_path_by_season`, `night_lights_switch_on`, `weather_respects_seasons`, `weather_changes_the_look`, `world_state_save_load`, `street_lamps_light_at_night`, `car_headlights_at_night`, `rain_wets_and_dries_the_ground`, `snow_builds_and_melts`, `traffic_road_graph`, `traffic_density_follows_hour`, `traffic_spawns_and_moves_in_lanes`, `traffic_no_overlapping_cars`, `traffic_stops_at_red_light`, `traffic_stops_for_player`, `peds_density_follows_hour`, `peds_spawn_and_walk_on_sidewalks`, `peds_cross_only_at_intersections`, `traffic_stops_for_crossing_ped`, `peds_umbrellas_in_rain`, `wet_and_snowy_roads_lose_grip`, `audio_follows_car_and_weather`, `far_city_hlod_covers_horizon`, `world_state_sections_round_trip`, `buses_follow_routes_and_stop`, `npc_schedules_shape_who_is_out`, `money_cash_wallet_atm`, `wanted_level_chase_escape_bust`, `traffic_stop_ticket_or_flee`, `jobs_hire_shift_tasks_paycheck_strikes`, `business_buy_income_collect`, `homes_rent_buy_sleep_garage`, `vehicle_roster_in_traffic`, `steal_car_from_traffic`, `buy_car_new_and_used`, `car_damage_repair_upgrade_views`, `needs_hunger_stamina_fitness_weight`, `activities_food_gym_games_fishing_bowling`, `phone_apps_gps_tow_photo`, `police_close_in_offroad_and_helicopter`, `driving_feel_metrics`, `falls_hurt_and_wasted_wakes_in_hospital`, `car_knocks_down_pedestrian_crowd_scatters`, `melee_punch_kick_ko_fight_back_block`, `fight_ai_takedown_pin_sweep_parry_adapt`, `weapons_shoot_reload_store_grenade_police`, `on_foot_feel_metrics`, `emergency_responds_with_siren`, `grass_grows_on_lawns`, `parked_cars_line_side_streets`, `utility_poles_and_wires`, `traffic_driver_styles`, `house_windows_lived_in`
 
 Data tests (`tests/test_data.py`, 0): 
 
@@ -3420,6 +3583,7 @@ Changes to the development bible made by the project owner. The latest explicit 
   place (litter, residential bulk, alley, business, parking, industrial) on gutters, sidewalks, grass strips, paths, lots.
 * Sidewalk wear (cracks, weeds, gum, dirt) and lived-in cars (grime, faded beaters with rust).
 * `source_data/toledo_fleet.json`: estimated top-200 vehicles on Toledo roads (model + generation, body family, share).
+* Toledo traffic study + driver styles (calm/rushed/reckless/elderly/impaired at night), weekday traffic pattern.
 * 20-minute work backups (`tools/backup.py`).
 
 #### Bully look and 3D grass (2026-11-21)
