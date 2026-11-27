@@ -1346,6 +1346,13 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
         wv = np.sin(r * 2 * math.pi / 0.011 + np.arctan2(rel[:, 0], rel[:, 1]) * 2)
         off = base_off + 0.0012 * wv * dens + 0.002
         cols *= (0.75 + 0.35 * (0.5 + 0.5 * wv))[:, None]
+    elif style == 'SPONGE':
+        # GLASS CITY: short sponge / natural top — a soft, rounded, dense mass with a fine kinky
+        # surface (no long coils). Nubs added below give the fuzzy edge.
+        vol = 0.026
+        nub = vnoise(co, 0.004, seed) + 0.6 * vnoise(co, 0.0022, seed + 5)
+        off = base_off + vol * top + 0.0025 * nub * top
+        cols *= (0.7 + 0.35 * (0.5 + 0.5 * nub))[:, None]
     elif style in ('CURLY_TOP', 'TWISTS', 'LOCS', 'FLAT_TOP'):
         vol = {'CURLY_TOP': 0.045 * _CURL_K, 'TWISTS': 0.012, 'LOCS': 0.01, 'FLAT_TOP': 0.06}[style]
         # curly top: the coils carry the volume; the shell stays low so there's no solid 'wall' at the fade
@@ -1376,7 +1383,7 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
             cols[part] *= 0.6
     else:
         off = base_off
-    if style in ('TAPER', 'WAVES', 'BUZZ', 'CURLY_TOP', 'FLAT_TOP', 'TWISTS'):
+    if style in ('TAPER', 'WAVES', 'BUZZ', 'CURLY_TOP', 'FLAT_TOP', 'TWISTS', 'SPONGE'):
         off = off * edge_taper        # hair thins out to the hairline instead of ending in a lip
     P = smooth_head + Ns * off[:, None]
     rgba_ = np.concatenate([cols, alpha[:, None]], 1)
@@ -1405,6 +1412,22 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
                                    radius=0.0035 * (0.5 + 0.5 * _CURL_K),
                                    wire=0.0013, droop=0.08, turns=(1.8, 2.8))
             me = tube_mesh(pa, ra, ca, name + "_Coils", sides=4)
+            objs.append(mesh_object(me, h, rig, coll, 'coil', {'head': 1.0}))
+    if style == 'SPONGE' and coil_count > 0:
+        cand = np.nonzero(keep & (top > 0.05) & (dens > 0.6))[0]
+        if len(cand):
+            n_c = coil_count * 7
+            pick = rng.choice(cand, size=n_c, replace=True)
+            nb = rng.choice(cand, size=n_c, replace=True)
+            t = rng.random((n_c, 1)) * 0.5
+            pts = P[pick] * (1 - t) + P[nb] * t - Ns[pick] * 0.0015
+            nrm = Ns[pick] + rng.normal(0, 0.5, (n_c, 3))
+            sc = 0.5 + 0.5 * top[pick]
+            pa, ra, ca = coil_mesh(pts, nrm, color * 0.9, seed=seed, length=(0.0035, 0.0065),
+                                   radius=0.0013, wire=0.0011, droop=0.0, turns=(0.8, 1.4))
+            for i in range(len(pa)):      # shorter nubs low on the sides
+                pa[i] = pts[i] + (pa[i] - pts[i]) * sc[i]
+            me = tube_mesh(pa, ra, ca, name + "_Nubs", sides=3)
             objs.append(mesh_object(me, h, rig, coll, 'coil', {'head': 1.0}))
     if style == 'CORNROWS':
         # real plaits running front-to-back along the scalp
@@ -4489,7 +4512,7 @@ def build(context, p):
 
 
 
-URBAN_HAIR = ('TAPER', 'WAVES', 'CURLY_TOP', 'TWISTS', 'LOCS', 'CORNROWS', 'HIGH_TOP', 'BRAIDS', 'BUN', 'PUFF')
+URBAN_HAIR = ('TAPER', 'WAVES', 'CURLY_TOP', 'SPONGE', 'TWISTS', 'LOCS', 'CORNROWS', 'HIGH_TOP', 'BRAIDS', 'BUN', 'PUFF')
 URBAN_HATS = ('BEANIE', 'CAP', 'CAP_BACK', 'DURAG')
 SNEAKERS = ('CHUNKY', 'RUNNER', 'COURT')
 DESIGNER_TOPS = ('TECH', 'WEB')
@@ -4796,7 +4819,7 @@ class SY3_Props(bpy.types.PropertyGroup):
     skin_detail: _f("Skin Detail", 1.0, 0.0, 1.5)
     skin_warmth: _f("Skin Warmth", 0.35)
     hair_style: EnumProperty(name="Hair", default='PART', items=[(k, k.replace('_', ' ').title(), "") for k in HAIR] + [
-        ('TAPER', "Taper / Buzz", ""), ('WAVES', "Waves", ""), ('CURLY_TOP', "Curly Top", ""),
+        ('TAPER', "Taper / Buzz", ""), ('WAVES', "Waves", ""), ('CURLY_TOP', "Curly Top", ""), ('SPONGE', "Sponge Top", ""),
         ('TWISTS', "Two-Strand Twists", ""), ('LOCS', "Locs", ""), ('CORNROWS', "Cornrows / Stitch Braids", ""),
         ('HIGH_TOP', "High-Top", ""), ('BRAIDS', "Knotless Box Braids", ""), ('BUN', "Slick Bun", ""),
         ('PUFF', "Puff", "")])
