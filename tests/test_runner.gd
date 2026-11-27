@@ -30,6 +30,7 @@ func _run() -> void:
 		["streaming_loads_around_player", t_streaming],
 		["player_spawns_on_ground", t_spawn],
 		["player_can_walk", t_walk],
+		["player_model_from_schoolyard_addon", t_player_model],
 		["car_enter_drive_exit", t_car],
 		["bar_enter_exit", t_bar_roundtrip],
 		["bar_exit_after_origin_rebase", t_bar_rebase],
@@ -1786,4 +1787,15 @@ func t_driver_styles() -> Array:
 	if n.size() < 4: return [false, "only %s" % str(n)]
 	if int(n.get("calm", 0)) < int(n.get("reckless", 0)): return [false, "more reckless than calm drivers: %s" % str(n)]
 	return [true, "400 drivers: %s" % str(n)]
+
+## the player is the owner's Schoolyard add-on character (char_p1.glb) with the 17 retargeted mocap clips
+func t_player_model() -> Array:
+	var r = main.player.rig
+	if r == null: return [false, "player has no skeletal rig (char_%s.glb missing?)" % main.player.RIG_VARIANT]
+	if r.player == null: return [false, "rig has no AnimationPlayer"]
+	var n := 0
+	for lib in r.player.get_animation_library_list(): n += r.player.get_animation_library(lib).get_animation_list().size()
+	if n < 17: return [false, "only %d animations" % n]
+	var bones: int = r.skel.get_bone_count() if r.skel else 0
+	return [true, "variant %s: %d bones, %d animations" % [main.player.RIG_VARIANT, bones, n]]
 

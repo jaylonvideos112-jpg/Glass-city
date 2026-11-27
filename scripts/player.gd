@@ -49,7 +49,7 @@ const Humans := preload("res://scripts/humans.gd")
 var _body: MeshInstance3D
 var seated_mesh: ArrayMesh      # same person without legs, for the driver's seat
 var rig: RigChar                # skeletal mocap character (rig_char.gd); null -> the old shader-animated mesh
-const RIG_VARIANT := "m2"
+const RIG_VARIANT := "p1"        # the owner's Schoolyard add-on (tools/blender/schoolyard); was "m2"
 var look_dict := {}
 
 ## the protagonist: dark bomber jacket over a grey tee, dark jeans, white sneakers, short hair and a beard

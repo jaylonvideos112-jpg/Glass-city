@@ -415,6 +415,11 @@ The owner moved to a new Claude account. Everything below is the state at handof
 - Toledo driver styles;
 - the 200-car fleet with off-brand names.
 
+**Since handoff (2026-11-27):**
+- The player model now comes from the owner's add-on (see section 10).
+- The project lives in a private GitHub repo, `jaylonvideos112-jpg/glass-city`, pushed often, so any Claude account can attach it and continue.
+- Story canon is the owner's Google Doc "GLASS CITY — Master Archive" (Drive / GLASS CITY). The protagonist is **Yelly (Maryell), 22**, from Eastport Homes. Add a Change log row there each session.
+
 **Next steps, in order:**
 1. **Build the 200 cars.** About 18 Bully-style body families (`body` in `source_data/toledo_fleet.json`):
    - each of the 200 gets its own proportions, grille, lights and bumpers from `parody_make` / `parody_model`;
@@ -490,7 +495,14 @@ The owner moved to a new Claude account. Everything below is the state at handof
 - **Look:** "4K upscaled Bully" art style with modern polygon counts (2026-11-21). Never "like Roblox". No screen filters.
 - **Skipped for now:** fishing polish and missions.
 - **Tool calls:** keep them short. The owner often interrupts to redirect; pause when asked.
-- **Character models:** our own system (`tools/blender/glasshuman/`), never MakeHuman/MPFB. It's paused because the owner judged the clay head "nowhere near close". When it resumes, match the owner's Bully reference screenshots; don't copy any specific character.
+- **Character models (2026-11-27, owner: "the new player models will use the blender add on that I have created"):** use the owner's **Schoolyard Character Generator** add-on.
+  - The file is `tools/blender/schoolyard/schoolyard_characters_v3.py`. The master copy is in his Google Drive: "GLASS CITY / GLASS CITY – Character Generator (Blender add-on)", with its own CLAUDE.md and READ ME.
+  - It builds on MPFB / MakeHuman internally. That's the owner's own tool, so it overrides the earlier "no MakeHuman" rule.
+  - Our own `glasshuman` head is abandoned.
+  - Headless driver: `tools/blender/schoolyard/gen_character.py OUT.glb PRESET seed key=value… [anim=1] [preview=PNG]`.
+    - It registers the add-on, sets the preset and properties, builds (cloth sim on: about 2–3 min), and can render a front / ¾ / side preview.
+    - With `anim=1` it turns the rig 180°, retargets the 17 CMU mocap clips (`rigged_people.py`) onto the add-on's MPFB `game_engine` skeleton (53 bones, Unreal-style names), and exports a .glb.
+  - The player is `char_p1.glb`: preset HOOPER, seed 7, age 1.0. That's a placeholder look for Yelly until the owner approves one. `player.gd` `RIG_VARIANT = "p1"`. Test: `player_model_from_schoolyard_addon`.
 - **Screenshots:** take none routinely ("I don't need shots"). Take one only to check work yourself, or when asked.
 - **Unreal:** a UE5 setup will be done later via the desktop app on the owner's PC.
 - **Security and etiquette:**
