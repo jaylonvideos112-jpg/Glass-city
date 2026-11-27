@@ -511,10 +511,10 @@ The owner moved to a new Claude account. Everything below is the state at handof
     - It registers the add-on, sets the preset and properties, builds (cloth sim on: about 2–3 min), and can render a front / ¾ / side preview plus two head close-ups.
     - `face=` fits the MPFB face sliders to MediaPipe landmarks of a photo (`tools/pipeline/face_landmarks.py`, `tools/blender/charcreator/facefit.py`); `face_tweak=` sets named face shape keys by hand on top of the fit.
     - Env `SY_CURL_SCALE` (default 1.0) shrinks or grows the CURLY_TOP coils.
-    - GLASS CITY added a `SPONGE` hair style to the add-on: a short, rounded natural top with a fine kinky surface and tiny nubs, no long coils; and a `SHORT` fade (hair kept on the sides, tapering only at sideburns and nape).
+    - GLASS CITY added a `SPONGE` hair style to the add-on: a short, rounded natural top with a fine kinky surface and tiny nubs, no long coils, plus a thin textured layer with its own shorter nubs on the sides and back; and a `SHORT` fade (hair kept on the sides, tapering only at sideburns and nape).
     - With `anim=1` it turns the rig 180°, retargets the 17 CMU mocap clips (`rigged_people.py`) onto the add-on's MPFB `game_engine` skeleton (53 bones, Unreal-style names), and exports a .glb.
   - **The player is Yelly** (`char_p1.glb`), based on the owner's reference photos (2026-11-27):
-    - a slim, tall young Black man with dark skin, relaxed hooded eyes, and a short sponge top (`hair_style=SPONGE`, not curls) with short hair on the sides (`fade=SHORT`, tapers only at the edges) and a line-up — owner's notes;
+    - a slim, tall young Black man with dark skin, relaxed hooded eyes, and a short sponge top (`hair_style=SPONGE`, not curls) with short textured hair all around — sides and back too (`fade=SHORT`, tapers only at the edges) — and a line-up (owner's notes);
     - face fitted to the owner's front photo (photo and landmarks are kept outside the repo), plus hand fixes in `yelly_face.json`;
     - his fit: white boxy tee, light-wash baggy jorts, pink crew socks, pink court sneakers with cream soles; no logos;
     - exact settings in `tools/blender/schoolyard/yelly.args`; preview in `docs/yelly_preview.png`.
@@ -3652,7 +3652,7 @@ Changes to the development bible made by the project owner. The latest explicit 
   17 mocap clips retargeted; `gen_character.py` headless driver; test `player_model_from_schoolyard_addon`.
 * Yelly (the player) built from the owner's reference photos: face fitted to the photo (`face=`, `face_tweak=`), tight
   sponge curls (`SY_CURL_SCALE`), second outfit — white tee, jorts, pink socks and sneakers (`yelly.args`, `yelly_face.json`).
-  Add-on: PINK crew socks, curl-size control, new SPONGE hair style and SHORT fade (Yelly: short sponge top, hair on the sides).
+  Add-on: PINK crew socks, curl-size control, new SPONGE hair style and SHORT fade (Yelly: short textured hair all around, fuller on top).
 
 #### Lived-in windows (2026-11-21)
 * Every house pane paints its own curtains, blinds or sheet and a parallax room behind; lit rooms at night

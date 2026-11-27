@@ -1351,7 +1351,9 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
         # surface (no long coils). Nubs added below give the fuzzy edge.
         vol = 0.026
         nub = vnoise(co, 0.004, seed) + 0.6 * vnoise(co, 0.0022, seed + 5)
-        off = base_off + vol * top + 0.004 * dens * (1 - top) + 0.0025 * nub * np.maximum(top, 0.4 * dens)
+        # short hair all round: a real layer on the sides and back, a fuller rounded top
+        side_vol = 0.007 * dens * (1 - top)
+        off = base_off + vol * top + side_vol + 0.0025 * nub * np.maximum(top, 0.7 * dens)
         cols *= (0.7 + 0.35 * (0.5 + 0.5 * nub))[:, None]
     elif style in ('CURLY_TOP', 'TWISTS', 'LOCS', 'FLAT_TOP'):
         vol = {'CURLY_TOP': 0.045 * _CURL_K, 'TWISTS': 0.012, 'LOCS': 0.01, 'FLAT_TOP': 0.06}[style]
@@ -1428,6 +1430,19 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
             for i in range(len(pa)):      # shorter nubs low on the sides
                 pa[i] = pts[i] + (pa[i] - pts[i]) * sc[i]
             me = tube_mesh(pa, ra, ca, name + "_Nubs", sides=3)
+            objs.append(mesh_object(me, h, rig, coll, 'coil', {'head': 1.0}))
+        # the sides and back get their own, shorter nubs (own count, so the top keeps its density)
+        cand = np.nonzero(keep & (top <= 0.05) & (dens > 0.6) & (above > 0.003))[0]
+        if len(cand):
+            n_c = coil_count * 6
+            pick = rng.choice(cand, size=n_c, replace=True)
+            nb = rng.choice(cand, size=n_c, replace=True)
+            t = rng.random((n_c, 1)) * 0.5
+            pts = P[pick] * (1 - t) + P[nb] * t - Ns[pick] * 0.001
+            nrm = Ns[pick] + rng.normal(0, 0.5, (n_c, 3))
+            pa, ra, ca = coil_mesh(pts, nrm, color * 0.9, seed=seed + 11, length=(0.0025, 0.0045),
+                                   radius=0.0011, wire=0.001, droop=0.0, turns=(0.8, 1.3))
+            me = tube_mesh(pa, ra, ca, name + "_SideNubs", sides=3)
             objs.append(mesh_object(me, h, rig, coll, 'coil', {'head': 1.0}))
     if style == 'CORNROWS':
         # real plaits running front-to-back along the scalp
@@ -3307,7 +3322,7 @@ def hairline_z(B, P, front=0.27, side=0.12, back=-0.25):
     return top_line * (1 - sd) + side_line * sd, rel
 
 
-FADES = {'NONE': (-1, -0.9), 'SHORT': (-0.17, 0.0), 'LOW': (-0.03, 0.17), 'MID': (0.04, 0.29), 'HIGH': (0.13, 0.38)}
+FADES = {'NONE': (-1, -0.9), 'SHORT': (-0.2, -0.05), 'LOW': (-0.03, 0.17), 'MID': (0.04, 0.29), 'HIGH': (0.13, 0.38)}
 
 
 def hair_texel_fn(B, style, fade, color, seed=1):
