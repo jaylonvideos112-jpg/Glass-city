@@ -11,8 +11,8 @@ import bpy, addon_utils
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else sys.argv[1:]
 OUT, PRESET = args[0], args[1]
 SEED = int(args[2]) if len(args) > 2 and "=" not in args[2] else 1
-KV = [a for a in args[2:] if "=" in a and a.split("=")[0] not in ("anim", "preview")]
-OPT = dict(a.split("=", 1) for a in args[2:] if "=" in a and a.split("=")[0] in ("anim", "preview"))
+KV = [a for a in args[2:] if "=" in a and a.split("=")[0] not in ("anim", "preview", "face", "face_tweak")]
+OPT = dict(a.split("=", 1) for a in args[2:] if "=" in a and a.split("=")[0] in ("anim", "preview", "face", "face_tweak"))
 ANIM = OPT.get("anim", "0") in ("1", "true"); PREVIEW = OPT.get("preview")
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -21,6 +21,24 @@ here = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location("schoolyard_characters_v3", os.path.join(here, "schoolyard_characters_v3.py"))
 SY = importlib.util.module_from_spec(spec); sys.modules["schoolyard_characters_v3"] = SY; spec.loader.exec_module(SY)
 SY.register()
+# face=LANDMARKS.json (tools/pipeline/face_landmarks.py on a front photo): after the add-on sets its own features,
+# fit MakeHuman's face sliders to the photo's 468 landmarks (tools/blender/charcreator/facefit.py) so the face
+# matches the person; the add-on's painted Bully-style skin, hair and clothes are built on that face.
+if OPT.get("face"):
+    sys.path.insert(0, os.path.join(os.path.dirname(here), "charcreator"))
+    import facefit
+    _orig_af = SY.apply_features
+    def _af(h, p_, female):
+        _orig_af(h, p_, female)
+        facefit.fit(h, {"landmarks": OPT["face"], "strength": float(OPT.get("face_strength", 0.9))})
+        # face_tweak=JSON {"shape-key substring": value}: hand fixes on top of the fit (a small, low-res photo face
+        # over-opens the eyes, for example)
+        if OPT.get("face_tweak"):
+            tw = __import__("json").load(open(OPT["face_tweak"]))
+            for kb in h.data.shape_keys.key_blocks:
+                for sub, val in tw.items():
+                    if sub in kb.name: kb.value = float(val)
+    SY.apply_features = _af
 p = bpy.context.scene.sy3_props
 p.preset = PRESET
 p.seed = SEED
@@ -55,6 +73,13 @@ if PREVIEW:
         c.location = (r * math.sin(a_), -r * math.cos(a_), mid + 0.1)
         c.rotation_euler = (Vector((0, 0, mid)) - c.location).to_track_quat("-Z", "Y").to_euler()
         sc.camera = c; sc.render.resolution_x = 500; fp = PREVIEW.replace(".png", "_%d.png" % i); sc.render.filepath = fp
+        bpy.ops.render.render(write_still=True); shots.append(fp)
+    for i, ang in ((3, 0), (4, 35)):       # head close-ups (front, 3/4) for judging the face and hair
+        cd = bpy.data.cameras.new("c"); cd.lens = 85; c = bpy.data.objects.new("c", cd); sc.collection.objects.link(c)
+        a_ = math.radians(ang); hz = top - 0.16
+        c.location = (1.6 * math.sin(a_), -1.6 * math.cos(a_), hz)
+        c.rotation_euler = (Vector((0, 0, hz)) - c.location).to_track_quat("-Z", "Y").to_euler()
+        sc.camera = c; fp = PREVIEW.replace(".png", "_%d.png" % i); sc.render.filepath = fp
         bpy.ops.render.render(write_still=True); shots.append(fp)
     from PIL import Image
     ims = [Image.open(f) for f in shots]; out = Image.new("RGB", (sum(i.width for i in ims), ims[0].height))

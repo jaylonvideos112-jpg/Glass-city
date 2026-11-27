@@ -19,6 +19,9 @@ import os
 import random
 import sys
 
+import os as _os
+# GLASS CITY addition: curl size for the Curly Top style (1 = original; ~0.6 = short, tight sponge curls)
+_CURL_K = float(_os.environ.get("SY_CURL_SCALE", "1.0"))
 import bpy
 import numpy as np
 import types as _types
@@ -1344,7 +1347,7 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
         off = base_off + 0.0012 * wv * dens + 0.002
         cols *= (0.75 + 0.35 * (0.5 + 0.5 * wv))[:, None]
     elif style in ('CURLY_TOP', 'TWISTS', 'LOCS', 'FLAT_TOP'):
-        vol = {'CURLY_TOP': 0.045, 'TWISTS': 0.012, 'LOCS': 0.01, 'FLAT_TOP': 0.06}[style]
+        vol = {'CURLY_TOP': 0.045 * _CURL_K, 'TWISTS': 0.012, 'LOCS': 0.01, 'FLAT_TOP': 0.06}[style]
         # curly top: the coils carry the volume; the shell stays low so there's no solid 'wall' at the fade
         off = base_off + vol * top * (0.45 if style == 'CURLY_TOP' else 1.0)
         if style in ('CURLY_TOP', 'FLAT_TOP'):
@@ -1395,10 +1398,11 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
             pts = pts - Ns[pick] * 0.004
             if style == 'CURLY_TOP':
                 # stack coils through the volume the shell no longer fills
-                lift = rng.random(n_c) * (0.045 * 0.55) * top[pick]
+                lift = rng.random(n_c) * (0.045 * _CURL_K * 0.55) * top[pick]
                 pts = pts + Ns[pick] * lift[:, None]
             nrm = Ns[pick] + rng.normal(0, 0.35, (n_c, 3))
-            pa, ra, ca = coil_mesh(pts, nrm, color, seed=seed, length=(0.012, 0.022), radius=0.0035,
+            pa, ra, ca = coil_mesh(pts, nrm, color, seed=seed, length=(0.012 * _CURL_K, 0.022 * _CURL_K),
+                                   radius=0.0035 * (0.5 + 0.5 * _CURL_K),
                                    wire=0.0013, droop=0.08, turns=(1.8, 2.8))
             me = tube_mesh(pa, ra, ca, name + "_Coils", sides=4)
             objs.append(mesh_object(me, h, rig, coll, 'coil', {'head': 1.0}))
@@ -4571,7 +4575,8 @@ def build_urban(context, p, h, rig, street, urban_hair):
         if sock_kind != 'NONE':
             sc = {'WHITE': (np.array([0.85, 0.85, 0.83]), None),
                   'BLACK': (np.array([0.02, 0.02, 0.02]), None),
-                  'STRIPED': (np.array([0.85, 0.85, 0.83]), acc)}[sock_kind]
+                  'STRIPED': (np.array([0.85, 0.85, 0.83]), acc),
+                  'PINK': (np.array([0.86, 0.45, 0.56]), None)}[sock_kind]
             U.make_socks(B, h, rig, coll, "SY_Socks", sc[0], sc[1])
         cover = None
         if p.hat in URBAN_HATS:
@@ -4842,7 +4847,8 @@ class SY3_Props(bpy.types.PropertyGroup):
     fade: EnumProperty(name="Fade", default='LOW', items=[('NONE', "None", ""), ('LOW', "Low / Taper", ""),
                                                            ('MID', "Mid", ""), ('HIGH', "High", "")])
     socks: EnumProperty(name="Socks", default='NONE', items=[('NONE', "None", ""), ('WHITE', "White Crew", ""),
-                                                              ('BLACK', "Black Crew", ""), ('STRIPED', "Striped Crew", "")])
+                                                              ('BLACK', "Black Crew", ""), ('STRIPED', "Striped Crew", ""),
+                                                              ('PINK', "Pink Crew", "")])   # GLASS CITY: Yelly's fit
     chain: BoolProperty(name="Chain", default=False)
     crossbody: BoolProperty(name="Crossbody Bag", default=False)
     recolor: BoolProperty(name="Recolour Clothes", default=True)
