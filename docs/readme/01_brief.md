@@ -401,6 +401,14 @@ All game characters, NPCs and other humans will come from our own generator in `
 - **Animations stay:** the CMU motion capture (`tools/blender/rigged_people.py` retarget) is free mocap data, not MakeHuman. The owner approved keeping it.
 ---
 
+## 7a. Getting the project (any Claude account)
+- **Code, art, docs, history:** GitHub **github.com/jaylonvideos112-jpg/Glass-city**, branch `main`. It's public. Attach the repo in a new session, or `git clone`.
+- **Built city** (`data/`, 1.5 GB, ignored on `main`):
+  - It's on the orphan branch **`city-data`**. To get it: `git fetch origin city-data && git --work-tree=. checkout origin/city-data -- data`, or `git worktree add ../citydata city-data` and copy `data/`.
+  - `data/aerial` is a symlink to the aerial photo folder (`../aerial`), which is not in the repo; terrain colours still work without it.
+- **Rebuild instead:** `tools/build.sh` (needs the big source downloads; see section 3/5).
+- **Google Drive** "GLASS CITY / Game Backups" holds dated code-only snapshots. "GLASS CITY — Master Archive" is the story canon.
+
 ## 7b. HANDOFF STATUS (2026-11-23): read this first in a new session
 The owner moved to a new Claude account. Everything below is the state at handoff.
 
@@ -417,7 +425,7 @@ The owner moved to a new Claude account. Everything below is the state at handof
 
 **Since handoff (2026-11-27):**
 - The player model now comes from the owner's add-on (see section 10).
-- The project lives in a private GitHub repo, `jaylonvideos112-jpg/glass-city`, pushed often, so any Claude account can attach it and continue.
+- The project lives on GitHub at `jaylonvideos112-jpg/Glass-city`, public by the owner's choice. `main` holds code and art, `city-data` holds the built city. It's pushed after every commit so any Claude account can continue (section 7a).
 - Story canon is the owner's Google Doc "GLASS CITY — Master Archive" (Drive / GLASS CITY). The protagonist is **Yelly (Maryell), 22**, from Eastport Homes. Add a Change log row there each session.
 
 **Next steps, in order:**
