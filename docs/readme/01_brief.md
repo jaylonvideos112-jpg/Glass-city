@@ -511,10 +511,10 @@ The owner moved to a new Claude account. Everything below is the state at handof
     - It registers the add-on, sets the preset and properties, builds (cloth sim on: about 2–3 min), and can render a front / ¾ / side preview plus two head close-ups.
     - `face=` fits the MPFB face sliders to MediaPipe landmarks of a photo (`tools/pipeline/face_landmarks.py`, `tools/blender/charcreator/facefit.py`); `face_tweak=` sets named face shape keys by hand on top of the fit.
     - Env `SY_CURL_SCALE` (default 1.0) shrinks or grows the CURLY_TOP coils.
-    - GLASS CITY added a `SPONGE` hair style to the add-on: a short, rounded natural top with a fine kinky surface and tiny nubs, no long coils.
+    - GLASS CITY added a `SPONGE` hair style to the add-on: a short, rounded natural top with a fine kinky surface and tiny nubs, no long coils; and a `SHORT` fade (hair kept on the sides, tapering only at sideburns and nape).
     - With `anim=1` it turns the rig 180°, retargets the 17 CMU mocap clips (`rigged_people.py`) onto the add-on's MPFB `game_engine` skeleton (53 bones, Unreal-style names), and exports a .glb.
   - **The player is Yelly** (`char_p1.glb`), based on the owner's reference photos (2026-11-27):
-    - a slim, tall young Black man with dark skin, relaxed hooded eyes, and a short sponge top (`hair_style=SPONGE`, not curls — owner's note) with a low taper and line-up;
+    - a slim, tall young Black man with dark skin, relaxed hooded eyes, and a short sponge top (`hair_style=SPONGE`, not curls) with short hair on the sides (`fade=SHORT`, tapers only at the edges) and a line-up — owner's notes;
     - face fitted to the owner's front photo (photo and landmarks are kept outside the repo), plus hand fixes in `yelly_face.json`;
     - his fit: white boxy tee, light-wash baggy jorts, pink crew socks, pink court sneakers with cream soles; no logos;
     - exact settings in `tools/blender/schoolyard/yelly.args`; preview in `docs/yelly_preview.png`.

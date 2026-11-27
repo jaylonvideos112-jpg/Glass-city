@@ -1351,7 +1351,7 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
         # surface (no long coils). Nubs added below give the fuzzy edge.
         vol = 0.026
         nub = vnoise(co, 0.004, seed) + 0.6 * vnoise(co, 0.0022, seed + 5)
-        off = base_off + vol * top + 0.0025 * nub * top
+        off = base_off + vol * top + 0.004 * dens * (1 - top) + 0.0025 * nub * np.maximum(top, 0.4 * dens)
         cols *= (0.7 + 0.35 * (0.5 + 0.5 * nub))[:, None]
     elif style in ('CURLY_TOP', 'TWISTS', 'LOCS', 'FLAT_TOP'):
         vol = {'CURLY_TOP': 0.045 * _CURL_K, 'TWISTS': 0.012, 'LOCS': 0.01, 'FLAT_TOP': 0.06}[style]
@@ -3307,7 +3307,7 @@ def hairline_z(B, P, front=0.27, side=0.12, back=-0.25):
     return top_line * (1 - sd) + side_line * sd, rel
 
 
-FADES = {'NONE': (-1, -0.9), 'LOW': (-0.03, 0.17), 'MID': (0.04, 0.29), 'HIGH': (0.13, 0.38)}
+FADES = {'NONE': (-1, -0.9), 'SHORT': (-0.17, 0.0), 'LOW': (-0.03, 0.17), 'MID': (0.04, 0.29), 'HIGH': (0.13, 0.38)}
 
 
 def hair_texel_fn(B, style, fade, color, seed=1):
@@ -4867,7 +4867,7 @@ class SY3_Props(bpy.types.PropertyGroup):
     bottom_pattern: EnumProperty(name="Bottom Pattern", default='SOLID', items=[
         ('SOLID', "Solid", ""), ('CAMO', "Camo", ""), ('BLOCK', "Colour Block", "")])
     accent_color: _col(hexc('d8d2c4'))
-    fade: EnumProperty(name="Fade", default='LOW', items=[('NONE', "None", ""), ('LOW', "Low / Taper", ""),
+    fade: EnumProperty(name="Fade", default='LOW', items=[('NONE', "None", ""), ('SHORT', "Short Sides (taper at edges)", ""), ('LOW', "Low / Taper", ""),
                                                            ('MID', "Mid", ""), ('HIGH', "High", "")])
     socks: EnumProperty(name="Socks", default='NONE', items=[('NONE', "None", ""), ('WHITE', "White Crew", ""),
                                                               ('BLACK', "Black Crew", ""), ('STRIPED', "Striped Crew", ""),
