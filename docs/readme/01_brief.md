@@ -510,7 +510,15 @@ The owner moved to a new Claude account. Everything below is the state at handof
   - Headless driver: `tools/blender/schoolyard/gen_character.py OUT.glb PRESET seed key=value… [anim=1] [preview=PNG]`.
     - It registers the add-on, sets the preset and properties, builds (cloth sim on: about 2–3 min), and can render a front / ¾ / side preview.
     - With `anim=1` it turns the rig 180°, retargets the 17 CMU mocap clips (`rigged_people.py`) onto the add-on's MPFB `game_engine` skeleton (53 bones, Unreal-style names), and exports a .glb.
-  - The player is `char_p1.glb`: preset HOOPER, seed 7, age 1.0. That's a placeholder look for Yelly until the owner approves one. `player.gd` `RIG_VARIANT = "p1"`. Test: `player_model_from_schoolyard_addon`.
+  - **The player is Yelly** (`char_p1.glb`), based on the owner's reference photos (2026-11-27):
+    - a slim, tall young Black man with dark skin and a curly-top taper;
+    - his signature fit: a deep forest-green fleece hoodie and joggers set, white crew socks, white court sneakers with green panels, and a silver chain;
+    - no logos;
+    - exact add-on settings in `tools/blender/schoolyard/yelly.args`; preview in `docs/yelly_preview.png`.
+
+    A second reference fit for a later outfit swap: white boxy tee, baggy jorts with a pink script graphic (needs an original non-logo graphic), pink crew socks, pink high-tops, an orange wristband.
+
+    Note: skin tone `DEEP` renders white here, because its MakeHuman skin `mindfront_skin_male_african_middleage` isn't in the standard asset pack. `DARK` is used instead. `player.gd` `RIG_VARIANT = "p1"`. Test: `player_model_from_schoolyard_addon`.
 - **Screenshots:** take none routinely ("I don't need shots"). Take one only to check work yourself, or when asked.
 - **Unreal:** a UE5 setup will be done later via the desktop app on the owner's PC.
 - **Security and etiquette:**

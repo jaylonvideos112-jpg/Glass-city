@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://cmrymcqo74fft"
+path="res://.godot/imported/char_p1_Human_skin_rough_6a47a.png-b7deeb64d9b5b6ec96ce0f7410686878.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "01d3dcaf2d53ed9e0abd99e712f74b6c"
+}
+
+[deps]
+
+source_file="res://assets/models/char_p1_Human_skin_rough_6a47a.png"
+dest_files=["res://.godot/imported/char_p1_Human_skin_rough_6a47a.png-b7deeb64d9b5b6ec96ce0f7410686878.ctex"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

@@ -1,0 +1,37 @@
+[remap]
+
+importer="texture"
+type="CompressedTexture2D"
+uid="uid://dan2ilunkx871"
+path="res://.godot/imported/char_p1_SY_Bottom_tex_c023a9.png-1264ff7566b7a9df01b081d017e9c3c6.ctex"
+metadata={
+"vram_texture": false
+}
+generator_parameters={
+"md5": "5dc4ece7e8d41220762030f60d1cb3e8"
+}
+
+[deps]
+
+source_file="res://assets/models/char_p1_SY_Bottom_tex_c023a9.png"
+dest_files=["res://.godot/imported/char_p1_SY_Bottom_tex_c023a9.png-1264ff7566b7a9df01b081d017e9c3c6.ctex"]
+
+[params]
+
+compress/mode=0
+compress/high_quality=false
+compress/lossy_quality=0.7
+compress/hdr_compression=1
+compress/normal_map=0
+compress/channel_pack=0
+mipmaps/generate=true
+mipmaps/limit=-1
+roughness/mode=0
+roughness/src_normal=""
+process/fix_alpha_border=true
+process/premult_alpha=false
+process/normal_map_invert_y=false
+process/hdr_as_srgb=false
+process/hdr_clamp_exposure=false
+process/size_limit=0
+detect_3d/compress_to=1

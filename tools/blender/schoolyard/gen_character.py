@@ -27,6 +27,7 @@ p.seed = SEED
 for kv in KV:
     k, v = kv.split("=", 1)
     cur = getattr(p, k)
+    if v.startswith("#"): setattr(p, k, SY.hexc(v[1:])); continue      # colours as #rrggbb
     setattr(p, k, (v.lower() in ("1", "true", "yes")) if isinstance(cur, bool) else type(cur)(v) if not isinstance(cur, str) else v)
 t = time.time()
 SY.build(bpy.context, p)
