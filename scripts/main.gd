@@ -703,6 +703,10 @@ func _setup_environment() -> void:
 	env.ssao_radius = 1.4; env.ssao_intensity = 1.9; env.ssao_detail = 0.7; env.ssao_light_affect = 0.15
 	# screen-space indirect light: sunlit walls and lawns bounce colour into shade (no more flat grey shadows)
 	env.ssil_enabled = true; env.ssil_radius = 6.0; env.ssil_intensity = 1.1; env.ssil_sharpness = 0.98
+	# debug A/B for look issues: GC_FX=nossil,nossao,hardsun turns effects off (screenshots)
+	var fx := OS.get_environment("GC_FX")
+	if "nossil" in fx: env.ssil_enabled = false
+	if "nossao" in fx: env.ssao_enabled = false
 	env.glow_enabled = true
 	env.glow_intensity = 0.35
 	env.glow_bloom = 0.05
@@ -734,4 +738,6 @@ func _setup_environment() -> void:
 	sun.light_angular_distance = 0.6        # the sun's real size: shadows soften with distance from the caster
 	if Look.bully(): sun.light_angular_distance = 0.9     # Bully: softer shadow edges (PCSS cost grows fast with size)
 	sun.shadow_bias = 0.03; sun.shadow_normal_bias = 1.2
+	if "hardsun" in OS.get_environment("GC_FX"): sun.light_angular_distance = 0.0
+	if "bias" in OS.get_environment("GC_FX"): sun.shadow_bias = 0.1; sun.shadow_normal_bias = 2.5
 	add_child(sun)

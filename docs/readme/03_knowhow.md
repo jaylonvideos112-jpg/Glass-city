@@ -148,3 +148,4 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 
 - **Don't wipe /tmp wholesale:** git commit signing runs through a helper in /tmp (`gpg.ssh.program`). Deleting it (2026-11-27, freeing disk for the city build) breaks `git commit`; commits since then use `git -c commit.gpgsign=false`.
 - **Disk is tight (~5 GB free):** a full build needs ~1.6 GB in /tmp plus the data/ copy. Clear old renders and pip cache first, not /tmp helpers.
+- **Repeating-pattern artifacts:** never bake low-frequency variation (stains, tone waves) into a tiling texture; it repeats every tile and reads as waves. Put it in world-space shader noise. To A/B lighting causes in screenshots, run with `GC_FX=nossil,nossao,hardsun,bias`.

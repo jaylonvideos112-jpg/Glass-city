@@ -3,7 +3,7 @@
 Makes a hand-painted-looking copy of every colour (albedo) texture into textures_bully/, same names and folders:
 a light edge-preserving pass tames photo grain (the noise of a camera) but KEEPS the wear: dirt, stains, weathering
 and colour variation stay, just painted instead of photographic (owner: "not like Agefield High" - no clean,
-plastic store-asset look). Large soft stains are added so surfaces never read as factory-clean. Colours get
+plastic store-asset look). Colours get
 Bully's warmer, richer palette; grass a healthy but uneven green.
 Normal / roughness / emission maps are not copied (the game keeps using the originals, at reduced normal strength).
 The game picks textures_bully/ automatically when source_data/look.json says "style": "bully" (scripts/look.gd).
@@ -24,16 +24,9 @@ def paint(im, name):
     out = cv2.edgePreservingFilter(rgb, flags=1, sigma_s=int(12 * s), sigma_r=0.12)
     # keep the grime: blend some of the original detail back in
     out = cv2.addWeighted(out, 0.7, rgb, 0.3, 0)
-    # large soft stains (weathering) - low-frequency darkening, tiles seamlessly via wrap padding
-    rs = np.random.default_rng(abs(hash(name)) % 2**32)
-    # periodic (seamless) low-frequency noise: a few random Fourier components with whole-number frequencies
-    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    noise = np.zeros((h, w), np.float32)
-    for _ in range(10):
-        fx, fy = rs.integers(1, 4), rs.integers(1, 4); ph = rs.random() * 6.283; amp = rs.random()
-        noise += amp * np.sin(6.283 * (fx * xx / w + fy * yy / h * rs.choice([-1, 1])) + ph)
-    noise = (noise - noise.mean()) / (noise.std() + 1e-6)
-    out = np.clip(out.astype(np.float32) * (1.0 + 0.06 * noise[..., None]), 0, 255).astype(np.uint8)
+    # (No baked "large soft stains" any more: sine stains repeated every tile and read as a wavy pattern across
+    # streets and walls (owner, 2026-11-28: "what's with the weird wavy pattern"). Weathering that doesn't repeat
+    # comes from world-space noise in the shaders instead: ground_pbr macro tone + wear, building grime.)
     hsv = cv2.cvtColor(out, cv2.COLOR_BGR2HSV).astype(np.float32)
     sat = 1.1
     if any(k in name for k in ("grass", "leaves", "forest", "lawn", "tree")):

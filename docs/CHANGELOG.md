@@ -3,6 +3,8 @@
 ## Full city rebuild + fleet cars (2026-11-27)
 * Whole city rebuilt with the lived-in pass; `tools/push_city_data.sh` pushes data/ to the `city-data` branch in batches.
 * Fleet #6 Overmark Trailhand (off-roader), #7 Swerve Grand Convoy (minivan).
+* Fixed the wavy pattern on sidewalks and walls: the Bully texture pass baked sine-wave "stains" that repeated every
+  tile (`make_bully_textures.py`); removed and all 99 painted textures regenerated. Debug A/B switch `GC_FX=nossil,nossao,hardsun,bias`.
 * Screenshots: street-level auto shots now put the camera on the real ground (it sat at y 0, under the terrain).
 * `tools/blender/fleet_cars.py`: per-model vehicle builder. First model: Corvane Stockman 1500 crew cab (fleet rank 1),
   `assets/models/fleet/car_corvane_stockman.glb`. #2 Corvane Dutchess sedan. Lofted-body toolkit (`conform` patches,
