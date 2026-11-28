@@ -433,7 +433,8 @@ The owner moved to a new Claude account. Everything below is the state at handof
    - each of the 200 gets its own proportions, grille, lights and bumpers from `parody_make` / `parody_model`;
    - wear (fade, rust, dents, a mismatched door) comes from the model year (`year_weights`);
    - traffic and parked cars then spawn by `weight`;
-   - show the owner ONE car to approve first;
+   - show the owner ONE car to approve first. **Done (2026-11-27), awaiting his OK:** the #1 vehicle, the Corvane Stockman 1500 crew cab (2007–13 full-size pickup style), built by `tools/blender/fleet_cars.py` → `assets/models/fleet/car_corvane_stockman.glb` (~12.8k tris; original hexagon badge, no real logos). Not wired into traffic yet;
+   - per-model builder: `tools/blender/fleet_cars.py OUTDIR MODEL [preview=PNG] [paint=#rrggbb]`: one build function per model (bevelled hulls, boolean wheel arches with raised flares, glass plates, own grille, lamps, bumpers, steps, mirrors), same material contract and axle positions (±0.32 L) as `cars.py`;
    - car builder: `tools/blender/cars.py`; paint: `shaders/car_paint.gdshader`; runtime: `scripts/traffic.gd`, `parked_cars.gd`, `vehicle_mesh`.
 2. Use the traffic study's hotspots (`source_data/toledo_traffic_study.json`) for fender-benders and police stops; rush-hour backups on I-75 at the DiSalle Bridge; snow and rain slowdowns.
 3. A Bully-style HUD.
