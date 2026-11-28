@@ -433,7 +433,11 @@ The owner moved to a new Claude account. Everything below is the state at handof
    - each of the 200 gets its own proportions, grille, lights and bumpers from `parody_make` / `parody_model`;
    - wear (fade, rust, dents, a mismatched door) comes from the model year (`year_weights`);
    - traffic and parked cars then spawn by `weight`;
-   - show the owner ONE car to approve first. **Done (2026-11-27), awaiting his OK:** the #1 vehicle, the Corvane Stockman 1500 crew cab (2007–13 full-size pickup style), built by `tools/blender/fleet_cars.py` → `assets/models/fleet/car_corvane_stockman.glb` (~12.8k tris; original hexagon badge, no real logos). Not wired into traffic yet;
+   - owner, 2026-11-27: "keep building the map and at the same time one by one build every car". **Built so far** (in traffic and parked cars at their real share):
+     - #1 Corvane Stockman 1500 (2007–13 full-size crew-cab pickup style), ~12.8k tris;
+     - #2 Corvane Dutchess (2006–13 full-size FWD sedan style), ~27.8k tris;
+   - how it plugs in: `fleet_cars.py` writes `assets/models/fleet/fleet_models.json` (glb, size, axle, wheel radius, ranks covered). `traffic.gd` `fleet_types()` turns each into a roster entry whose share = its ranks' `toledo_fleet.json` weight; the generic roster shrinks by the same total. Wheels use the model's own axle and radius (`wheel_r`, `axle_f`). Test: `toledo_fleet_models_load`;
+   - lofted bodies (sedans, SUVs…) reuse `cars.py`'s loft (`build_body`, now importable, with a per-model `axle`), then `conform()` lays lamps, grilles, badges and glass as patches projected onto the curved surface (clean outlines, no stair-stepped glass);
    - per-model builder: `tools/blender/fleet_cars.py OUTDIR MODEL [preview=PNG] [paint=#rrggbb]`: one build function per model (bevelled hulls, boolean wheel arches with raised flares, glass plates, own grille, lamps, bumpers, steps, mirrors), same material contract and axle positions (±0.32 L) as `cars.py`;
    - car builder: `tools/blender/cars.py`; paint: `shaders/car_paint.gdshader`; runtime: `scripts/traffic.gd`, `parked_cars.gd`, `vehicle_mesh`.
 2. Use the traffic study's hotspots (`source_data/toledo_traffic_study.json`) for fender-benders and police stops; rush-hour backups on I-75 at the DiSalle Bridge; snow and rain slowdowns.

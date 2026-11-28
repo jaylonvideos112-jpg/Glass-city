@@ -37,9 +37,40 @@ static func roster_types() -> Array:
 	var CAB := {"sedan": [0.22, 0.48], "hatch": [0.2, 0.55], "suv": [0.15, 0.62], "pickup": [0.1, 0.3], "van": [0.1, 0.2],
 		"box": [0.1, 0.2], "coupe": [0.28, 0.4], "sports": [0.3, 0.36], "wagon": [0.2, 0.66]}
 	var out: Array = []
+	# Toledo fleet models built so far (tools/blender/fleet_cars.py -> assets/models/fleet/fleet_models.json). Each
+	# takes its real share of Toledo traffic (toledo_fleet.json weights of the ranks it covers); the generic roster
+	# shrinks by the same amount, so the mix moves toward the real fleet as more models get built.
+	var fleet: Array = fleet_types()
+	var fleet_share := 0.0
+	for f in fleet: fleet_share += float(f["share"])
 	for m in V["models"]:
-		out.append({"id": m["id"], "name": "%s %s" % [m["make"], m["model"]], "share": float(m["traffic_share"]), "size": m["size"],
+		out.append({"id": m["id"], "name": "%s %s" % [m["make"], m["model"]], "share": float(m["traffic_share"]) * (1.0 - fleet_share), "size": m["size"],
 			"cabin": CAB.get(m["body"], [0.2, 0.5]), "body": m["body"], "old": m.get("old", false)})
+	return out + fleet
+
+const FLEET_BODY := {"pickup": "pickup", "pickup_mid": "pickup", "pickup_hd": "pickup", "sedan": "sedan", "sedan_big": "sedan",
+	"sedan_small": "sedan", "coupe": "coupe", "hatch": "hatch", "hatch_box": "hatch", "wagon": "wagon", "suv_c": "suv",
+	"suv_m": "suv", "suv_f": "suv", "suv_box": "suv", "suv_sub": "suv", "jeep": "suv", "minivan": "van", "van": "van"}
+
+static func fleet_types() -> Array:
+	var path := "res://assets/models/fleet/fleet_models.json"
+	if not FileAccess.file_exists(path): return []
+	var FM = JSON.parse_string(FileAccess.get_file_as_string(path))
+	var TF = JSON.parse_string(FileAccess.get_file_as_string("res://source_data/toledo_fleet.json"))
+	var w := {}
+	var total := 0.0
+	for x in TF["vehicles"]:
+		w[int(x["rank"])] = float(x["weight"]); total += float(x["weight"])
+	var CAB := {"sedan": [0.22, 0.48], "suv": [0.15, 0.62], "pickup": [0.1, 0.3], "van": [0.1, 0.2], "hatch": [0.2, 0.55],
+		"coupe": [0.28, 0.4], "wagon": [0.2, 0.66]}
+	var out: Array = []
+	for f in FM["models"]:
+		var share := 0.0
+		for r in f["ranks"]: share += float(w.get(int(r), 0.0)) / total
+		var b: String = FLEET_BODY.get(f["family"], "sedan")
+		out.append({"id": f["id"], "name": "%s %s" % [f["make"], f["model"]], "share": share, "size": f["size"],
+			"cabin": CAB.get(b, [0.2, 0.5]), "body": b, "glb": f["glb"], "axle": float(f["axle"]), "wr": float(f["wr"]),
+			"years": f.get("years", ""), "old": false})
 	return out
 
 const WheelMesh := preload("res://scripts/wheel_mesh.gd")
@@ -351,14 +382,25 @@ const ModelLib := preload("res://scripts/model_lib.gd")
 var use_models := true
 
 func has_model(v: Dictionary) -> bool:
+	if v.has("glb"): return use_models and ResourceLoader.exists("res://assets/models/%s.glb" % v["glb"])
 	return use_models and BODY_CANON.has(v.get("body", "")) and ResourceLoader.exists("res://assets/models/car_%s.glb" % v["body"])
+
+## wheel radius and axle position (fraction of length from the centre) for a vehicle
+static func wheel_r(v: Dictionary) -> float:
+	if v.has("wr"): return float(v["wr"])
+	var wr2: float = 0.34 if float(v["size"][2]) < 1.6 else 0.4
+	if v.get("body", "") in ["van", "box", "bus"]: wr2 = 0.46 if v["body"] != "van" else 0.4
+	return wr2
+
+func axle_f(v: Dictionary) -> float:
+	return float(v["axle"]) if v.has("axle") else (0.32 if has_model(v) else 0.33)
 
 ## The modelled body re-coloured into the engine's conventions: one vertex-coloured car-paint surface (alpha codes
 ## paint/glass/chrome/trim), headlights as surface 1, taillights as surface 2, and (drivable cars) see-through glass last.
 func _model_mesh(v: Dictionary, paint: Color, with_wheels: bool) -> ArrayMesh:
-	var src := ModelLib.mesh("car_" + str(v["body"]))
+	var src := ModelLib.mesh(str(v["glb"]) if v.has("glb") else "car_" + str(v["body"]))
 	if src == null: return null
-	var canon: Vector3 = BODY_CANON[v["body"]]
+	var canon: Vector3 = Vector3(float(v["size"][1]), float(v["size"][2]), float(v["size"][0])) if v.has("glb") else BODY_CANON[v["body"]]
 	var sc := Vector3(float(v["size"][1]) / canon.x, float(v["size"][2]) / canon.y, float(v["size"][0]) / canon.z)
 	var inv := Vector3(1.0 / sc.x, 1.0 / sc.y, 1.0 / sc.z)
 	var body := SurfaceTool.new(); body.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -542,12 +584,11 @@ func _spawn_on(eid: int, s: float, type_id := "") -> Dictionary:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	body.add_child(mi)
 	if v.get("body", "") in ["sedan", "coupe", "sports", "hatch", "suv", "wagon"] or has_model(v):     # wheels under modelled/smooth bodies
-		var vh: float = v["size"][2]; var wr2: float = 0.34 if vh < 1.6 else 0.4
-		if v.get("body", "") in ["van", "box", "bus"]: wr2 = 0.46 if v["body"] != "van" else 0.4
+		var wr2: float = wheel_r(v)
 		for az in [-1.0, 1.0]:
 			for sx in [-1.0, 1.0]:
 				var wm := MeshInstance3D.new(); wm.mesh = WheelMesh.make(wr2, 0.24)
-				wm.position = Vector3(sx * (float(v["size"][1]) * 0.5 - 0.12), wr2, az * float(v["size"][0]) * (0.32 if has_model(v) else 0.33))
+				wm.position = Vector3(sx * (float(v["size"][1]) * 0.5 - 0.12), wr2, az * float(v["size"][0]) * axle_f(v))
 				body.add_child(wm)
 	main.world.add_child(body)
 	var per_dir: int = e["lanes"] if e["oneway"] else max(1, e["lanes"] / 2)

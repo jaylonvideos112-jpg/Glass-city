@@ -1,0 +1,41 @@
+{
+ "_doc": "Built Toledo fleet models (tools/blender/fleet_cars.py). size = [L, W, H] m; axle = axle distance from centre / L; wr = wheel radius m; ranks = toledo_fleet.json ranks covered.",
+ "models": [
+  {
+   "id": "corvane_stockman",
+   "glb": "fleet/car_corvane_stockman",
+   "make": "Corvane",
+   "model": "Stockman 1500",
+   "family": "pickup",
+   "years": "2007-2013",
+   "ranks": [
+    1
+   ],
+   "size": [
+    5.84,
+    2.03,
+    1.88
+   ],
+   "axle": 0.32,
+   "wr": 0.4
+  },
+  {
+   "id": "corvane_dutchess",
+   "glb": "fleet/car_corvane_dutchess",
+   "make": "Corvane",
+   "model": "Dutchess",
+   "family": "sedan_big",
+   "years": "2006-2013",
+   "ranks": [
+    2
+   ],
+   "size": [
+    5.09,
+    1.85,
+    1.48
+   ],
+   "axle": 0.276,
+   "wr": 0.34
+  }
+ ]
+}

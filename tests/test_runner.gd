@@ -31,6 +31,7 @@ func _run() -> void:
 		["player_spawns_on_ground", t_spawn],
 		["player_can_walk", t_walk],
 		["player_model_from_schoolyard_addon", t_player_model],
+		["toledo_fleet_models_load", t_fleet_models],
 		["car_enter_drive_exit", t_car],
 		["bar_enter_exit", t_bar_roundtrip],
 		["bar_exit_after_origin_rebase", t_bar_rebase],
@@ -1799,3 +1800,22 @@ func t_player_model() -> Array:
 	var bones: int = r.skel.get_bone_count() if r.skel else 0
 	return [true, "variant %s: %d bones, %d animations" % [main.player.RIG_VARIANT, bones, n]]
 
+
+
+## Every built Toledo fleet model (assets/models/fleet/fleet_models.json) loads, meshes with body + light surfaces,
+## and is in the traffic mix at its real share.
+func t_fleet_models() -> Array:
+	var tr = main.traffic
+	var fleet: Array = tr.fleet_types()
+	if fleet.is_empty(): return [false, "no fleet models listed"]
+	var names: Array = []
+	for f in fleet:
+		if not tr.has_model(f): return [false, "%s: glb missing" % f["id"]]
+		var m: ArrayMesh = tr.vehicle_mesh(f, Color(0.5, 0.1, 0.1))
+		if m == null or m.get_surface_count() < 3: return [false, "%s: bad mesh" % f["id"]]
+		var in_mix := false
+		for v in tr.T["vehicles"]:
+			if v["id"] == f["id"] and float(v["share"]) > 0.0: in_mix = true
+		if not in_mix: return [false, "%s not in the traffic mix" % f["id"]]
+		names.append("%s (%.1f%%)" % [f["name"], float(f["share"]) * 100.0])
+	return [true, "%d models: %s" % [fleet.size(), ", ".join(names)]]

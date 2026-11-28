@@ -153,6 +153,203 @@ def lerp(a, b, t): return a + (b - a) * t
 
 
 # ------------------------------------------------------------------------------------------------------------------
+# Shared toolkit for lofted (curved) bodies: tools/blender/cars.py does the body; these put model-specific lamps,
+# grilles and trim on it as patches that follow the curved surface.
+sys.path.insert(0, __import__("os").path.dirname(__file__))
+import cars as CB
+from mathutils.bvhtree import BVHTree
+import numpy as np
+
+BV = {"bvh": None}
+
+
+def rrect(u0, v0, u1, v1, r, seg=4):
+    """Rounded rectangle outline (counter-clockwise) in the patch's (u, v) plane."""
+    r = min(r, abs(u1 - u0) / 2 - 1e-4, abs(v1 - v0) / 2 - 1e-4)
+    pts = []
+    for cx, cy, a0 in ((u1 - r, v0 + r, -90), (u1 - r, v1 - r, 0), (u0 + r, v1 - r, 90), (u0 + r, v0 + r, 180)):
+        for i in range(seg + 1):
+            a = math.radians(a0 + 90 * i / seg)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
+def poly_round(pts, r=0.02, seg=3):
+    """Round every corner of a polygon outline by r."""
+    out = []
+    n = len(pts)
+    for i in range(n):
+        p0, p1, p2 = Vector((*pts[i - 1], 0)), Vector((*pts[i], 0)), Vector((*pts[(i + 1) % n], 0))
+        a, b = (p0 - p1), (p2 - p1)
+        rr = min(r, a.length * 0.45, b.length * 0.45)
+        if rr < 1e-4:
+            out.append(pts[i]); continue
+        s0, s1 = p1 + a.normalized() * rr, p1 + b.normalized() * rr
+        for k in range(seg + 1):
+            t = k / seg
+            q = (s0 * (1 - t) ** 2 + p1 * 2 * t * (1 - t) + s1 * t * t)
+            out.append((q.x, q.y))
+    return out
+
+
+def conform(name, poly, side, kind, off=0.006, depth=0.012, grid=0.025, keep=True):
+    """A plate shaped like `poly` (outline in the view plane), projected onto the body along a view axis and
+    raised `off` above it, with short walls sunk `depth` into the body. side: 'front', 'rear', 'left', 'right'.
+    front/rear: (u, v) = (x, z); left/right: (u, v) = (y, z)."""
+    bvh = BV["bvh"]
+    if side == "front": org = lambda u, v: (Vector((u, 50, v)), Vector((0, -1, 0)))
+    elif side == "rear": org = lambda u, v: (Vector((u, -50, v)), Vector((0, 1, 0)))
+    elif side == "right": org = lambda u, v: (Vector((50, u, v)), Vector((-1, 0, 0)))
+    else: org = lambda u, v: (Vector((-50, u, v)), Vector((1, 0, 0)))
+    bm = bmesh.new()
+    vs = [bm.verts.new((u, v, 0)) for u, v in poly]
+    try:
+        bm.faces.new(vs)
+    except ValueError:
+        bm.free(); return None
+    us = [u for u, v in poly]; ws = [v for u, v in poly]
+    for k in np.arange(min(us) + grid, max(us), grid):
+        g = bm.verts[:] + bm.edges[:] + bm.faces[:]
+        bmesh.ops.bisect_plane(bm, geom=g, plane_co=(k, 0, 0), plane_no=(1, 0, 0))
+    for k in np.arange(min(ws) + grid, max(ws), grid):
+        g = bm.verts[:] + bm.edges[:] + bm.faces[:]
+        bmesh.ops.bisect_plane(bm, geom=g, plane_co=(0, k, 0), plane_no=(0, 1, 0))
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    hitp, hitn, bad = {}, {}, set()
+    for v in bm.verts:
+        o, d = org(v.co.x, v.co.y)
+        h = bvh.ray_cast(o, d)
+        if h[0] is None: bad.add(v); continue
+        n = h[1] if h[1].dot(d) < 0 else -h[1]
+        hitp[v] = h[0]; hitn[v] = n
+    if bad:
+        bmesh.ops.delete(bm, geom=list(bad), context="VERTS")
+    if not bm.faces:
+        bm.free(); return None
+    for v in bm.verts:
+        v.co = hitp[v] + hitn[v] * off
+    bnd = [e for e in bm.edges if e.is_boundary]
+    ret = bmesh.ops.extrude_edge_only(bm, edges=bnd)
+    new = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMVert)]
+    # each new vert sits on an old boundary vert: push it into the body
+    old_by_pos = {}
+    for v in bm.verts:
+        if v in hitp: old_by_pos[tuple(round(c, 6) for c in v.co)] = v
+    for v in new:
+        q = old_by_pos.get(tuple(round(c, 6) for c in v.co))
+        if q is not None: v.co = hitp[q] - hitn[q] * depth
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    me = bpy.data.meshes.new(name); bm.to_mesh(me); bm.free()
+    o = link(me, name, kind)
+    if keep: PARTS.append(o)
+    return o
+
+
+def both(fn, poly, *a, **k):
+    """Run a conform patch for a right-side outline and its mirror on the left (front/rear views)."""
+    fn(poly, *a, **k)
+    fn([(-u, v) for u, v in reversed(poly)], *a, **k)
+
+
+def lofted(name, p):
+    """Body from cars.py's lofted builder with this model's profile; returns the object, glass etc. classified."""
+    o = CB.build_body(name, p)
+    CB.classify(o, p, M)
+    bpy.context.view_layer.objects.active = o
+    dm = o.modifiers.new("dec", "DECIMATE"); dm.decimate_type = "DISSOLVE"; dm.angle_limit = math.radians(0.6)
+    dm.delimit = {"MATERIAL", "SHARP"}
+    bpy.ops.object.modifier_apply(modifier="dec")
+    tr = o.modifiers.new("tri", "TRIANGULATE"); bpy.ops.object.modifier_apply(modifier="tri")
+    # face-classified glass has stair-stepped edges: paint it over and lay clean glass patches on top instead
+    gi = [m.name for m in o.data.materials].index("glass"); pi = [m.name for m in o.data.materials].index("paint")
+    for f in o.data.polygons:
+        if f.material_index == gi: f.material_index = pi
+    PARTS.insert(0, o)
+    BV["bvh"] = BVHTree.FromObject(o, bpy.context.evaluated_depsgraph_get())
+    return o
+
+
+
+def roof_z(p, y):
+    L, W, H = p["size"]
+    return H * CB.interp(p["top"], y / L)
+
+
+def glasshouse(p, pillars, inset=0.065, belt_gap=0.035, ws=(0.06, 0.05), rw=(0.06, 0.05), ws_w=(0.74, 0.62),
+               rw_w=(0.7, 0.6), pillar_w=0.08, dark_pillars=True):
+    """Clean glass: side windows that follow the roofline (split at the pillars), windscreen and back light."""
+    L, W, H = p["size"]
+    belt = H * p["belt"] + belt_gap
+    ys = np.linspace(L / 2, -L / 2, 260)
+    inside = [y for y in ys if roof_z(p, y) - inset > belt + 0.06]
+    y_front, y_back = max(inside), min(inside)
+    cuts = sorted([y_back - 0.01] + [c * L for c in pillars] + [y_front + 0.01], reverse=True)
+    for sx, side in ((1, "right"), (-1, "left")):
+        for a, b in zip(cuts, cuts[1:]):
+            y0 = a - (pillar_w / 2 if a < y_front else 0.0)
+            y1 = b + (pillar_w / 2 if b > y_back else 0.0)
+            seg = [y for y in np.linspace(y0, y1, 30) if roof_z(p, y) - inset > belt + 0.03]
+            if len(seg) < 2: continue
+            top = [(y, roof_z(p, y) - inset) for y in seg]
+            outline = [(seg[-1], belt), (seg[0], belt)] + top     # counter-clockwise-ish; conform doesn't care
+            outline = [(u, max(v, belt)) for u, v in outline]
+            conform("side_glass", poly_round(outline[:2] + top[::max(1, len(top) // 12)] + [top[-1]], 0.025, 2),
+                    side, "glass", 0.004, 0.015, 0.04)
+        if dark_pillars:
+            for c in pillars:
+                y = c * L
+                conform("pillar", [(y - pillar_w / 2, belt - 0.01), (y + pillar_w / 2, belt - 0.01),
+                                   (y + pillar_w / 2, roof_z(p, y) - inset + 0.02), (y - pillar_w / 2, roof_z(p, y) - inset + 0.02)],
+                        side, "trim", 0.005, 0.01, 0.04)
+    # windscreen: seen from the front, between the cowl and the roof's front edge
+    roof_t = [t for t, v in p["top"] if v >= 0.96]
+    rf, rr = max(roof_t) * L, min(roof_t) * L
+    rf_t, rr_t = rf / L, rr / L
+    zc = H * min(((t, v) for t, v in p["top"] if t > rf_t + 1e-3), key=lambda tv: tv[0])[1]   # cowl: last point before the roof
+    z0, z1 = zc + ws[0], H - ws[1]
+    conform("windscreen", poly_round([(-ws_w[0], z0), (ws_w[0], z0), (ws_w[1], z1), (-ws_w[1], z1)], 0.05), "front", "glass", 0.004, 0.015, 0.04)
+    zd = H * max(((t, v) for t, v in p["top"] if t < rr_t - 1e-3), key=lambda tv: tv[0])[1]   # deck at the back light's base
+    z0, z1 = zd + rw[0], H - rw[1]
+    conform("backlight", poly_round([(-rw_w[0], z0), (rw_w[0], z0), (rw_w[1], z1), (-rw_w[1], z1)], 0.06), "rear", "glass", 0.004, 0.015, 0.04)
+
+
+def hit(origin, d):
+    h = BV["bvh"].ray_cast(Vector(origin), Vector(d))
+    return h[0], h[1]
+
+
+def side_basics(p, door_seams, handles, mirror_y, mirror_z, rocker=True, chrome_handles=False):
+    """Mirrors, door seams, handles, rocker trim, plates — the parts every car has, placed on the real surface."""
+    L, W, H = p["size"]
+    for sx in (-1, 1):
+        side = "right" if sx > 0 else "left"
+        for y in door_seams:
+            z0, z1 = p["sill"] + 0.08, H * p["belt"] - 0.01
+            conform("seam", [(y - 0.004, z0), (y + 0.004, z0), (y + 0.004, z1), (y - 0.004, z1)], side, "trim", 0.001, 0.006, 0.05)
+        for y in handles:
+            z = H * p["belt"] - 0.08
+            conform("handle", rrect(y - 0.13, z - 0.022, y, z + 0.022, 0.018), side, "chrome" if chrome_handles else "paint", 0.012, 0.02, 0.03)
+        pos, n = hit((sx * W, mirror_y, mirror_z), (-sx, 0, 0))
+        if pos:
+            box("mirror", min(pos.x, pos.x + sx * 0.2), max(pos.x, pos.x + sx * 0.2), pos.y - 0.12, pos.y, pos.z - 0.06, pos.z + 0.08, "paint", 0.03)
+            box("mirror_arm", min(pos.x - sx * 0.02, pos.x + sx * 0.06), max(pos.x - sx * 0.02, pos.x + sx * 0.06), pos.y - 0.1, pos.y - 0.02, pos.z - 0.05, pos.z - 0.0, "trim", 0.01)
+        if rocker:
+            ax = p.get("axle", 0.32) * L
+            conform("rocker", [(-ax + p["wr"] + 0.12, p["sill"] - 0.02), (ax - p["wr"] - 0.12, p["sill"] - 0.02),
+                               (ax - p["wr"] - 0.12, p["sill"] + 0.06), (-ax + p["wr"] + 0.12, p["sill"] + 0.06)], side, "trim", 0.004, 0.01, 0.06)
+
+
+def plates(p, zf, zr, front=True):
+    if front: conform("plate_f", rrect(-0.155, zf - 0.06, 0.155, zf + 0.06, 0.01), "front", "chrome", 0.01, 0.02, 0.04)
+    conform("plate_r", rrect(-0.155, zr - 0.06, 0.155, zr + 0.06, 0.01), "rear", "chrome", 0.01, 0.02, 0.04)
+
+
+def hexbadge(side, u, v, size=0.06, kind="chrome"):
+    pts = [(u + size * 1.6 * math.cos(math.radians(a)), v + size * math.sin(math.radians(a))) for a in range(0, 360, 60)]
+    conform("badge", pts, side, kind, 0.016, 0.02, 0.02)
+
+
+# ------------------------------------------------------------------------------------------------------------------
 def corvane_stockman():
     """Corvane Stockman 1500, crew cab short box, 2007-13 style (fleet rank 1). Square-shouldered body with a
     continuous belt line, tall flat bonnet, big chrome grille split by a body-wide chrome bar carrying the badge,
@@ -328,14 +525,83 @@ def corvane_stockman():
     return dict(L=L, W=W, H=H, axles=ax, wr=wr, wz=wz, tyre_w=0.27)
 
 
-MODELS = {"corvane_stockman": corvane_stockman}
+def corvane_dutchess():
+    """Corvane Dutchess, 2006-13 full-size front-drive sedan style (fleet rank 2): long, upright three-box with a
+    tall rounded nose, wide swept headlamps, a narrow chrome upper grille over a chrome bar with the badge, a big
+    lower intake, short high deck with wide corner taillamps and a chrome deck strip."""
+    L, W, H = 5.09, 1.85, 1.48
+    p = dict(size=(L, W, H), belt=0.62, sill=0.30, tum=0.17, wr=0.34, axle=0.276, pillars=[-0.07],
+             top=[(0.5, 0.52), (0.48, 0.58), (0.33, 0.645), (0.22, 0.665), (0.05, 1.0), (-0.19, 1.0), (-0.32, 0.73),
+                  (-0.46, 0.715), (-0.5, 0.63)])
+    REF[:] = [0.0, 0.0, 1.0]
+    lofted("car_body", p)
+    glasshouse(p, [-0.07], ws_w=(0.72, 0.6), rw_w=(0.66, 0.56))
+    # front: headlamps, grille, bar + badge, lower intake, fog lamps
+    head = poly_round([(0.40, 0.745), (0.78, 0.715), (0.885, 0.76), (0.875, 0.84), (0.41, 0.855)], 0.03)
+    both(lambda q: conform("headlamp", q, "front", "head", 0.008, 0.02), head)
+    both(lambda q: conform("lamp_bezel", q, "front", "chrome", 0.004, 0.02), poly_round([(0.385, 0.735), (0.79, 0.703), (0.9, 0.755),
+                                                                                       (0.89, 0.85), (0.395, 0.866)], 0.035))
+    both(lambda q: conform("lamp_inner", q, "front", "chrome", 0.012, 0.01), rrect(0.47, 0.765, 0.63, 0.835, 0.03))
+    conform("grille_surround", rrect(-0.36, 0.745, 0.36, 0.86, 0.03), "front", "chrome", 0.008, 0.02)
+    conform("grille_mesh", rrect(-0.33, 0.765, 0.33, 0.84, 0.02), "front", "trim", 0.011, 0.01)
+    for z in (0.785, 0.81):
+        conform("grille_bar", [(-0.32, z), (0.32, z), (0.32, z + 0.008), (-0.32, z + 0.008)], "front", "chrome", 0.013, 0.004, 0.04)
+    conform("bar", rrect(-0.42, 0.70, 0.42, 0.735, 0.012), "front", "chrome", 0.01, 0.02)
+    hexbadge("front", 0.0, 0.80, 0.045)
+    conform("intake", poly_round([(-0.5, 0.42), (0.5, 0.42), (0.44, 0.59), (-0.44, 0.59)], 0.04), "front", "trim", 0.006, 0.03)
+    for z in (0.47, 0.53):
+        conform("intake_bar", [(-0.46, z), (0.46, z), (0.46, z + 0.012), (-0.46, z + 0.012)], "front", "chrome", 0.01, 0.004, 0.04)
+    both(lambda q: conform("fog", q, "front", "head", 0.008, 0.02), rrect(0.6, 0.44, 0.72, 0.51, 0.03))
+    conform("chin", rrect(-0.75, 0.30, 0.75, 0.36, 0.02), "front", "trim", 0.006, 0.02)
+    # rear: corner taillamps with round inners, reverse lamps, deck chrome, badge, plate, lower valance
+    both(lambda q: conform("taillamp", q, "rear", "tail", 0.008, 0.02), rrect(0.40, 0.83, 0.875, 0.975, 0.045))
+    for cx in (0.55, 0.74):
+        both(lambda q: conform("tail_ring", q, "rear", "chrome", 0.012, 0.006, 0.02),
+             [(cx + 0.05 * math.cos(math.radians(a)), 0.902 + 0.05 * math.sin(math.radians(a))) for a in range(0, 360, 30)])
+    both(lambda q: conform("reverse", q, "rear", "head", 0.012, 0.01), rrect(0.42, 0.845, 0.49, 0.895, 0.012))
+    conform("deck_strip", rrect(-0.38, 0.91, 0.38, 0.935, 0.01), "rear", "chrome", 0.008, 0.015)
+    hexbadge("rear", 0.0, 0.98, 0.04)
+    conform("valance", rrect(-0.8, 0.30, 0.8, 0.38, 0.02), "rear", "trim", 0.006, 0.02)
+    plates(p, 0.0, 0.56, front=False)
+    cyl("exhaust", 0.035, 0.16, (0.55, -L / 2 + 0.1, 0.31), (math.pi / 2, 0, 0), "chrome", 14)
+    side_basics(p, door_seams=[0.86, -0.12, -0.98], handles=[-0.02, -0.85], mirror_y=0.92, mirror_z=1.0)
+    # side marker reflectors + body-colour rub strip
+    for sx, side in ((1, "right"), (-1, "left")):
+        conform("rub", rrect(-1.5, 0.52, 1.6, 0.56, 0.02), side, "trim", 0.006, 0.01, 0.05)
+        conform("marker_f", rrect(2.2, 0.62, 2.32, 0.65, 0.01), side, "tail", 0.006, 0.01)
+        conform("marker_r", rrect(-2.38, 0.66, -2.26, 0.69, 0.01), side, "tail", 0.006, 0.01)
+    return dict(L=L, W=W, H=H, axles=(L * p["axle"], -L * p["axle"]), wr=p["wr"], wz=p["wr"], tyre_w=0.23)
+
+
+MODELS = {"corvane_stockman": corvane_stockman, "corvane_dutchess": corvane_dutchess}
+# which toledo_fleet.json ranks each model stands in for (same make/model/generation)
+RANKS = {"corvane_stockman": [1], "corvane_dutchess": [2]}
+
+
+def write_manifest(info):
+    """assets/models/fleet/fleet_models.json: what traffic.gd needs to spawn each built model at its real share."""
+    import json, os
+    root = os.path.dirname(os.path.abspath(OUT.rstrip("/")))
+    fleet = json.load(open(os.path.join(os.path.dirname(__file__), "..", "..", "source_data", "toledo_fleet.json")))["vehicles"]
+    first = [v for v in fleet if v["rank"] == RANKS[MODEL][0]][0]
+    path = os.path.join(OUT, "fleet_models.json")
+    man = json.load(open(path)) if os.path.exists(path) else {"_doc": "Built Toledo fleet models (tools/blender/fleet_cars.py). "
+          "size = [L, W, H] m; axle = axle distance from centre / L; wr = wheel radius m; ranks = toledo_fleet.json ranks covered.",
+          "models": []}
+    man["models"] = [m for m in man["models"] if m["id"] != MODEL]
+    man["models"].append({"id": MODEL, "glb": "fleet/car_" + MODEL, "make": first["parody_make"], "model": first["parody_model"],
+                          "family": first["body"], "years": first["years"], "ranks": RANKS[MODEL],
+                          "size": [round(info["L"], 3), round(info["W"], 3), round(info["H"], 3)],
+                          "axle": round(info["axles"][0] / info["L"], 4), "wr": info["wr"]})
+    man["models"].sort(key=lambda m: m["ranks"][0])
+    json.dump(man, open(path, "w"), indent=1)
 
 
 def make_wheel(c, r, w, sx):
     """Preview wheel: tyre + chrome-clad steel/alloy face (the game uses its own WheelMesh)."""
     t = cyl("tyre", r, w, c, (0, math.pi / 2, 0), "trim", 40, 0.04, keep=False); PREVIEW_ONLY.append(t)
     face = Vector(c) + Vector((sx * (w / 2 - 0.02), 0, 0))
-    rim = cyl("rim", r * 0.66, 0.04, tuple(face), (0, math.pi / 2, 0), "chrome", 32, 0.01, keep=False); PREVIEW_ONLY.append(rim)
+    rim = cyl("rim", r * 0.66, 0.04, tuple(face), (0, math.pi / 2, 0), "rim", 32, 0.01, keep=False); PREVIEW_ONLY.append(rim)
     hub = cyl("hub", r * 0.2, 0.06, tuple(face + Vector((sx * 0.02, 0, 0))), (0, math.pi / 2, 0), "chrome", 16, keep=False)
     PREVIEW_ONLY.append(hub)
     dish = cyl("dish", r * 0.5, 0.045, tuple(face - Vector((sx * 0.004, 0, 0))), (0, math.pi / 2, 0), "trim", 24, keep=False)
@@ -376,6 +642,7 @@ def main():
     M.update({"paint": mat("paint", paint, 0.35, 0.28), "glass": mat("glass", (0.02, 0.025, 0.03), 0.4, 0.05),
               "trim": mat("trim", (0.035, 0.035, 0.04), 0.0, 0.75), "chrome": mat("chrome", (0.75, 0.76, 0.78), 1.0, 0.12),
               "head": mat("head", (0.9, 0.9, 0.88), 0.0, 0.08, emit=(1, 0.96, 0.88), es=0.3),
+              "rim": mat("rim", (0.55, 0.56, 0.58), 0.6, 0.35),
               "tail": mat("tail", (0.55, 0.02, 0.02), 0.0, 0.15, emit=(1, 0.05, 0.02), es=0.4)})
     info = MODELS[MODEL]()
     for o in PARTS:
@@ -391,6 +658,7 @@ def main():
     out = "%s/car_%s.glb" % (OUT, MODEL)
     bpy.ops.export_scene.gltf(filepath=out, export_format="GLB", use_selection=True)
     print("built %s %d tris -> %s" % (MODEL, tris, out))
+    if "assets/models/fleet" in OUT: write_manifest(info)
     if OPT.get("preview"):
         for y in info["axles"]:
             for sx in (-1, 1):

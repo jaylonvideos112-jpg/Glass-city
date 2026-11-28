@@ -92,12 +92,11 @@ func _car(holder: Node3D, tr, v: Dictionary, p: Vector3, yaw: float, rng: Random
 	var mi := MeshInstance3D.new(); mi.mesh = tr.vehicle_mesh(v, paint)
 	body.add_child(mi)
 	if v.get("body", "") in ["sedan", "coupe", "sports", "hatch", "suv", "wagon"] or tr.has_model(v):     # wheels, as traffic.gd
-		var vh: float = v["size"][2]; var wr2: float = 0.34 if vh < 1.6 else 0.4
-		if v.get("body", "") in ["van", "box", "bus"]: wr2 = 0.46 if v["body"] != "van" else 0.4
+		var wr2: float = tr.wheel_r(v)
 		for az in [-1.0, 1.0]:
 			for sx in [-1.0, 1.0]:
 				var wm := MeshInstance3D.new(); wm.mesh = WheelMesh.make(wr2, 0.24)
-				wm.position = Vector3(sx * (float(v["size"][1]) * 0.5 - 0.12), wr2, az * float(v["size"][0]) * (0.32 if tr.has_model(v) else 0.33))
+				wm.position = Vector3(sx * (float(v["size"][1]) * 0.5 - 0.12), wr2, az * float(v["size"][0]) * tr.axle_f(v))
 				body.add_child(wm)
 	var cs := CollisionShape3D.new(); var bx := BoxShape3D.new()
 	bx.size = Vector3(float(v["size"][1]), float(v["size"][2]) * 0.8, float(v["size"][0]))

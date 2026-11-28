@@ -9,8 +9,9 @@ import sys, math, bpy, bmesh
 from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 
-OUT = sys.argv[1]
-ONLY = sys.argv[2:]
+if __name__ == "__main__":
+    OUT = sys.argv[1]
+    ONLY = sys.argv[2:]
 
 def lerp(a, b, t): return a + (b - a) * t
 def clamp(x, a, b): return max(a, min(b, x))
@@ -122,7 +123,8 @@ def build_body(name, p):
     bpy.ops.object.modifier_apply(modifier="sub")
     # wheel arches
     wr = p["wr"]
-    for wy, sx in ((L * 0.32, 1), (-L * 0.32, 1), (L * 0.32, -1), (-L * 0.32, -1)):
+    axf = p.get("axle", 0.32)
+    for wy, sx in ((L * axf, 1), (-L * axf, 1), (L * axf, -1), (-L * axf, -1)):
         bpy.ops.mesh.primitive_cylinder_add(vertices=40, radius=wr + 0.075, depth=0.7, location=(sx * (W * 0.5 + 0.05), wy, wr + 0.02), rotation=(0, math.pi / 2, 0))
         cut = bpy.context.active_object
         bo = o.modifiers.new("arch", "BOOLEAN"); bo.object = cut; bo.operation = "DIFFERENCE"; bo.solver = "EXACT"
@@ -142,7 +144,7 @@ def classify(o, p, M):
         top = H * interp(p["top"], t)
         m = "paint"
         if c.z < p["sill"] + 0.07 or nrm.z < -0.6: m = "trim"
-        for wy in (L * 0.32, -L * 0.32):      # inside of the wheel arches (the boolean's cylinder walls)
+        for wy in (L * p.get("axle", 0.32), -L * p.get("axle", 0.32)):      # inside of the wheel arches (the boolean's cylinder walls)
             d = Vector((wy - c.y, p["wr"] + 0.02 - c.z))
             if abs(d.length - p["wr"] - 0.075) < 0.02 and abs(c.x) < W * 0.5 - 0.01 and Vector((nrm.y, nrm.z)).dot(d.normalized()) > 0.5: m = "trim"
         if p.get("bed") is not None and t < p["bed"] - 0.03 and nrm.z > 0.8 and abs(c.x) < W * 0.42: m = "trim"   # bed cover
@@ -284,5 +286,6 @@ def build(body):
     bpy.ops.export_scene.gltf(filepath="%s/car_%s.glb" % (OUT, body), export_format="GLB")
     print("built car_%s %d tris" % (body, tris))
 
-for b in (ONLY or TYPES.keys()):
-    build(b)
+if __name__ == "__main__":
+    for b in (ONLY or TYPES.keys()):
+        build(b)
