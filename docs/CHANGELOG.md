@@ -1,5 +1,9 @@
 # Changelog
 
+## Photoreal Blender map pilot (2026-11-28)
+* Owner: build the map in Blender first, photo accurate and fully photoreal, convert later. Pilot: Weiler Homes (Eastport Homes).
+* `tools/photoreal/`: area extractor, Poly Haven CC0 asset fetcher, Blender area builder with the `weiler_row` typology and Cycles renders.
+
 ## Full city rebuild + fleet cars (2026-11-27)
 * Whole city rebuilt with the lived-in pass; `tools/push_city_data.sh` pushes data/ to the `city-data` branch in batches.
 * Fleet #6 Overmark Trailhand (off-roader), #7 Swerve Grand Convoy (minivan).

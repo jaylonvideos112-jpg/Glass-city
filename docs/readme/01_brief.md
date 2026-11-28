@@ -428,6 +428,13 @@ The owner moved to a new Claude account. Everything below is the state at handof
 - The project lives on GitHub at `jaylonvideos112-jpg/Glass-city`, public by the owner's choice. `main` holds code and art, `city-data` holds the built city. It's pushed after every commit so any Claude account can continue (section 7a).
 - Story canon is the owner's Google Doc "GLASS CITY — Master Archive" (Drive / GLASS CITY). The protagonist is **Yelly (Maryell), 22**, from Eastport Homes. Add a Change log row there each session.
 
+**Photoreal Blender map (owner, 2026-11-28):** "I want the map made in blender first to be photo accurate, then converted when done"; look: **fully photoreal** (replaces the Bully look for the map). Pilot area: **Weiler Homes** (601 Fassett St, East Toledo), the real complex behind the story's **Eastport Homes** (owner's pick).
+  - `tools/photoreal/extract_area.py WORK X0 Y0 X1 Y1 OUT.json`: OSM footprints/roads/areas + LiDAR heights for a plan-metre box (Weiler: 1300 −2700 1760 −2280).
+  - `tools/photoreal/fetch_assets.py DEST tex:ID hdri:ID model:ID`: CC0 Poly Haven materials, sky, props (kept in `../photoreal/assets`, outside the repo).
+  - `tools/photoreal/build_area.py AREA.json ASSETS OUT.blend [render=PNG cam=x,y,z:tx,ty,tz samples= lens= grass=1]`: Blender scene (roads with curbs, sidewalks, entry walks, parking with stall lines, lawns, LiDAR trees, bushes) + Cycles render.
+  - Building typology `weiler_row` was matched to the county parcel photos (reference only, kept outside the repo): buff brick, low hip roof, white fascia, paired doors under copper-green canopies, sliders with stone sills, brown panels + downspouts, stoops, AC units.
+  - Still to do in the pilot: overhead wires and poles, street lamps, parked cars, the community building and playground, fences, real context to the south (rail line, woods, industrial), then the Godot conversion path.
+
 **Next steps, in order:**
 1. **Build the 200 cars.** About 18 Bully-style body families (`body` in `source_data/toledo_fleet.json`):
    - each of the 200 gets its own proportions, grille, lights and bumpers from `parody_make` / `parody_model`;
