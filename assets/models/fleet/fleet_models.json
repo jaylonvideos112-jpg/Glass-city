@@ -36,6 +36,60 @@
    ],
    "axle": 0.276,
    "wr": 0.34
+  },
+  {
+   "id": "halden_workhorse",
+   "glb": "fleet/car_halden_workhorse",
+   "make": "Halden",
+   "model": "Workhorse 150",
+   "family": "pickup",
+   "years": "2009-2014",
+   "ranks": [
+    3
+   ],
+   "size": [
+    5.89,
+    2.01,
+    1.93
+   ],
+   "axle": 0.3124,
+   "wr": 0.4
+  },
+  {
+   "id": "halden_workhorse_04",
+   "glb": "fleet/car_halden_workhorse_04",
+   "make": "Halden",
+   "model": "Workhorse 150",
+   "family": "pickup",
+   "years": "2004-2008",
+   "ranks": [
+    4
+   ],
+   "size": [
+    5.65,
+    2.0,
+    1.92
+   ],
+   "axle": 0.312,
+   "wr": 0.4
+  },
+  {
+   "id": "corvane_stockman_99",
+   "glb": "fleet/car_corvane_stockman_99",
+   "make": "Corvane",
+   "model": "Stockman 1500",
+   "family": "pickup",
+   "years": "1999-2006",
+   "ranks": [
+    5
+   ],
+   "size": [
+    5.65,
+    1.99,
+    1.86
+   ],
+   "axle": 0.31,
+   "wr": 0.4
   }
  ]
 }
