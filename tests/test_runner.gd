@@ -32,6 +32,7 @@ func _run() -> void:
 		["player_can_walk", t_walk],
 		["player_model_from_schoolyard_addon", t_player_model],
 		["toledo_fleet_models_load", t_fleet_models],
+		["wanted_shows_police_lights_not_stars", t_wanted_lights],
 		["car_enter_drive_exit", t_car],
 		["bar_enter_exit", t_bar_roundtrip],
 		["bar_exit_after_origin_rebase", t_bar_rebase],
@@ -1819,3 +1820,21 @@ func t_fleet_models() -> Array:
 		if not in_mix: return [false, "%s not in the traffic mix" % f["id"]]
 		names.append("%s (%.1f%%)" % [f["name"], float(f["share"]) * 100.0])
 	return [true, "%d models: %s" % [fleet.size(), ", ".join(names)]]
+
+
+## Wanted is shown as red/blue police lights across the top of the screen, never as stars (owner, 2026-11-28).
+func t_wanted_lights() -> Array:
+	var po = main.police; var hud = main.hud
+	var s0: int = po.stars
+	po.stars = 2
+	for i in 30: hud._process(0.05)
+	var on: bool = hud._lights.visible and hud._lights_a > 0.9
+	var text: String = hud.wanted_label.text
+	po.stars = 0
+	for i in 60: hud._process(0.05)
+	var off: bool = not hud._lights.visible
+	po.stars = s0
+	if not on: return [false, "no light bar at 2 stars"]
+	if text != "": return [false, "stars still shown: '%s'" % text]
+	if not off: return [false, "lights stayed on after losing the police"]
+	return [true, "light bar on while wanted (no stars), fades out after"]
