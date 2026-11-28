@@ -3671,6 +3671,7 @@ Changes to the development bible made by the project owner. The latest explicit 
 #### Photoreal Blender map pilot (2026-11-28)
 * Owner: build the map in Blender first, photo accurate and fully photoreal, convert later. Pilot: Weiler Homes (Eastport Homes).
 * `tools/photoreal/`: area extractor, Poly Haven CC0 asset fetcher, Blender area builder with the `weiler_row` typology and Cycles renders.
+* Detail pass: real recessed window/door openings with reveals, two-pane sliders, blinds/curtains and dim rooms behind clear glass, steel double doors with lites, house numbers, stone sills, AC units; brick grime and rain streaks; hair grass near the camera; 186 wooden utility poles with crossarms, insulators, sagging wires and cobra-head lights.
 
 #### Full city rebuild + fleet cars (2026-11-27)
 * Whole city rebuilt with the lived-in pass; `tools/push_city_data.sh` pushes data/ to the `city-data` branch in batches.

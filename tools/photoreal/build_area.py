@@ -53,7 +53,7 @@ def img(path, non_color=False):
     return im
 
 
-def pbr(name, tex, size_m, tint=None, rough_k=1.0, bump=1.0, box=True):
+def pbr(name, tex, size_m, tint=None, rough_k=1.0, bump=1.0, box=True, weather=0.0):
     """Poly Haven PBR set, world-scale mapping (object = world coords: every mesh has an identity transform)."""
     m = bpy.data.materials.new(name); m.use_nodes = True
     nt = m.node_tree; N = nt.nodes; Lk = nt.links
@@ -74,6 +74,27 @@ def pbr(name, tex, size_m, tint=None, rough_k=1.0, bump=1.0, box=True):
         mix.inputs["Factor"].default_value = 1.0
         Lk.new(col, mix.inputs["A"]); mix.inputs["B"].default_value = (*tint, 1)
         col = mix.outputs["Result"]
+    if weather > 0:
+        # grime splashed up from the ground (fades out by ~0.7 m) and faint vertical rain streaks
+        geo = N.new("ShaderNodeNewGeometry"); sep = N.new("ShaderNodeSeparateXYZ"); Lk.new(geo.outputs["Position"], sep.inputs[0])
+        ramp = N.new("ShaderNodeMapRange"); ramp.inputs["From Min"].default_value = 0.0; ramp.inputs["From Max"].default_value = 0.75
+        ramp.inputs["To Min"].default_value = 1.0; ramp.inputs["To Max"].default_value = 0.0
+        Lk.new(sep.outputs["Z"], ramp.inputs["Value"])
+        nz = N.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 3.0; nz.inputs["Detail"].default_value = 6
+        Lk.new(geo.outputs["Position"], nz.inputs["Vector"])
+        st = N.new("ShaderNodeTexNoise"); st.inputs["Scale"].default_value = 1.0; st.inputs["Detail"].default_value = 2
+        sm = N.new("ShaderNodeMapping"); sm.inputs["Scale"].default_value = (9.0, 9.0, 0.35)
+        Lk.new(geo.outputs["Position"], sm.inputs["Vector"]); Lk.new(sm.outputs["Vector"], st.inputs["Vector"])
+        g1 = N.new("ShaderNodeMath"); g1.operation = "MULTIPLY"; Lk.new(ramp.outputs["Result"], g1.inputs[0]); Lk.new(nz.outputs["Fac"], g1.inputs[1])
+        s1 = N.new("ShaderNodeMapRange"); s1.inputs["From Min"].default_value = 0.55; s1.inputs["From Max"].default_value = 0.8
+        s1.inputs["To Max"].default_value = 0.35; Lk.new(st.outputs["Fac"], s1.inputs["Value"])
+        ad = N.new("ShaderNodeMath"); ad.operation = "ADD"; ad.use_clamp = True
+        Lk.new(g1.outputs[0], ad.inputs[0]); Lk.new(s1.outputs["Result"], ad.inputs[1])
+        wk = N.new("ShaderNodeMath"); wk.operation = "MULTIPLY"; wk.inputs[1].default_value = weather
+        Lk.new(ad.outputs[0], wk.inputs[0])
+        dk = N.new("ShaderNodeMix"); dk.data_type = "RGBA"; dk.blend_type = "MULTIPLY"
+        Lk.new(wk.outputs[0], dk.inputs["Factor"]); Lk.new(col, dk.inputs["A"]); dk.inputs["B"].default_value = (0.32, 0.27, 0.22, 1)
+        col = dk.outputs["Result"]
     Lk.new(col, bs.inputs["Base Color"])
     r = tx("rough.jpg", True)
     if rough_k != 1.0:
@@ -98,16 +119,17 @@ def flat(name, rgb, rough=0.5, metal=0.0, emit=None):
 
 
 def glass_mat():
+    """real window glass: clear, reflective at grazing angles, so blinds, curtains and dim rooms show through"""
     m = bpy.data.materials.new("window_glass"); m.use_nodes = True
     b = m.node_tree.nodes["Principled BSDF"]
-    b.inputs["Base Color"].default_value = (0.02, 0.025, 0.03, 1); b.inputs["Roughness"].default_value = 0.04
-    b.inputs["Specular IOR Level"].default_value = 0.8 if "Specular IOR Level" in b.inputs else 0.5
+    b.inputs["Base Color"].default_value = (0.9, 0.93, 0.92, 1); b.inputs["Roughness"].default_value = 0.02
+    b.inputs["Transmission Weight"].default_value = 1.0; b.inputs["IOR"].default_value = 1.5
     return m
 
 
 MAT = {
-    "brick": pbr("buff_brick", "brick_wall_07", 1.7, tint=(1.22, 1.08, 0.76), bump=0.8),
-    "roof": pbr("brown_shingle", "grey_roof_01", 6.0, tint=(0.62, 0.42, 0.33), bump=0.7),
+    "brick": pbr("buff_brick", "brick_wall_07", 1.7, tint=(1.22, 1.08, 0.76), bump=0.8, weather=0.85),
+    "roof": pbr("brown_shingle", "grey_roof_01", 6.0, tint=(0.4, 0.27, 0.21), bump=0.7),
     "concrete": pbr("sidewalk", "concrete_pavement", 1.8, tint=(1.05, 1.03, 1.0)),
     "curb": pbr("curb", "brushed_concrete", 2.5),
     "asphalt": pbr("asphalt", "asphalt_02", 3.0, tint=(0.85, 0.85, 0.85)),
@@ -121,11 +143,21 @@ MAT = {
     "copper": flat("copper_green", (0.22, 0.42, 0.36), 0.55, 0.4),
     "iron": flat("black_iron", (0.02, 0.02, 0.02), 0.5, 0.6),
     "curtain": flat("curtain", (0.55, 0.5, 0.42), 0.9),
+    "blind": flat("blinds", (0.78, 0.76, 0.7), 0.5),
+    "dark": flat("room_dark", (0.03, 0.028, 0.025), 0.9),
+    "room": flat("room_wall", (0.32, 0.29, 0.25), 0.9),
+    "room_floor": flat("room_floor", (0.12, 0.09, 0.07), 0.7),
+    "chrome": flat("brass", (0.6, 0.5, 0.3), 0.3, 1.0),
     "ac": flat("ac_unit", (0.7, 0.7, 0.68), 0.5, 0.2),
     "paint": flat("road_paint", (0.85, 0.85, 0.8), 0.6),
     "siding": flat("vinyl_siding", (0.78, 0.76, 0.7), 0.55),
     "shingle_dk": pbr("dark_shingle", "grey_roof_01", 6.0, tint=(0.45, 0.43, 0.42)),
     "metal_roof": flat("metal_roof", (0.55, 0.56, 0.58), 0.4, 0.8),
+    "wood_pole": pbr("pole_wood", "brushed_concrete", 1.0, tint=(0.38, 0.27, 0.18), bump=1.5),
+    "wire": flat("wire", (0.01, 0.01, 0.01), 0.4),
+    "insulator": flat("insulator", (0.45, 0.47, 0.45), 0.3),
+    "lamp_head": flat("cobra_head", (0.55, 0.56, 0.55), 0.4, 0.6),
+    "lamp_lens": flat("lamp_lens", (0.85, 0.85, 0.8), 0.1),
 }
 
 
@@ -186,6 +218,9 @@ def slab(name, geom, z, mat, col, thick=0.0):
     if geom.is_empty: return None
     V2, F = tri_poly(geom)
     V = [(x, y, z) for x, y in V2]
+    for f in F:            # every ground face points up (hair grows along the normal; shading too)
+        (ax, ay), (bx, by), (cx_, cy_) = V2[f[0]], V2[f[1]], V2[f[2]]
+        if (bx - ax) * (cy_ - ay) - (by - ay) * (cx_ - ax) < 0: f[1], f[2] = f[2], f[1]
     o = mesh_obj(name, V, F, mat, col)
     if thick > 0:     # vertical skirt down to z - thick along every ring (curbs, kerbs)
         bm = bmesh.new()
@@ -280,19 +315,72 @@ def wall_feature(B, c, u, n, s, z, w, h, depth, mat):
     B.box(mat, cc, u, n, w / 2, abs(depth) / 2, z, z + h)
 
 
-def window(B, c, u, n, s, z, w, h, ac=False):
-    wall_feature(B, c, u, n, s, z - 0.02, w + 0.1, h + 0.08, 0.035, "frame")         # bronze frame
-    cc = (c[0] + u[0] * s + n[0] * 0.04, c[1] + u[1] * s + n[1] * 0.04)
-    B.box("glass", cc, u, n, w / 2 - 0.03, 0.006, z + 0.03, z + h - 0.03)
-    B.box("frame", cc, u, n, 0.02, 0.01, z, z + h)                                      # slider mullion
-    if rng.random() < 0.55:                                                              # curtains / blinds inside
-        k = rng.uniform(0.3, 1.0)
-        c2 = (c[0] + u[0] * (s - w * 0.25) + n[0] * 0.03, c[1] + u[1] * (s - w * 0.25) + n[1] * 0.03)
-        B.box("curtain", c2, u, n, w * 0.22, 0.004, z + h * (1 - k), z + h - 0.04)
-    wall_feature(B, c, u, n, s, z - 0.09, w + 0.2, 0.07, 0.09, "sill")                  # stone sill
+def P3(c, u, n, s, d, z):
+    """point on a wall: centre c, along-wall s (axis u), out of the wall d (axis n), height z"""
+    return (c[0] + u[0] * s + n[0] * d, c[1] + u[1] * s + n[1] * d, z)
+
+
+def window(B, c, u, n, s, z, w, h, ac=False, ops=None, R=0.11):
+    """A real opening: the hole is cut by wall_with_holes (recorded in ops); here the frame sits R deep in it,
+    slider glass in two panes, curtains or blinds behind, and a stone sill that sticks out past the brick."""
+    if ops is not None: ops.append((s, z, w, h))
+    fw = 0.045
+    for (a0, a1, b0, b1) in ((-w / 2, -w / 2 + fw, 0, h), (w / 2 - fw, w / 2, 0, h), (-w / 2, w / 2, 0, fw), (-w / 2, w / 2, h - fw, h)):
+        cc = (c[0] + u[0] * (s + (a0 + a1) / 2) - n[0] * (R - 0.03), c[1] + u[1] * (s + (a0 + a1) / 2) - n[1] * (R - 0.03))
+        B.box("frame", cc, u, n, (a1 - a0) / 2, 0.03, z + b0, z + b1)
+    for k, off in ((-1, -0.075), (1, -0.095)):        # the two slider sashes, one in front of the other
+        cc = (c[0] + u[0] * (s + k * w / 4) + n[0] * (off - R + 0.11), c[1] + u[1] * (s + k * w / 4) + n[1] * (off - R + 0.11))
+        B.box("glass", cc, u, n, w / 4 - 0.01, 0.004, z + fw, z + h - fw)
+        cc2 = (c[0] + u[0] * (s + k * (w / 2 - fw / 2) * 0 + 0) + n[0] * (off - R + 0.11), c[1] + u[1] * s + n[1] * (off - R + 0.11))
+    cc = (c[0] + u[0] * s - n[0] * (R - 0.02), c[1] + u[1] * s - n[1] * (R - 0.02))
+    B.box("frame", cc, u, n, 0.022, 0.035, z, z + h)                                     # meeting rail
+    kind = rng.random()
+    if kind < 0.45:                                                                       # curtains
+        k = rng.uniform(0.35, 1.0)
+        for side_ in (-1, 1):
+            c2 = (c[0] + u[0] * (s + side_ * w * 0.3) - n[0] * (R + 0.08), c[1] + u[1] * (s + side_ * w * 0.3) - n[1] * (R + 0.08))
+            B.box("curtain", c2, u, n, w * 0.2 * k, 0.01, z + 0.02, z + h - 0.02)
+    elif kind < 0.8:                                                                      # mini blinds, part down
+        k = rng.uniform(0.2, 0.9)
+        c2 = (c[0] + u[0] * s - n[0] * (R + 0.06), c[1] + u[1] * s - n[1] * (R + 0.06))
+        for j in range(int(h * k / 0.03)):
+            zz = z + h - 0.05 - j * 0.03
+            B.box("blind", c2, u, n, w / 2 - 0.05, 0.012, zz - 0.012, zz)
+    # stone sill: below the opening, out past the wall face, a little wider than the opening
+    cc = (c[0] + u[0] * s + n[0] * (0.05 - R / 2), c[1] + u[1] * s + n[1] * (0.05 - R / 2))
+    B.box("sill", cc, u, n, w / 2 + 0.08, 0.05 + R / 2, z - 0.09, z)
     if ac:
-        cc = (c[0] + u[0] * (s + w * 0.25) + n[0] * 0.25, c[1] + u[1] * (s + w * 0.25) + n[1] * 0.25)
-        B.box("ac", cc, u, n, 0.3, 0.25, z + 0.02, z + 0.38)
+        cc = (c[0] + u[0] * (s + w * 0.25) + n[0] * 0.18, c[1] + u[1] * (s + w * 0.25) + n[1] * 0.18)
+        B.box("ac", cc, u, n, 0.31, 0.3, z + 0.02, z + 0.4)
+        cc = (c[0] + u[0] * (s + w * 0.25) + n[0] * 0.49, c[1] + u[1] * (s + w * 0.25) + n[1] * 0.49)
+        B.box("frame", cc, u, n, 0.28, 0.005, z + 0.05, z + 0.37)                       # fan grille
+        WEEP.append((P3(c, u, n, s + w * 0.25, 0.2, z), 1.6))                          # drip stain under it
+
+
+def wall_with_holes(B, c, u, n, s0, s1, z0, z1, ops, mat="brick", R=0.11):
+    """flat wall from s0..s1, z0..z1 with every opening in ops cut out, plus brick reveals R deep"""
+    from shapely.geometry import box as _b
+    g = _b(s0, z0, s1, z1)
+    holes = [_b(s - w / 2, z, s + w / 2, z + h) for s, z, w, h in ops]
+    if holes: g = g.difference(unary_union(holes))
+    nn = Vector((n[0], n[1], 0))
+    for pgn in polys(g):
+        V2, F = tri_poly(pgn)
+        V = [P3(c, u, n, a, 0.0, b) for a, b in V2]
+        for f in F:
+            a_, b_, c_ = (Vector(V[i]) for i in f)
+            if (b_ - a_).cross(c_ - a_).dot(nn) < 0: f[1], f[2] = f[2], f[1]
+        B.add(mat, V, F)
+    for s, z, w, h in ops:          # reveals: jambs, head, and the brick floor of the opening under the sill
+        a, b = s - w / 2, s + w / 2
+        for q in (((a, z), (a, z + h)), ((b, z + h), (b, z)), ((a, z + h), (b, z + h)), ((b, z), (a, z))):
+            (sa, za), (sb, zb) = q
+            B.add(mat, [P3(c, u, n, sa, 0, za), P3(c, u, n, sb, 0, zb), P3(c, u, n, sb, -R, zb), P3(c, u, n, sa, -R, za)], [[0, 1, 2, 3]])
+        dd = -R - 2.4
+        B.add("room", [P3(c, u, n, a - 0.8, dd, z - 1.0), P3(c, u, n, b + 0.8, dd, z - 1.0), P3(c, u, n, b + 0.8, dd, z + h + 0.6), P3(c, u, n, a - 0.8, dd, z + h + 0.6)], [[0, 1, 2, 3]])
+        B.add("room_floor", [P3(c, u, n, a - 0.8, -R, z - 0.9), P3(c, u, n, b + 0.8, -R, z - 0.9), P3(c, u, n, b + 0.8, dd, z - 0.9), P3(c, u, n, a - 0.8, dd, z - 0.9)], [[0, 1, 2, 3]])
+        for sd_ in (a - 0.8, b + 0.8):
+            B.add("room", [P3(c, u, n, sd_, -R, z - 1.0), P3(c, u, n, sd_, dd, z - 1.0), P3(c, u, n, sd_, dd, z + h + 0.6), P3(c, u, n, sd_, -R, z + h + 0.6)], [[0, 1, 2, 3]])
 
 
 def weiler_row(B, Bg, pg, L_):
@@ -300,7 +388,12 @@ def weiler_row(B, Bg, pg, L_):
     g = 0.0
     eave = max(5.4, min(6.4, L_.get("eave", 5.9) - 0.1))
     floor = 0.45
-    walls(B, pg, g, eave, "brick")
+    # short end walls (plain brick); the long walls are built with their openings below
+    for sd in (1, -1):
+        e0 = (c[0] + u[0] * hu * sd + v[0] * hv * sd, c[1] + u[1] * hu * sd + v[1] * hv * sd)
+        e1 = (c[0] + u[0] * hu * sd - v[0] * hv * sd, c[1] + u[1] * hu * sd - v[1] * hv * sd)
+        B.add("brick", [(e0[0], e0[1], g), (e1[0], e1[1], g), (e1[0], e1[1], eave), (e0[0], e0[1], eave)], [[0, 1, 2, 3]])
+        GRIME.append((e0, e1))
     hip_roof(B, c, u, v, hu, hv, eave, min(2.6, hv * 0.42), 0.45)
     # foundation band
     walls(B, pg.buffer(0.03, join_style="mitre"), g - 0.2, floor - 0.1, "curb")
@@ -311,16 +404,30 @@ def weiler_row(B, Bg, pg, L_):
         n = (v[0] * side, v[1] * side)
         wc = (c[0] + v[0] * hv * side, c[1] + v[1] * hv * side)
         uu = (u[0] * side, u[1] * side)          # keep features reading left-to-right from outside
+        ops = []
+        GRIME.append(((wc[0] - uu[0] * hu, wc[1] - uu[1] * hu), (wc[0] + uu[0] * hu, wc[1] + uu[1] * hu)))
         for i in range(nb):
             s0 = -hu + (i + 0.5) * bay
             if side < 0: s0 = -s0
             front = side > 0
             # paired entry in the middle of the bay
             if front or i % 2 == 0:
-                wall_feature(B, wc, uu, n, s0, floor, 1.9, 2.15, 0.02, "door")
-                for ds in (-0.47, 0.47):     # door panels + lites
-                    wall_feature(B, wc, uu, n, s0 + ds, floor + 1.25, 0.32, 0.6, 0.03, "glass")
-                    wall_feature(B, wc, uu, n, s0 + ds - 0.3, floor + 0.95, 0.06, 0.12, 0.035, "iron")   # mailbox
+                ops.append((s0, floor, 1.96, 2.2))
+                for ds in (-0.49, 0.49):     # two brown steel doors set into the opening, each with a lite
+                    cc = (wc[0] + uu[0] * (s0 + ds) - n[0] * 0.09, wc[1] + uu[1] * (s0 + ds) - n[1] * 0.09)
+                    B.box("door", cc, uu, n, 0.46, 0.025, floor, floor + 2.16)
+                    cc = (wc[0] + uu[0] * (s0 + ds) - n[0] * 0.062, wc[1] + uu[1] * (s0 + ds) - n[1] * 0.062)
+                    B.box("glass", cc, uu, n, 0.15, 0.004, floor + 1.25, floor + 1.85)
+                    B.box("door", cc, uu, n, 0.17, 0.003, floor + 1.22, floor + 1.25)
+                    cc = (wc[0] + uu[0] * (s0 + ds - 0.3) - n[0] * 0.055, wc[1] + uu[1] * (s0 + ds - 0.3) - n[1] * 0.055)
+                    B.box("iron", cc, uu, n, 0.08, 0.02, floor + 0.95, floor + 1.15)                   # mail slot box
+                    cc = (wc[0] + uu[0] * (s0 + ds + 0.36 * (1 if ds < 0 else -1)) - n[0] * 0.05, wc[1] + uu[1] * (s0 + ds + 0.36 * (1 if ds < 0 else -1)) - n[1] * 0.05)
+                    B.box("chrome", cc, uu, n, 0.02, 0.03, floor + 0.98, floor + 1.08)                  # knob
+                cc = (wc[0] + uu[0] * s0 - n[0] * 0.08, wc[1] + uu[1] * s0 - n[1] * 0.08)
+                B.box("door", cc, uu, n, 0.035, 0.03, floor, floor + 2.2)                               # centre mullion
+                for hn, hs in ((-1, -1.18), (1, 1.18)):                                                  # house numbers
+                    cc = (wc[0] + uu[0] * (s0 + hs) + n[0] * 0.01, wc[1] + uu[1] * (s0 + hs) + n[1] * 0.01)
+                    B.box("iron", cc, uu, n, 0.07, 0.006, floor + 1.55, floor + 1.7)
                 # canopy: flat copper-green hood on iron posts
                 cc = (wc[0] + n[0] * 0.55 + uu[0] * s0, wc[1] + n[1] * 0.55 + uu[1] * s0)
                 B.box("copper", cc, uu, n, 1.4, 0.55, floor + 2.35, floor + 2.5)
@@ -341,13 +448,13 @@ def weiler_row(B, Bg, pg, L_):
                 bpt = Point(wc[0] + n[0] * 9.0 + uu[0] * s0, wc[1] + n[1] * 9.0 + uu[1] * s0)
                 WALKS.append(LineString([a, bpt]).buffer(0.6, cap_style="flat"))
                 for ws in (-2.35, 2.35):
-                    window(B, wc, uu, n, s0 + ws, floor + 0.85, 1.55, 1.05, ac=False)
+                    window(B, wc, uu, n, s0 + ws, floor + 0.85, 1.55, 1.05, ac=False, ops=ops)
             else:
                 for ws in (-2.3, 0.0, 2.3):
-                    window(B, wc, uu, n, s0 + ws, floor + 0.85, 1.25, 1.05)
+                    window(B, wc, uu, n, s0 + ws, floor + 0.85, 1.25, 1.05, ops=ops)
             # upper floor windows
             for ws in (-2.35, 0.0, 2.35):
-                window(B, wc, uu, n, s0 + ws, floor + 3.35, 1.15 if ws else 1.0, 1.05, ac=rng.random() < 0.25)
+                window(B, wc, uu, n, s0 + ws, floor + 3.35, 1.15 if ws else 1.0, 1.05, ac=rng.random() < 0.25, ops=ops)
             # recessed brown panel + white downspouts at the bay boundary
             if i < nb - 1:
                 sb = s0 + bay / 2
@@ -355,6 +462,8 @@ def weiler_row(B, Bg, pg, L_):
                 for d in (-0.38, 0.38):
                     pc = (wc[0] + n[0] * 0.07 + uu[0] * (sb + d), wc[1] + n[1] * 0.07 + uu[1] * (sb + d))
                     B.box("fascia", pc, uu, n, 0.04, 0.035, 0.05, eave - 0.2)
+                    WEEP.append(((pc[0], pc[1], 0.05), 0.0))
+        wall_with_holes(B, wc, uu, n, -hu, hu, g, eave, ops)
     # shrubs along the fronts
     for side in (1, -1):
         for i in range(int(hu * 2 / 1.6)):
@@ -383,7 +492,7 @@ def block(B, pg, L_):
     B.add("metal_roof", [(x, y, h) for x, y in V2], F)
 
 
-WALKS, SHRUBS = [], []
+WALKS, SHRUBS, GRIME, WEEP = [], [], [], []
 weiler_zone = Polygon([L(p) for p in ((1335, -2300), (1745, -2300), (1745, -2650), (1335, -2650))])
 for b, pg in BLD:
     Bb = Batch("buildings")
@@ -408,6 +517,58 @@ slab("lawn", lawn, LAWN, "grass", "ground", thick=0.15)
 # land beyond the built area out to the horizon (context comes later, area by area)
 far = sbox(-4000, -4000, 4000, 4000).difference(area_box)
 slab("far_ground", far, LAWN - 0.02, "grass", "ground")
+# utility poles along one side of each street, wires sagging between them, cobra-head lights on every other pole
+def wire_curve(name, pts, r):
+    cu = bpy.data.curves.new(name, "CURVE"); cu.dimensions = "3D"; cu.bevel_depth = r; cu.bevel_resolution = 1
+    sp = cu.splines.new("POLY"); sp.points.add(len(pts) - 1)
+    for i, q in enumerate(pts): sp.points[i].co = (*q, 1)
+    o = bpy.data.objects.new(name, cu); coll("utility").objects.link(o); o.data.materials.append(MAT["wire"])
+
+
+UB = Batch("utility")
+npole = 0
+for ls, w in sidewalk_lines:
+    if ls.length < 40: continue
+    off = ls.parallel_offset(w / 2 + 1.0, "left")
+    if off.is_empty or off.geom_type != "LineString": continue
+    k = max(2, int(off.length / 38) + 1)
+    poles = [off.interpolate(i / (k - 1), normalized=True) for i in range(k)]
+    tops = []
+    for i, pp in enumerate(poles):
+        if Point(pp.x, pp.y).buffer(1.0).intersects(foot_u): continue
+        a = off.interpolate(max(0, off.project(pp) - 1)); b = off.interpolate(min(off.length, off.project(pp) + 1))
+        dx, dy = b.x - a.x, b.y - a.y; dl = math.hypot(dx, dy) or 1; t = (dx / dl, dy / dl); nrm = (-t[1], t[0])
+        B_ = UB; H = 10.5 + rng.uniform(-0.5, 0.8)
+        bpy.ops.mesh.primitive_cylinder_add(vertices=10, radius=0.13, depth=H, location=(pp.x, pp.y, H / 2))
+        po = bpy.context.active_object; po.data.materials.append(MAT["wood_pole"])
+        for vv in po.data.vertices:                     # tapered
+            if vv.co.z > 0: vv.co.x *= 0.75; vv.co.y *= 0.75
+        po.rotation_euler = (rng.uniform(-0.015, 0.015), rng.uniform(-0.015, 0.015), 0)
+        for uc in list(po.users_collection): uc.objects.unlink(po)
+        coll("utility").objects.link(po)
+        B_.box("wood_pole", (pp.x, pp.y), nrm, t, 1.1, 0.05, H - 0.6, H - 0.48)      # crossarm across the street
+        tp = []
+        for d in (-0.95, 0.0, 0.95):
+            q = (pp.x + nrm[0] * d, pp.y + nrm[1] * d)
+            B_.box("insulator", q, t, nrm, 0.04, 0.04, H - 0.48, H - 0.32)
+            tp.append((q[0], q[1], H - 0.32 if d else H + 0.25))
+        tp.append((pp.x, pp.y, H - 2.2))                 # lower communication cable
+        B_.box("wire", (pp.x, pp.y), t, nrm, 0.07, 0.07, H - 2.4, H - 2.0)
+        if i % 2 == 0:                                   # cobra-head street light reaching over the road
+            arm = (pp.x - nrm[0] * 1.8, pp.y - nrm[1] * 1.8)
+            B_.box("lamp_head", ((pp.x + arm[0]) / 2, (pp.y + arm[1]) / 2), nrm, t, 0.95, 0.03, H - 3.1, H - 3.04)
+            B_.box("lamp_head", arm, nrm, t, 0.35, 0.16, H - 3.2, H - 3.04)
+            B_.box("lamp_lens", arm, nrm, t, 0.28, 0.12, H - 3.24, H - 3.2)
+        tops.append(tp)
+        npole += 1
+    for a_, b_ in zip(tops, tops[1:]):
+        for (ax, ay, az), (bx, by, bz) in zip(a_, b_):
+            sag = 0.012 * math.hypot(bx - ax, by - ay)
+            pts = [(ax + (bx - ax) * f, ay + (by - ay) * f, az + (bz - az) * f - sag * 4 * f * (1 - f)) for f in np.linspace(0, 1, 16)]
+            wire_curve("wire", pts, 0.009)
+UB.done("poles")
+print("poles", npole)
+
 # parking stall lines
 pl = Batch("ground")
 for pgk in getattr(park_u, "geoms", [park_u]):
@@ -505,7 +666,7 @@ if cam and OPT.get("grass") == "1":
         ps.child_type = "INTERPOLATED"; ps.child_percent = 3; ps.rendered_child_count = 12; ps.child_radius = 0.12
         ps.roughness_2 = 0.03; ps.roughness_endpoint = 0.02
         ps.material = 2
-        for k, val in (("root_radius", 0.0035), ("tip_radius", 0.0), ("radius_scale", 0.01)):
+        for k, val in (("root_radius", 1.0), ("tip_radius", 0.0), ("radius_scale", 0.003)):
             if hasattr(ps, k): setattr(ps, k, val)
         go.data.materials[0] = MAT["grass"]
 
