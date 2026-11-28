@@ -1,6 +1,8 @@
 # Changelog
 
-## First Toledo fleet car (2026-11-27)
+## Full city rebuild + fleet cars (2026-11-27)
+* Whole city rebuilt with the lived-in pass; `tools/push_city_data.sh` pushes data/ to the `city-data` branch in batches.
+* Fleet #6 Overmark Trailhand (off-roader), #7 Swerve Grand Convoy (minivan).
 * `tools/blender/fleet_cars.py`: per-model vehicle builder. First model: Corvane Stockman 1500 crew cab (fleet rank 1),
   `assets/models/fleet/car_corvane_stockman.glb`. #2 Corvane Dutchess sedan. Lofted-body toolkit (`conform` patches,
   clean `glasshouse` glass). Fleet models spawn in traffic and parked cars at their real Toledo share (`fleet_models.json`,

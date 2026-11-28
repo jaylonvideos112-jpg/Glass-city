@@ -276,7 +276,7 @@ def roof_z(p, y):
 
 
 def glasshouse(p, pillars, inset=0.065, belt_gap=0.035, ws=(0.06, 0.05), rw=(0.06, 0.05), ws_w=(0.74, 0.62),
-               rw_w=(0.7, 0.6), pillar_w=0.08, dark_pillars=True):
+               rw_w=(0.7, 0.6), pillar_w=0.08, dark_pillars=True, rw_z0=None):
     """Clean glass: side windows that follow the roofline (split at the pillars), windscreen and back light."""
     L, W, H = p["size"]
     belt = H * p["belt"] + belt_gap
@@ -309,7 +309,7 @@ def glasshouse(p, pillars, inset=0.065, belt_gap=0.035, ws=(0.06, 0.05), rw=(0.0
     z0, z1 = zc + ws[0], H - ws[1]
     conform("windscreen", poly_round([(-ws_w[0], z0), (ws_w[0], z0), (ws_w[1], z1), (-ws_w[1], z1)], 0.05), "front", "glass", 0.004, 0.015, 0.04)
     zd = H * max(((t, v) for t, v in p["top"] if t < rr_t - 1e-3), key=lambda tv: tv[0])[1]   # deck at the back light's base
-    z0, z1 = zd + rw[0], H - rw[1]
+    z0, z1 = (rw_z0 if rw_z0 else zd + rw[0]), H - rw[1]
     conform("backlight", poly_round([(-rw_w[0], z0), (rw_w[0], z0), (rw_w[1], z1), (-rw_w[1], z1)], 0.06), "rear", "glass", 0.004, 0.015, 0.04)
 
 
@@ -696,6 +696,154 @@ def corvane_stockman_99():
                        tail=(0.14, 0.78)), stockman99_front)
 
 
+def overmark_trailhand(two_door=False, years="07"):
+    """Overmark Trailhand, 4-door 2007-18 style (fleet rank 6): upright box on big tyres, flat near-vertical
+    windscreen, narrow bonnet between flat-topped flared fenders, round lamps in a body-colour grille panel (an
+    original slotted panel, not the real seven-slot grille), black plastic arch flares, black steel bumpers, exposed
+    door hinges, removable hardtop, spare wheel on the tailgate."""
+    L, W, H = (4.68, 1.87, 1.84) if not two_door else (4.22, 1.87, 1.82)
+    hw = W / 2
+    REF[:] = [0.0, -0.4, 1.5]
+    wr = 0.39
+    wb = 2.95 if not two_door else 2.42
+    yf = L / 2 - 0.25                               # body front (the bumper and spare stick out past this)
+    yr = -L / 2 + 0.33                              # body rear (spare wheel behind)
+    axf, axr = yf - 0.72, yf - 0.72 - wb
+    ax = ((axf - axr) / 2, -(axf - axr) / 2)        # symmetric about the wheelbase centre for the game
+    shift = -(axf + axr) / 2
+    yf += shift; yr += shift
+    tub_w = 0.80
+    cowl = yf - 1.02
+    body_z0, belt = 0.62, 1.20
+    # tub (doors and rear quarters)
+    box("tub", -tub_w, tub_w, yr, cowl + 0.02, body_z0, belt, "paint", 0.035)
+    # bonnet + grille panel: narrow, slightly falling to the nose
+    hd = [(0.74, cowl, belt + 0.02), (0.74, yf, belt - 0.02), (0.74, cowl, 0.75), (0.74, yf, 0.72)]
+    hood = hull("hood", hd + mirror_x(hd), "paint", 0.03)
+    # flat-topped front fenders sweeping out over the tyres
+    for sx in (-1, 1):
+        f = [(sx * 0.73, yf - 0.02, 1.0), (sx * 0.73, yf - 0.06, 0.9), (sx * (hw + 0.02), yf - 0.28, 0.98),
+             (sx * (hw + 0.02), cowl + 0.02, 1.02), (sx * 0.74, cowl + 0.02, 1.04), (sx * (hw + 0.02), yf - 0.30, 0.93),
+             (sx * (hw + 0.02), cowl + 0.02, 0.97)]
+        hull("fender", f, "paint", 0.02)
+        box("fender_flare", min(sx * (hw - 0.03), sx * (hw + 0.06)), max(sx * (hw - 0.03), sx * (hw + 0.06)),
+            ax[0] - wr - 0.12, ax[0] + wr + 0.10, 0.92, 0.97, "trim", 0.015)
+        box("turn", min(sx * (hw - 0.05), sx * (hw + 0.03)), max(sx * (hw - 0.05), sx * (hw + 0.03)), yf - 0.33, yf - 0.25,
+            1.0, 1.025, "tail", 0.008)
+        # rear arch flare: a squared black plastic hoop
+        for y0, y1, z0, z1 in ((ax[1] - wr - 0.12, ax[1] + wr + 0.12, 0.93, 0.99),):
+            box("rflare_top", min(sx * (tub_w - 0.02), sx * (tub_w + 0.10)), max(sx * (tub_w - 0.02), sx * (tub_w + 0.10)), y0, y1, z0, z1, "trim", 0.015)
+            for yy in (y0, y1 - 0.08):
+                box("rflare_leg", min(sx * (tub_w - 0.02), sx * (tub_w + 0.10)), max(sx * (tub_w - 0.02), sx * (tub_w + 0.10)), yy, yy + 0.08, 0.55, z1, "trim", 0.015)
+    # cut the wheel wells out of the tub
+    r_arch = wr + 0.06
+    tub = [o for o in PARTS if o.name.startswith("tub")][0]
+    for c in arch_cutters((ax[1],), r_arch, wr + 0.04, tub_w * 2):
+        cut(tub, c); bpy.data.objects.remove(c)
+    liner_faces(tub, (ax[1],), r_arch, wr + 0.04, tub_w * 2)
+    for y in ax:
+        box("well", -tub_w + 0.05, tub_w - 0.05, y - r_arch, y + r_arch, 0.5, 0.95, "trim")
+    # grille panel: body colour, round lamps, original horizontal slots
+    gy = yf + 0.012
+    for sx in (-1, 1):
+        cyl("lamp_ring", 0.105, 0.03, (sx * 0.5, gy, 0.98), (math.pi / 2, 0, 0), "chrome", 28, 0.008)
+        cyl("lamp", 0.088, 0.03, (sx * 0.5, gy + 0.01, 0.98), (math.pi / 2, 0, 0), "head", 28)
+        cyl("lamp_dot", 0.03, 0.03, (sx * 0.5, gy + 0.018, 0.98), (math.pi / 2, 0, 0), "chrome", 16)
+        cyl("park", 0.035, 0.02, (sx * 0.5, gy + 0.004, 0.82), (math.pi / 2, 0, 0), "tail", 16)
+    for i in range(5):
+        z = 0.83 + i * 0.065
+        box("slot", -0.32, 0.32, gy - 0.02, gy + 0.004, z, z + 0.035, "trim", 0.012)
+    hexbadge_box(gy + 0.02, 1.16, 0.7)
+    # windscreen frame + hardtop (black), flat glass
+    ws_b, ws_t = cowl + 0.0, cowl - 0.16
+    wf = [(0.74, ws_b, belt + 0.03), (0.74, ws_t, 1.76), (0.74, ws_b + 0.05, belt + 0.03), (0.74, ws_t + 0.05, 1.76)]
+    hull("ws_frame", wf + mirror_x(wf), "paint", 0.02)
+    top = [(0.77, ws_t - 0.04, 1.2), (0.77, yr + 0.01, 1.2), (0.76, ws_t - 0.04, H), (0.76, yr + 0.02, H - 0.02)]
+    hull("hardtop", top + mirror_x(top), "trim", 0.04)
+    panel("windscreen", [(-0.66, ws_b + 0.055, belt + 0.07), (0.66, ws_b + 0.055, belt + 0.07), (0.66, ws_t + 0.055, 1.72),
+                         (-0.66, ws_t + 0.055, 1.72)], "glass", 0.006)
+    b_y = (cowl + yr) / 2 + 0.25
+    for sx in (-1, 1):
+        x = sx * 0.774
+        def sq(y0, y1): return [(x, y0, 1.26), (x, y1, 1.26), (x, y1, H - 0.1), (x, y0, H - 0.1)]
+        panel("glass_f", sq(b_y + 0.08, ws_t - 0.1), "glass", 0.006)
+        if not two_door: panel("glass_r", sq(b_y - 0.72, b_y - 0.08), "glass", 0.006)
+        panel("glass_q", sq(yr + 0.12, b_y - 0.8 if not two_door else b_y - 0.1), "glass", 0.006)
+        # doors: seams, hinges, handles
+        for y in ([cowl - 0.02, b_y, b_y - 0.78] if not two_door else [cowl - 0.02, b_y - 0.15]):
+            box("seam", min(sx * tub_w, sx * (tub_w + 0.004)), max(sx * tub_w, sx * (tub_w + 0.004)), y - 0.005, y + 0.005, 0.66, belt, "trim")
+        for y in ([cowl - 0.05, b_y - 0.03] if not two_door else [cowl - 0.05]):
+            for z in (0.8, 1.08):
+                box("hinge", min(sx * tub_w, sx * (tub_w + 0.025)), max(sx * tub_w, sx * (tub_w + 0.025)), y - 0.07, y, z, z + 0.06, "trim", 0.006)
+        for y in ([b_y + 0.12, b_y - 0.66] if not two_door else [b_y - 0.05]):
+            box("handle", min(sx * tub_w, sx * (tub_w + 0.03)), max(sx * tub_w, sx * (tub_w + 0.03)), y - 0.14, y, 1.05, 1.1, "trim", 0.01)
+        box("rock_rail", min(sx * (tub_w - 0.05), sx * (tub_w + 0.07)), max(sx * (tub_w - 0.05), sx * (tub_w + 0.07)),
+            ax[1] + wr + 0.14, ax[0] - wr - 0.14, 0.52, 0.62, "trim", 0.015)
+        box("mirror_arm", min(sx * tub_w, sx * (tub_w + 0.12)), max(sx * tub_w, sx * (tub_w + 0.12)), cowl - 0.1, cowl - 0.06, 1.13, 1.16, "trim")
+        box("mirror", min(sx * (tub_w + 0.08), sx * (tub_w + 0.22)), max(sx * (tub_w + 0.08), sx * (tub_w + 0.22)), cowl - 0.12, cowl - 0.05, 1.08, 1.24, "trim", 0.02)
+        # taillamps: small vertical blocks on the rear corners
+        box("taillamp", min(sx * (tub_w - 0.16), sx * (tub_w - 0.02)), max(sx * (tub_w - 0.16), sx * (tub_w - 0.02)), yr - 0.03, yr + 0.01, 0.82, 1.08, "tail", 0.01)
+    # bumpers: black steel bars
+    box("bumper_f", -hw + 0.05, hw - 0.05, yf + 0.04, yf + 0.22, 0.52, 0.72, "trim", 0.025)
+    for sx in (-1, 1):
+        box("tow_hook", sx * 0.42 - 0.03, sx * 0.42 + 0.03, yf + 0.2, yf + 0.27, 0.6, 0.66, "chrome", 0.01)
+        cyl("fog", 0.04, 0.02, (sx * 0.62, yf + 0.225, 0.62), (math.pi / 2, 0, 0), "head", 16)
+    box("bumper_r", -hw + 0.08, hw - 0.08, yr - 0.16, yr, 0.52, 0.72, "trim", 0.025)
+    box("plate_r", -0.155, 0.155, yr - 0.02, yr - 0.005, 0.74, 0.86, "chrome")
+    box("hitch", -0.04, 0.04, yr - 0.26, yr - 0.1, 0.46, 0.51, "trim", 0.01)
+    # spare wheel on the tailgate
+    cyl("spare", wr * 0.98, 0.25, (0, yr - 0.16, 1.02), (math.pi / 2, 0, 0), "trim", 32, 0.04)
+    cyl("spare_rim", wr * 0.62, 0.04, (0, yr - 0.29, 1.02), (math.pi / 2, 0, 0), "chrome", 24, 0.01)
+    cyl("spare_hub", wr * 0.2, 0.05, (0, yr - 0.31, 1.02), (math.pi / 2, 0, 0), "trim", 12)
+    # underside, skid plate, frame
+    box("under", -tub_w + 0.05, tub_w - 0.05, yr, yf, 0.42, 0.62, "trim")
+    box("skid", -0.45, 0.45, yf - 0.6, yf + 0.04, 0.38, 0.46, "trim", 0.01)
+    return dict(L=L, W=W, H=H, axles=ax, wr=wr, wz=wr, tyre_w=0.3)
+
+
+def swerve_grand_convoy():
+    """Swerve Grand Convoy, 2008-20 minivan style (fleet rank 7): boxy, long flat roof, short sloping nose, steep
+    rear hatch, sliding rear door with its track along the quarter, chrome-framed mesh grille, swept lamps, tall
+    vertical taillamps either side of the hatch."""
+    L, W, H = 5.15, 1.95, 1.75
+    p = dict(size=(L, W, H), belt=0.56, sill=0.30, tum=0.10, wr=0.35, axle=0.299, pillars=[-0.02, -0.27],
+             top=[(0.5, 0.45), (0.47, 0.52), (0.38, 0.565), (0.31, 0.585), (0.14, 0.96), (0.09, 1.0), (-0.45, 0.99),
+                  (-0.485, 0.9), (-0.5, 0.6)])
+    REF[:] = [0.0, -0.2, 1.1]
+    lofted("car_body", p)
+    glasshouse(p, [-0.02, -0.27], ws_w=(0.76, 0.66), rw_w=(0.62, 0.6), rw=(0.05, 0.08), rw_z0=1.06)
+    # front
+    head = poly_round([(0.44, 0.78), (0.74, 0.72), (0.9, 0.78), (0.88, 0.88), (0.45, 0.9)], 0.035)
+    both(lambda q: conform("lamp_bezel", q, "front", "chrome", 0.004, 0.02), poly_round([(0.43, 0.77), (0.75, 0.71), (0.915, 0.775), (0.895, 0.895), (0.44, 0.91)], 0.04))
+    both(lambda q: conform("headlamp", q, "front", "head", 0.008, 0.02), head)
+    both(lambda q: conform("lamp_inner", q, "front", "chrome", 0.012, 0.01), rrect(0.5, 0.79, 0.64, 0.87, 0.035))
+    conform("grille_frame", poly_round([(-0.42, 0.66), (0.42, 0.66), (0.44, 0.9), (-0.44, 0.9)], 0.04), "front", "chrome", 0.008, 0.02)
+    conform("grille_mesh", poly_round([(-0.37, 0.69), (0.37, 0.69), (0.39, 0.87), (-0.39, 0.87)], 0.03), "front", "trim", 0.011, 0.01)
+    for z in np.arange(0.71, 0.86, 0.035):
+        conform("mesh_bar", [(-0.37, z), (0.37, z), (0.37, z + 0.01), (-0.37, z + 0.01)], "front", "chrome", 0.012, 0.004, 0.05)
+    hexbadge("front", 0.0, 0.78, 0.05)
+    conform("intake", poly_round([(-0.55, 0.40), (0.55, 0.40), (0.5, 0.56), (-0.5, 0.56)], 0.05), "front", "trim", 0.006, 0.03)
+    both(lambda q: conform("fog", q, "front", "head", 0.008, 0.02), rrect(0.66, 0.44, 0.78, 0.5, 0.03))
+    conform("chin", rrect(-0.8, 0.30, 0.8, 0.36, 0.02), "front", "trim", 0.006, 0.02)
+    # rear
+    both(lambda q: conform("taillamp", q, "rear", "tail", 0.008, 0.02), poly_round([(0.64, 0.78), (0.86, 0.78), (0.84, 1.3), (0.67, 1.3)], 0.04))
+    both(lambda q: conform("reverse", q, "rear", "head", 0.012, 0.01), rrect(0.69, 0.95, 0.82, 1.03, 0.02))
+    conform("hatch_strip", rrect(-0.5, 0.92, 0.5, 0.95, 0.01), "rear", "chrome", 0.008, 0.015)
+    hexbadge("rear", 0.0, 0.99, 0.04)
+    conform("bumper_r", rrect(-0.85, 0.32, 0.85, 0.42, 0.02), "rear", "trim", 0.006, 0.02)
+    plates(p, 0.0, 0.8, front=False)
+    conform("wiper_r", [(-0.05, 1.22), (0.42, 1.36), (0.42, 1.375), (-0.05, 1.237)], "rear", "trim", 0.02, 0.01, 0.05)
+    cyl("exhaust", 0.035, 0.16, (-0.6, -L / 2 + 0.12, 0.32), (math.pi / 2, 0, 0), "chrome", 14)
+    side_basics(p, door_seams=[0.98, -0.02, -1.42], handles=[-0.0, -0.08], mirror_y=1.02, mirror_z=1.1)
+    for sx, side in ((1, "right"), (-1, "left")):
+        conform("slide_track", rrect(-2.2, 0.96, -1.42, 0.99, 0.01), side, "trim", 0.006, 0.01, 0.05)
+        conform("cladding", rrect(-1.9, 0.36, 1.7, 0.47, 0.02), side, "trim", 0.006, 0.01, 0.05)
+        conform("fuel", rrect(-1.98, 0.8, -1.8, 0.92, 0.02), side, "paint", 0.006, 0.01, 0.03) if sx < 0 else None
+    for x in (-0.6, 0.6):
+        box("roof_rail", x - 0.025, x + 0.025, -1.9, 0.6, H - 0.005, H + 0.04, "trim", 0.012)
+    return dict(L=L, W=W, H=H, axles=(L * p["axle"], -L * p["axle"]), wr=p["wr"], wz=p["wr"], tyre_w=0.23)
+
+
 def corvane_dutchess():
     """Corvane Dutchess, 2006-13 full-size front-drive sedan style (fleet rank 2): long, upright three-box with a
     tall rounded nose, wide swept headlamps, a narrow chrome upper grille over a chrome bar with the badge, a big
@@ -744,9 +892,9 @@ def corvane_dutchess():
     return dict(L=L, W=W, H=H, axles=(L * p["axle"], -L * p["axle"]), wr=p["wr"], wz=p["wr"], tyre_w=0.23)
 
 
-MODELS = {"corvane_stockman": corvane_stockman, "corvane_dutchess": corvane_dutchess, "halden_workhorse": halden_workhorse, "halden_workhorse_04": halden_workhorse_04, "corvane_stockman_99": corvane_stockman_99}
+MODELS = {"corvane_stockman": corvane_stockman, "corvane_dutchess": corvane_dutchess, "halden_workhorse": halden_workhorse, "halden_workhorse_04": halden_workhorse_04, "corvane_stockman_99": corvane_stockman_99, "overmark_trailhand": overmark_trailhand, "swerve_grand_convoy": swerve_grand_convoy}
 # which toledo_fleet.json ranks each model stands in for (same make/model/generation)
-RANKS = {"corvane_stockman": [1], "corvane_dutchess": [2], "halden_workhorse": [3], "halden_workhorse_04": [4], "corvane_stockman_99": [5]}
+RANKS = {"corvane_stockman": [1], "corvane_dutchess": [2], "halden_workhorse": [3], "halden_workhorse_04": [4], "corvane_stockman_99": [5], "overmark_trailhand": [6], "swerve_grand_convoy": [7]}
 
 
 def write_manifest(info):

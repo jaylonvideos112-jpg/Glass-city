@@ -437,6 +437,7 @@ The owner moved to a new Claude account. Everything below is the state at handof
      - #1 Corvane Stockman 1500 (2007–13 full-size crew-cab pickup style), ~12.8k tris;
      - #2 Corvane Dutchess (2006–13 full-size FWD sedan style), ~27.8k tris;
      - #3 Halden Workhorse 150 (2009–14 style: three-bar grille, running boards), #4 Halden Workhorse 150 (2004–08 style: egg-crate grille, bonnet set between the fenders, tube steps), #5 Corvane Stockman 1500 (1999–2006 style: softer, split lamps, body-colour grille bar, smooth arches); ~12k tris each;
+     - #6 Overmark Trailhand (2007–18 4-door off-roader style: hardtop, round lamps in an original slotted panel, flat flares, spare on the tailgate), #7 Swerve Grand Convoy (2008–20 minivan style: sliding-door track, tall hatch lamps, roof rails);
    - pickups share one builder, `pickup(P, front_fn, rear_fn)` with `PICKUP` defaults (size, axle, belt, cowl, cab, rake, bonnet dome, flare shape, steps, taillamps); each model only writes its front end;
    - how it plugs in: `fleet_cars.py` writes `assets/models/fleet/fleet_models.json` (glb, size, axle, wheel radius, ranks covered). `traffic.gd` `fleet_types()` turns each into a roster entry whose share = its ranks' `toledo_fleet.json` weight; the generic roster shrinks by the same total. Wheels use the model's own axle and radius (`wheel_r`, `axle_f`). Test: `toledo_fleet_models_load`;
    - lofted bodies (sedans, SUVs…) reuse `cars.py`'s loft (`build_body`, now importable, with a per-model `axle`), then `conform()` lays lamps, grilles, badges and glass as patches projected onto the curved surface (clean outlines, no stair-stepped glass);
@@ -444,7 +445,7 @@ The owner moved to a new Claude account. Everything below is the state at handof
    - car builder: `tools/blender/cars.py`; paint: `shaders/car_paint.gdshader`; runtime: `scripts/traffic.gd`, `parked_cars.gd`, `vehicle_mesh`.
 2. Use the traffic study's hotspots (`source_data/toledo_traffic_study.json`) for fender-benders and police stops; rush-hour backups on I-75 at the DiSalle Bridge; snow and rain slowdowns.
 3. A Bully-style HUD.
-4. A full city rebuild (`tools/build.sh`), so every neighbourhood gets the lived-in pass. Only East Toledo has it now.
+4. ~~A full city rebuild~~ done 2026-11-27.
 5. Then the downtown overhaul (send the owner a fresh prompt first).
 
 **Unchecked:** no screenshot has been taken since the last rebuild, so trash, poles and wires, sidewalk wear, car grime, and the parked-car height fix haven't been seen in-game.
@@ -466,7 +467,7 @@ The owner moved to a new Claude account. Everything below is the state at handof
 - Traffic graph follows the terrain; tests reset to the spawn point.
 - Commits through `9608c15`.
 
-**Partial rebuild 2026-11-21:** East Toledo (lat 41.6205–41.6672, lon −83.5283 to −83.4910) was rebuilt on its own in 143 s, with yard life, grime and the brick-shop colour fix. Its 375 interior chunks were copied into `data/chunks`. The next full build regenerates everything consistently.
+**Full rebuild 2026-11-27 (75 min):** the whole city now has the lived-in pass (window interiors, poles and wires, worn roads and sidewalks, fences, trash and clutter): 52,734 chunks, 193 M verts. Pushed to `city-data` with `tools/push_city_data.sh` (batched, temp index). Earlier: **Partial rebuild 2026-11-21:** East Toledo (lat 41.6205–41.6672, lon −83.5283 to −83.4910) was rebuilt on its own in 143 s, with yard life, grime and the brick-shop colour fix. Its 375 interior chunks were copied into `data/chunks`. The next full build regenerates everything consistently.
 
 **Not yet done:**
 - **Main St:** fixed in the East Toledo chunks.

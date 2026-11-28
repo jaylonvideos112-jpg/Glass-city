@@ -90,6 +90,42 @@
    ],
    "axle": 0.31,
    "wr": 0.4
+  },
+  {
+   "id": "overmark_trailhand",
+   "glb": "fleet/car_overmark_trailhand",
+   "make": "Overmark",
+   "model": "Trailhand",
+   "family": "jeep",
+   "years": "2007-2018",
+   "ranks": [
+    6
+   ],
+   "size": [
+    4.68,
+    1.87,
+    1.84
+   ],
+   "axle": 0.3152,
+   "wr": 0.39
+  },
+  {
+   "id": "swerve_grand_convoy",
+   "glb": "fleet/car_swerve_grand_convoy",
+   "make": "Swerve",
+   "model": "Grand Convoy",
+   "family": "minivan",
+   "years": "2008-2020",
+   "ranks": [
+    7
+   ],
+   "size": [
+    5.15,
+    1.95,
+    1.75
+   ],
+   "axle": 0.299,
+   "wr": 0.35
   }
  ]
 }

@@ -145,3 +145,6 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 
 ### Terrain grid vs. chunk ground (2026-11-21)
 `Terrain.height()` (the coarse runtime height grid) can sit 0.5–3 m BELOW the chunk ground that `build_city.py` builds with `G()` (DEM plus raised road beds). Anything placed at runtime on a road or a lawn must raycast down onto the chunk collision (layer 1) and use `Terrain.height` only as the fallback. `parked_cars.gd _ground()` does this. Parked cars were sunk to their windows before it.
+
+- **Don't wipe /tmp wholesale:** git commit signing runs through a helper in /tmp (`gpg.ssh.program`). Deleting it (2026-11-27, freeing disk for the city build) breaks `git commit`; commits since then use `git -c commit.gpgsign=false`.
+- **Disk is tight (~5 GB free):** a full build needs ~1.6 GB in /tmp plus the data/ copy. Clear old renders and pip cache first, not /tmp helpers.

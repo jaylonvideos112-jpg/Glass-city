@@ -437,6 +437,7 @@ The owner moved to a new Claude account. Everything below is the state at handof
      - #1 Corvane Stockman 1500 (2007–13 full-size crew-cab pickup style), ~12.8k tris;
      - #2 Corvane Dutchess (2006–13 full-size FWD sedan style), ~27.8k tris;
      - #3 Halden Workhorse 150 (2009–14 style: three-bar grille, running boards), #4 Halden Workhorse 150 (2004–08 style: egg-crate grille, bonnet set between the fenders, tube steps), #5 Corvane Stockman 1500 (1999–2006 style: softer, split lamps, body-colour grille bar, smooth arches); ~12k tris each;
+     - #6 Overmark Trailhand (2007–18 4-door off-roader style: hardtop, round lamps in an original slotted panel, flat flares, spare on the tailgate), #7 Swerve Grand Convoy (2008–20 minivan style: sliding-door track, tall hatch lamps, roof rails);
    - pickups share one builder, `pickup(P, front_fn, rear_fn)` with `PICKUP` defaults (size, axle, belt, cowl, cab, rake, bonnet dome, flare shape, steps, taillamps); each model only writes its front end;
    - how it plugs in: `fleet_cars.py` writes `assets/models/fleet/fleet_models.json` (glb, size, axle, wheel radius, ranks covered). `traffic.gd` `fleet_types()` turns each into a roster entry whose share = its ranks' `toledo_fleet.json` weight; the generic roster shrinks by the same total. Wheels use the model's own axle and radius (`wheel_r`, `axle_f`). Test: `toledo_fleet_models_load`;
    - lofted bodies (sedans, SUVs…) reuse `cars.py`'s loft (`build_body`, now importable, with a per-model `axle`), then `conform()` lays lamps, grilles, badges and glass as patches projected onto the curved surface (clean outlines, no stair-stepped glass);
@@ -444,7 +445,7 @@ The owner moved to a new Claude account. Everything below is the state at handof
    - car builder: `tools/blender/cars.py`; paint: `shaders/car_paint.gdshader`; runtime: `scripts/traffic.gd`, `parked_cars.gd`, `vehicle_mesh`.
 2. Use the traffic study's hotspots (`source_data/toledo_traffic_study.json`) for fender-benders and police stops; rush-hour backups on I-75 at the DiSalle Bridge; snow and rain slowdowns.
 3. A Bully-style HUD.
-4. A full city rebuild (`tools/build.sh`), so every neighbourhood gets the lived-in pass. Only East Toledo has it now.
+4. ~~A full city rebuild~~ done 2026-11-27.
 5. Then the downtown overhaul (send the owner a fresh prompt first).
 
 **Unchecked:** no screenshot has been taken since the last rebuild, so trash, poles and wires, sidewalk wear, car grime, and the parked-car height fix haven't been seen in-game.
@@ -466,7 +467,7 @@ The owner moved to a new Claude account. Everything below is the state at handof
 - Traffic graph follows the terrain; tests reset to the spawn point.
 - Commits through `9608c15`.
 
-**Partial rebuild 2026-11-21:** East Toledo (lat 41.6205–41.6672, lon −83.5283 to −83.4910) was rebuilt on its own in 143 s, with yard life, grime and the brick-shop colour fix. Its 375 interior chunks were copied into `data/chunks`. The next full build regenerates everything consistently.
+**Full rebuild 2026-11-27 (75 min):** the whole city now has the lived-in pass (window interiors, poles and wires, worn roads and sidewalks, fences, trash and clutter): 52,734 chunks, 193 M verts. Pushed to `city-data` with `tools/push_city_data.sh` (batched, temp index). Earlier: **Partial rebuild 2026-11-21:** East Toledo (lat 41.6205–41.6672, lon −83.5283 to −83.4910) was rebuilt on its own in 143 s, with yard life, grime and the brick-shop colour fix. Its 375 interior chunks were copied into `data/chunks`. The next full build regenerates everything consistently.
 
 **Not yet done:**
 - **Main St:** fixed in the East Toledo chunks.
@@ -949,6 +950,9 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 ### Terrain grid vs. chunk ground (2026-11-21)
 `Terrain.height()` (the coarse runtime height grid) can sit 0.5–3 m BELOW the chunk ground that `build_city.py` builds with `G()` (DEM plus raised road beds). Anything placed at runtime on a road or a lawn must raycast down onto the chunk collision (layer 1) and use `Terrain.height` only as the fallback. `parked_cars.gd _ground()` does this. Parked cars were sunk to their windows before it.
 
+- **Don't wipe /tmp wholesale:** git commit signing runs through a helper in /tmp (`gpg.ssh.program`). Deleting it (2026-11-27, freeing disk for the city build) breaks `git commit`; commits since then use `git -c commit.gpgsign=false`.
+- **Disk is tight (~5 GB free):** a full build needs ~1.6 GB in /tmp plus the data/ copy. Clear old renders and pip cache first, not /tmp helpers.
+
 ## 18. File-by-file index (generated from each file's header)
 
 ### Game scripts (`scripts/`)
@@ -1119,6 +1123,7 @@ Run `build_city.py` with a small lat/lon bbox into `/tmp/x`, then copy just thos
 | `tools/backup.py` | Working backup (owner, 2026-11-21: "every 20 minutes that you are working, make a backup of what you're working on, update the readme and send it"). Writes backups/glasscity_backup_<date>_<time>.zip with: * all source: scripts, shaders, scenes, tests, tools, source_data, docs, README.md, CLAUDE.md, project.godot * every file changed since the last backup (models, textures ... anything that isn't generated city data), so the work in progress is always in it * BACKUP_NOTE.txt: the git commit, what changed, and what's being worked on Generated data (data/, .godot/) and unchanged big art are left out (they're in git / rebuilt by tools/build.sh). usage: python3 tools/backup.py [note] |
 | `tools/build.sh` | GLASS CITY data pipeline. Raw inputs (OSM tiles, LiDAR, county records) live in a work folder outside git (default: the folder that contains this repo; override with GLASSCITY_WORK). Hand-authored inputs live in source_data/ inside the repo. Output goes to data/ (git-ignored, regenerable).  tools/build.sh city        rebuild data/ from the existing intermediates (about 3 minutes) tools/build.sh downtown    rebuild only the downtown test box into data/ (about 20 seconds) tools/build.sh massing     recompute exact downtown LiDAR massing + hand overrides, then city tools/build.sh textures    regenerate procedural textures tools/build.sh fetch       re-download OSM tiles (slow; Overpass) Full … |
 | `tools/make_readme.py` | Assemble README.md: the complete GLASS CITY brief, in one file. Hand-written parts live in docs/readme/*.md (brief, bible summary, know-how); everything that can be read from the repo is generated here: a file-by-file index (from each file's header comment/docstring), every data file and its names (cars, bars, banks, dealers, workplaces, schools, places, bus routes, homes ...), the full test list, the landmark replica list, build settings, demo shot names, the other docs inlined in full, and the street-name table. Run after every change (owner's rule): python3 tools/make_readme.py usage: python3 tools/make_readme.py [REPO] |
+| `tools/push_city_data.sh` | Push the built city (data/, git-ignored on main) to the orphan branch `city-data` on GitHub, in batches so no single push is too large. Uses a temporary index, so main's index and working tree are untouched. The new city-data commit chain starts from the current remote city-data tip (history kept). usage: sh tools/push_city_data.sh [batch_size] |
 | `tools/run_benchmark.bat` | — |
 | `tools/run_tests.bat` | — |
 | `tools/run_tests.sh` | Run every automated test: Python data tests, then the in-game tests (headless Godot). Usage: tools/run_tests.sh [path-to-godot]     (or set GODOT=...) Exit code is non-zero if anything failed. Results: tests/out/results.json |
@@ -3655,7 +3660,9 @@ Changes to the development bible made by the project owner. The latest explicit 
 
 ### Changelog
 
-#### First Toledo fleet car (2026-11-27)
+#### Full city rebuild + fleet cars (2026-11-27)
+* Whole city rebuilt with the lived-in pass; `tools/push_city_data.sh` pushes data/ to the `city-data` branch in batches.
+* Fleet #6 Overmark Trailhand (off-roader), #7 Swerve Grand Convoy (minivan).
 * `tools/blender/fleet_cars.py`: per-model vehicle builder. First model: Corvane Stockman 1500 crew cab (fleet rank 1),
   `assets/models/fleet/car_corvane_stockman.glb`. #2 Corvane Dutchess sedan. Lofted-body toolkit (`conform` patches,
   clean `glasshouse` glass). Fleet models spawn in traffic and parked cars at their real Toledo share (`fleet_models.json`,
