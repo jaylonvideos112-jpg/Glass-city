@@ -1830,6 +1830,12 @@ func t_wanted_lights() -> Array:
 	for i in 30: hud._process(0.05)
 	var on: bool = hud._lights.visible and hud._lights_a > 0.9
 	var text: String = hud.wanted_label.text
+	var h_chase: float = hud._lights.offset_bottom
+	po._unseen_t = (float(po.P["search_s"]) + float(po.P["search_s_per_star"]) * 2) * 0.9     # nearly lost them
+	for i in 40: hud._process(0.05)
+	var h_tame: float = hud._lights.offset_bottom
+	po._unseen_t = 0.0
+	if not (h_tame < h_chase * 0.6): return [false, "lights didn't shrink near escape (%.0f -> %.0f px)" % [h_chase, h_tame]]
 	po.stars = 0
 	for i in 60: hud._process(0.05)
 	var off: bool = not hud._lights.visible
@@ -1837,4 +1843,4 @@ func t_wanted_lights() -> Array:
 	if not on: return [false, "no light bar at 2 stars"]
 	if text != "": return [false, "stars still shown: '%s'" % text]
 	if not off: return [false, "lights stayed on after losing the police"]
-	return [true, "light bar on while wanted (no stars), fades out after"]
+	return [true, "light bar on while wanted (no stars), %.0f px tall in the chase, %.0f px near escape, fades out after" % [h_chase, h_tame]]

@@ -7,7 +7,8 @@ extends CanvasLayer
 ##   top-right: cash with a small caption (fades back when unchanged), clock, job
 ##   WANTED: no stars (owner, 2026-11-28: "whenever the cops are on you you get red and blue flashing at the top of
 ##   your screen no stars"). A police light bar glows along the top edge: red and blue wig-wag with strobe bursts,
-##   brighter and faster with more heat; slow and dim while they are searching for you after losing sight.
+##   brighter and faster with more heat. The closer you are to beating the cops (police.escape_progress()), the
+##   smaller, dimmer and slower it gets: it shrinks toward the top corners and stops strobing.
 ##   top-left: notification toasts (every notice also goes to the phone's Messages)
 ##   centre: big banners for BUSTED / WANTED changes; bottom-centre: the context prompt with key caps
 ## Overlay panels (job board, catalogue, inventory, minigames) use overlay_label().
@@ -61,6 +62,7 @@ const C_ACCENT := Color(0.91, 0.75, 0.42)          # muted gold: GPS, waypoint, 
 var _money_idle := 0.0
 var _lights: ColorRect          # the police light bar across the top of the screen
 var _lights_a := 0.0            # eased visibility, so the lights fade in and out instead of popping
+var _tame := 0.0                # eased escape progress: the closer you are to beating the cops, the smaller and calmer
 
 const DISTRICTS := [
 	# name, center x (east m), center z (south m), radius - rough, relative to downtown origin
@@ -164,21 +166,23 @@ func _ready() -> void:
 	lm.shader.code = """shader_type canvas_item;
 uniform float vis = 0.0;      // 0 hidden .. 1 full
 uniform float heat = 0.2;     // 0.2 (1 star) .. 1.0 (5 stars)
-uniform float search = 0.0;   // 1 = cops lost sight: slow, dim, no strobe
+uniform float search = 0.0;   // 1 = cops lost sight: no strobe
+uniform float tame = 0.0;     // 0 full chase .. 1 about to lose them: smaller, dimmer, slower
 void fragment() {
-	float rate = mix(2.6, 4.2, heat) * mix(1.0, 0.45, search);
+	float rate = mix(2.6, 4.2, heat) * mix(1.0, 0.35, tame);
 	float ph = fract(TIME * rate);
 	float side = step(0.5, ph);                                  // which side is lit (wig-wag)
-	float strobe = mix(step(0.5, fract(ph * 6.0)) * 0.55 + 0.45, 1.0, search);   // quick bursts inside each half
+	float strobe = mix(step(0.5, fract(ph * 6.0)) * 0.55 + 0.45, 1.0, max(search, tame));   // quick bursts inside each half
 	vec2 uv = UV;
-	float fall = exp(-uv.y * mix(5.5, 3.6, heat));               // glow hangs down from the top edge
-	float red_pool = smoothstep(1.0, 0.0, uv.x * 1.25);           // red pools from the left
-	float blue_pool = smoothstep(0.0, 1.0, (uv.x - 0.2) * 1.25);  // blue from the right
+	float fall = exp(-uv.y * mix(mix(5.5, 3.6, heat), 14.0, tame));   // glow hangs down from the top edge
+	float spread = mix(1.25, 4.0, tame);                              // and pulls back into the corners when tame
+	float red_pool = smoothstep(1.0, 0.0, uv.x * spread);             // red pools from the left
+	float blue_pool = smoothstep(1.0, 0.0, (1.0 - uv.x) * spread);    // blue from the right
 	vec3 red = vec3(1.0, 0.08, 0.06), blue = vec3(0.1, 0.25, 1.0);
 	float r = red_pool * (1.0 - side) * strobe, b = blue_pool * side * strobe;
 	float edge = smoothstep(0.03, 0.0, uv.y) * 0.6;              // a hot line right at the top
 	vec3 col = red * r + blue * b;
-	float a = (max(r, b) * 0.85 + edge * max(r, b)) * fall * vis * mix(0.55, 1.0, heat) * mix(1.0, 0.45, search);
+	float a = (max(r, b) * 0.85 + edge * max(r, b)) * fall * vis * mix(0.55, 1.0, heat) * mix(1.0, 0.22, tame);
 	COLOR = vec4(col, clamp(a, 0.0, 0.9));
 }"""
 	_lights.material = lm
@@ -310,6 +314,10 @@ func _process(dt: float) -> void:
 	lsm.set_shader_parameter("vis", _lights_a)
 	lsm.set_shader_parameter("heat", clampf(float(stars) / 5.0, 0.2, 1.0))
 	lsm.set_shader_parameter("search", 1.0 if searching else 0.0)
+	var tame: float = main.police.escape_progress() if stars > 0 else 0.0
+	_tame = lerpf(_tame, tame, clampf(dt * 3.0, 0.0, 1.0))
+	lsm.set_shader_parameter("tame", _tame)
+	_lights.offset_bottom = lerpf(170.0, 45.0, _tame)            # the whole bar shrinks as you get away
 	clock_label.offset_top = 86; date_label.offset_top = 106; job_label.offset_top = 128
 	if main.current_car:
 		var cc = main.current_car

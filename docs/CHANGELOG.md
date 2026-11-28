@@ -5,7 +5,7 @@
 * `tools/photoreal/`: area extractor, Poly Haven CC0 asset fetcher, Blender area builder with the `weiler_row` typology and Cycles renders.
 * Bushes: each is ~2,600 real leaf cards (elliptical cut-out, colour variation, light through) baked onto a dark core; 3 templates instanced (owner: "fix the bushes").
 * Owner: the photoreal, dirty look is the style for the whole game (README art direction, CLAUDE.md rule 8).
-* Wanted level: stars removed; a red/blue police light bar flashes across the top of the screen while the cops are on you (test `wanted_shows_police_lights_not_stars`).
+* Wanted level: stars removed; a red/blue police light bar flashes across the top of the screen while the cops are on you (test `wanted_shows_police_lights_not_stars`). The lights shrink and calm as you get closer to escaping (`police.escape_progress()`).
 * HUD: owner picked option B (cinematic minimal); `scripts/hud.gd` restyled: small muted minimap, ring meters, quiet cash/clock that fade when idle, weapon bottom-right.
 * HUD options canvas (8 directions over a Weiler render): https://claude.ai/artifact/3qtVuGybyEnZ3fDPHQPgmb
 * Dirt pass (owner: "make it dirtier"): `dirt_mix()` blends Poly Haven dirt textures and tinted stains through world-space noise masks: bare and dry lawn patches, grimy stained sidewalks and curbs, oil stains and grit on asphalt, splashback grime, rain streaks, efflorescence and eave soot on brick, moss on roofs, mildew on siding, stained canopies, fascia, sills, AC units; ragged bushes with dead patches; boarded / sheet / foil windows; 6,600+ pieces of litter, gutter debris and leaves, trash cans and bags at the row ends. Blinds are now one shaded panel (the slat version ran out of memory).

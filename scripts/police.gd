@@ -285,6 +285,18 @@ func _release_units() -> void:
 		u.erase("chase"); u.erase("keep"); u.erase("target"); u.erase("path")
 		u["siren"] = false
 
+## how close you are to beating the cops, 0..1: mostly the time they've gone without seeing you against the time
+## it takes to lose them; while they can still see you, a little credit for distance from the nearest one
+func escape_progress() -> float:
+	if stars == 0: return 0.0
+	var need: float = float(P["search_s"]) + float(P["search_s_per_star"]) * stars
+	var unseen: float = clampf(_unseen_t / maxf(need, 0.1), 0.0, 1.0)
+	var near := 1e9
+	var pw := player_world()
+	for u in units(): near = minf(near, (u["pos"] - pw).length())
+	var dist: float = clampf(near / maxf(float(P["sight_m"]), 1.0), 0.0, 1.0) * 0.3 if near < 1e8 else 0.3
+	return maxf(unseen, dist)
+
 ## lost them: wanted level clears, units go back to patrol
 func lose_them() -> void:
 	stars = 0; searching = false; _unseen_t = 0.0; _bust_t = 0.0
