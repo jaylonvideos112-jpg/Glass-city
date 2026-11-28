@@ -592,7 +592,14 @@ func _shots(dt: float) -> void:
 		if st["name"] != "":
 			var dir: Vector3 = st["dir"]
 			var right := dir.cross(Vector3.UP).normalized()
-			street_cam = [st["point"] - dir * 4.0 + right * 3.5 + Vector3(0, 1.8, 0), st["point"] + dir * 70.0 + right * 1.0 + Vector3(0, 4.0, 0)]
+			# the street point is flat (y 0): put the camera on the real ground — a ray onto the loaded chunk ground,
+			# else the terrain grid (which sits 0.5-3 m under the chunk ground) plus a margin
+			var base: Vector3 = st["point"] - dir * 4.0 + right * 3.5
+			var gy: float = preload("res://scripts/terrain.gd").height(base) + 2.0
+			var q := PhysicsRayQueryParameters3D.create(Vector3(base.x, 600.0, base.z) - main.world_offset, Vector3(base.x, -100.0, base.z) - main.world_offset, 1)
+			var hit: Dictionary = main.get_world_3d().direct_space_state.intersect_ray(q)
+			if not hit.is_empty(): gy = hit["position"].y + main.world_offset.y
+			street_cam = [Vector3(base.x, gy + 1.8, base.z), st["point"] + dir * 70.0 + right * 1.0 + Vector3(0, gy + 4.0, 0)]
 	if pos == null and look != null and not street_cam.is_empty():
 		pos = street_cam[0]; look = street_cam[1]
 	elif pos == null:
