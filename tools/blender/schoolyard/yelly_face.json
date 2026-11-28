@@ -1,2 +1,15 @@
-{"eye-height1-incr": 0.0, "eye-height2-incr": 0.0, "eye-height3-incr": 0.0, "eye-scale-incr": 0.12,
- "mouth-scale-vert-incr": 0.12, "upperlip-height-incr": 0.12, "nose-nostrils-width-incr": 0.3}
+{
+ "eye-height1-incr": 0.0,
+ "eye-height2-incr": 0.0,
+ "eye-height3-incr": 0.0,
+ "eye-scale-incr": 0.12,
+ "mouth-scale-vert-incr": 0.0,
+ "upperlip-height-incr": 0.0,
+ "mouth-scale-horiz-decr": 0.25,
+ "nose-nostrils-width-incr": 0.3,
+ "chin-jaw-drop-decr": 0.8,
+ "cheek-volume-decr": 0.4,
+ "mouth-scale-vert-decr": 0.3,
+ "lowerlip-height-decr": 0.3,
+ "upperlip-height-decr": 0.2
+}

@@ -228,9 +228,9 @@ MATS = {
     'nylon': dict(rough=0.32, sheen=0.0, bump=0.0),
     'satin': dict(rough=0.38, sheen=0.05, bump=0.0),
     'knit': dict(rough=0.95, sheen=0.08, bump=0.2, bump_scale=250),
-    'hair': dict(rough=0.66, sheen=0.08, alpha=True, bump=0.5, bump_scale=900),
+    'hair': dict(rough=0.8, sheen=0.05, alpha=True, bump=0.5, bump_scale=900),
     'locs': dict(rough=0.85, sheen=0.0, bump=0.6, bump_scale=700),
-    'coil': dict(rough=0.6, sheen=0.0),
+    'coil': dict(rough=0.85, sheen=0.0),
     'hairsolid': dict(rough=0.72, sheen=0.0, bump=0.25, bump_scale=900),
     'leather': dict(rough=0.4, bump=0.05, bump_scale=300),
     'gold': dict(rough=0.18, metal=1.0),
@@ -1349,11 +1349,14 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
     elif style == 'SPONGE':
         # GLASS CITY: short sponge / natural top — a soft, rounded, dense mass with a fine kinky
         # surface (no long coils). Nubs added below give the fuzzy edge.
-        vol = 0.026
+        vol = 0.021
         nub = vnoise(co, 0.004, seed) + 0.6 * vnoise(co, 0.0022, seed + 5)
+        tuft = np.clip(vnoise(co, 0.016, seed + 9), -0.3, 1.0)     # uneven clumps -> broken, natural outline
         # short hair all round: a real layer on the sides and back, a fuller rounded top
-        side_vol = 0.007 * dens * (1 - top)
-        off = base_off + vol * top + side_vol + 0.0025 * nub * np.maximum(top, 0.7 * dens)
+        # dome: the sides swell toward the temples and crown, so the outline is round, not a box
+        side_vol = (0.008 + 0.012 * smoothstep(-0.05, 0.25, hgt)) * dens * (1 - top)
+        off = (base_off + vol * top + side_vol + 0.0025 * nub * np.maximum(top, 0.7 * dens)
+               + 0.008 * tuft * np.maximum(top, 0.35 * dens))
         cols *= (0.7 + 0.35 * (0.5 + 0.5 * nub))[:, None]
     elif style in ('CURLY_TOP', 'TWISTS', 'LOCS', 'FLAT_TOP'):
         vol = {'CURLY_TOP': 0.045 * _CURL_K, 'TWISTS': 0.012, 'LOCS': 0.01, 'FLAT_TOP': 0.06}[style]
@@ -1418,15 +1421,15 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
     if style == 'SPONGE' and coil_count > 0:
         cand = np.nonzero(keep & (top > 0.05) & (dens > 0.6))[0]
         if len(cand):
-            n_c = coil_count * 7
+            n_c = coil_count * 16
             pick = rng.choice(cand, size=n_c, replace=True)
             nb = rng.choice(cand, size=n_c, replace=True)
             t = rng.random((n_c, 1)) * 0.5
-            pts = P[pick] * (1 - t) + P[nb] * t - Ns[pick] * 0.0015
-            nrm = Ns[pick] + rng.normal(0, 0.5, (n_c, 3))
+            pts = P[pick] * (1 - t) + P[nb] * t - Ns[pick] * 0.002
+            nrm = Ns[pick] + rng.normal(0, 0.6, (n_c, 3))
             sc = 0.5 + 0.5 * top[pick]
-            pa, ra, ca = coil_mesh(pts, nrm, color * 0.9, seed=seed, length=(0.0035, 0.0065),
-                                   radius=0.0013, wire=0.0011, droop=0.0, turns=(0.8, 1.4))
+            pa, ra, ca = coil_mesh(pts, nrm, color * 0.9, seed=seed, length=(0.004, 0.009),
+                                   radius=0.0016, wire=0.0012, droop=0.0, turns=(0.7, 1.3), k=5)
             for i in range(len(pa)):      # shorter nubs low on the sides
                 pa[i] = pts[i] + (pa[i] - pts[i]) * sc[i]
             me = tube_mesh(pa, ra, ca, name + "_Nubs", sides=3)
@@ -1434,14 +1437,14 @@ def make_hair(B, h, rig, coll, name, style, color, fade, cover_z=None, seed=1, c
         # the sides and back get their own, shorter nubs (own count, so the top keeps its density)
         cand = np.nonzero(keep & (top <= 0.05) & (dens > 0.6) & (above > 0.003))[0]
         if len(cand):
-            n_c = coil_count * 6
+            n_c = coil_count * 12
             pick = rng.choice(cand, size=n_c, replace=True)
             nb = rng.choice(cand, size=n_c, replace=True)
             t = rng.random((n_c, 1)) * 0.5
             pts = P[pick] * (1 - t) + P[nb] * t - Ns[pick] * 0.001
             nrm = Ns[pick] + rng.normal(0, 0.5, (n_c, 3))
             pa, ra, ca = coil_mesh(pts, nrm, color * 0.9, seed=seed + 11, length=(0.0025, 0.0045),
-                                   radius=0.0011, wire=0.001, droop=0.0, turns=(0.8, 1.3))
+                                   radius=0.0012, wire=0.001, droop=0.0, turns=(0.8, 1.3), k=4)
             me = tube_mesh(pa, ra, ca, name + "_SideNubs", sides=3)
             objs.append(mesh_object(me, h, rig, coll, 'coil', {'head': 1.0}))
     if style == 'CORNROWS':
@@ -3373,7 +3376,7 @@ def hair_texel_fn(B, style, fade, color, seed=1):
 
 
 def coil_mesh(roots, normals, color, seed=1, length=(0.010, 0.018), radius=0.0024, wire=0.00085, sides=4,
-              turns=(2.0, 3.2), droop=0.15):
+              turns=(2.0, 3.2), droop=0.15, k=14):
     rng = np.random.default_rng(seed)
     paths, radii, cols = [], [], []
     for p, n in zip(roots, normals):
@@ -3386,7 +3389,6 @@ def coil_mesh(roots, normals, color, seed=1, length=(0.010, 0.018), radius=0.002
         L = rng.uniform(*length)
         T = rng.uniform(*turns)
         ph = rng.uniform(0, 6.28)
-        k = 14
         t = np.linspace(0, 1, k)
         th = ph + t * T * 2 * math.pi
         r = radius * (0.6 + 0.4 * t) * rng.uniform(0.8, 1.2)

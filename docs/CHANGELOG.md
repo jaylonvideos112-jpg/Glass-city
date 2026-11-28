@@ -5,7 +5,7 @@
   17 mocap clips retargeted; `gen_character.py` headless driver; test `player_model_from_schoolyard_addon`.
 * Yelly (the player) built from the owner's reference photos: face fitted to the photo (`face=`, `face_tweak=`), tight
   sponge curls (`SY_CURL_SCALE`), second outfit — white tee, jorts, pink socks and sneakers (`yelly.args`, `yelly_face.json`).
-  Add-on: PINK crew socks, curl-size control, new SPONGE hair style and SHORT fade (Yelly: short textured hair all around, fuller on top).
+  Add-on: PINK crew socks, curl-size control, new SPONGE hair style and SHORT fade (Yelly: short rounded natural afro all around, matte fuzz; thinner lips).
 
 ## Lived-in windows (2026-11-21)
 * Every house pane paints its own curtains, blinds or sheet and a parallax room behind; lit rooms at night
