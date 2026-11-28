@@ -16,7 +16,12 @@ It is the owner's passion project for his own city.
 - **Owner's PC:** GTX 1080 Ti (11 GB), the reference machine for performance budgets.
 - **Tone and genre:** GTA IV/V-style life sim and crime sandbox: driving, on-foot, fighting, guns, police, jobs, businesses, homes, needs. **No missions yet**; the owner said to build the world and systems first.
 
-### Art direction: Bully style on modern geometry (owner decision, 2026-11-21)
+### Art direction: photoreal and dirty (owner decision, 2026-11-28) — replaces the Bully look
+- Owner, on the Weiler Homes renders: **"This is the style I want the whole game"**. That means photoreal (real-scale geometry, CC0 photo-scanned materials, real sky lighting, Cycles renders), dirty and lived-in: grime, stains, worn lawns, oil, litter, boarded windows. Reference: `tools/photoreal/build_area.py` and its renders.
+- The map is built in Blender first, area by area, photo accurate (matched to county photos and aerials), then converted for the game.
+- The Bully notes below are history (2026-11-21 to 2026-11-28).
+
+### Old art direction: Bully style on modern geometry (owner decision, 2026-11-21, superseded 2026-11-28)
 - The owner wants **"4K upscaled Bully" gameplay looks, with modern polygon counts on models**. Bully: Scholarship Edition's art style:
   - hand-painted-looking, clean textures;
   - warm, soft, sunny light with gentle bloom;

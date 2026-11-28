@@ -16,7 +16,12 @@ It is the owner's passion project for his own city.
 - **Owner's PC:** GTX 1080 Ti (11 GB), the reference machine for performance budgets.
 - **Tone and genre:** GTA IV/V-style life sim and crime sandbox: driving, on-foot, fighting, guns, police, jobs, businesses, homes, needs. **No missions yet**; the owner said to build the world and systems first.
 
-### Art direction: Bully style on modern geometry (owner decision, 2026-11-21)
+### Art direction: photoreal and dirty (owner decision, 2026-11-28) — replaces the Bully look
+- Owner, on the Weiler Homes renders: **"This is the style I want the whole game"**. That means photoreal (real-scale geometry, CC0 photo-scanned materials, real sky lighting, Cycles renders), dirty and lived-in: grime, stains, worn lawns, oil, litter, boarded windows. Reference: `tools/photoreal/build_area.py` and its renders.
+- The map is built in Blender first, area by area, photo accurate (matched to county photos and aerials), then converted for the game.
+- The Bully notes below are history (2026-11-21 to 2026-11-28).
+
+### Old art direction: Bully style on modern geometry (owner decision, 2026-11-21, superseded 2026-11-28)
 - The owner wants **"4K upscaled Bully" gameplay looks, with modern polygon counts on models**. Bully: Scholarship Edition's art style:
   - hand-painted-looking, clean textures;
   - warm, soft, sunny light with gentle bloom;
@@ -3671,6 +3676,9 @@ Changes to the development bible made by the project owner. The latest explicit 
 #### Photoreal Blender map pilot (2026-11-28)
 * Owner: build the map in Blender first, photo accurate and fully photoreal, convert later. Pilot: Weiler Homes (Eastport Homes).
 * `tools/photoreal/`: area extractor, Poly Haven CC0 asset fetcher, Blender area builder with the `weiler_row` typology and Cycles renders.
+* Bushes: each is ~2,600 real leaf cards (elliptical cut-out, colour variation, light through) baked onto a dark core; 3 templates instanced (owner: "fix the bushes").
+* Owner: the photoreal, dirty look is the style for the whole game (README art direction, CLAUDE.md rule 8).
+* HUD options canvas (4 directions over a Weiler render): https://claude.ai/artifact/3qtVuGybyEnZ3fDPHQPgmb
 * Dirt pass (owner: "make it dirtier"): `dirt_mix()` blends Poly Haven dirt textures and tinted stains through world-space noise masks: bare and dry lawn patches, grimy stained sidewalks and curbs, oil stains and grit on asphalt, splashback grime, rain streaks, efflorescence and eave soot on brick, moss on roofs, mildew on siding, stained canopies, fascia, sills, AC units; ragged bushes with dead patches; boarded / sheet / foil windows; 6,600+ pieces of litter, gutter debris and leaves, trash cans and bags at the row ends. Blinds are now one shaded panel (the slat version ran out of memory).
 * Detail pass: real recessed window/door openings with reveals, two-pane sliders, blinds/curtains and dim rooms behind clear glass, steel double doors with lites, house numbers, stone sills, AC units; brick grime and rain streaks; hair grass near the camera; 186 wooden utility poles with crossarms, insulators, sagging wires and cobra-head lights.
 

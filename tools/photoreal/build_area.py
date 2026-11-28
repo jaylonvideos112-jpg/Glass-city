@@ -276,7 +276,7 @@ def dirty_pass():
     dirt_mix(MAT["asphalt"], None, 1, 0.12, 0.55, 0.7, 0.18, tint=(0.55, 0.54, 0.5))  # sun-bleached grey areas
     dirt_mix(MAT["brick"], None, 1, 0.7, 0.3, 0.6, 1.0, tint=(0.14, 0.1, 0.07), zmask=(0.0, 1.6))    # splashback grime
     dirt_mix(MAT["brick"], None, 1, 1.0, 0.42, 0.62, 0.85, tint=(0.16, 0.12, 0.09), stretch=(14, 14, 0.25))  # rain streaks
-    dirt_mix(MAT["brick"], None, 1, 0.6, 0.5, 0.66, 0.5, tint=(0.85, 0.83, 0.78))                        # efflorescence
+    dirt_mix(MAT["brick"], None, 1, 0.6, 0.6, 0.72, 0.25, tint=(0.8, 0.78, 0.72))                       # efflorescence
     dirt_mix(MAT["brick"], None, 1, 0.3, 0.45, 0.7, 0.55, tint=(0.25, 0.2, 0.15), zmask=(6.5, 4.5))       # soot under the eaves
     dirt_mix(MAT["roof"], None, 1, 0.5, 0.35, 0.65, 0.85, tint=(0.06, 0.06, 0.04), stretch=(1, 1, 3))    # moss / streaks
     dirt_mix(MAT["shingle_dk"], None, 1, 0.5, 0.35, 0.65, 0.85, tint=(0.06, 0.07, 0.04))
@@ -818,41 +818,102 @@ def instance(c, x, y, z, s, rot):
 
 
 tree_c, tree_h = load_model("tree_small_02")
+def leaf_material():
+    """small evergreen leaf: elliptical cut-out (alpha), per-leaf colour variation, light shining through"""
+    m = bpy.data.materials.new("bush_leaf"); m.use_nodes = True; N = m.node_tree.nodes; Lk = m.node_tree.links
+    b = N["Principled BSDF"]; b.inputs["Roughness"].default_value = 0.55
+    if "Subsurface Weight" in b.inputs: b.inputs["Subsurface Weight"].default_value = 0.0
+    tc = N.new("ShaderNodeTexCoord"); sep = N.new("ShaderNodeSeparateXYZ"); Lk.new(tc.outputs["UV"], sep.inputs[0])
+    # ellipse mask from UV: ((u-.5)/.5)^2 + ((v-.5)/.5)^2 < 1, pointed at the ends
+    def sq(sock, k):
+        a1 = N.new("ShaderNodeMath"); a1.operation = "SUBTRACT"; a1.inputs[1].default_value = 0.5; Lk.new(sock, a1.inputs[0])
+        a2 = N.new("ShaderNodeMath"); a2.operation = "MULTIPLY"; a2.inputs[1].default_value = k; Lk.new(a1.outputs[0], a2.inputs[0])
+        a3 = N.new("ShaderNodeMath"); a3.operation = "POWER"; a3.inputs[1].default_value = 2.0; Lk.new(a2.outputs[0], a3.inputs[0])
+        return a3.outputs[0]
+    ad = N.new("ShaderNodeMath"); ad.operation = "ADD"; Lk.new(sq(sep.outputs["X"], 2.0), ad.inputs[0]); Lk.new(sq(sep.outputs["Y"], 2.0), ad.inputs[1])
+    lt = N.new("ShaderNodeMath"); lt.operation = "LESS_THAN"; lt.inputs[1].default_value = 1.0; Lk.new(ad.outputs[0], lt.inputs[0])
+    Lk.new(lt.outputs[0], b.inputs["Alpha"])
+    oi = N.new("ShaderNodeObjectInfo"); rp = N.new("ShaderNodeValToRGB")
+    rp.color_ramp.elements[0].color = (0.02, 0.06, 0.015, 1); rp.color_ramp.elements[1].color = (0.12, 0.22, 0.05, 1)
+    el = rp.color_ramp.elements.new(0.85); el.color = (0.22, 0.16, 0.05, 1)                   # a few dead brown leaves
+    gi = N.new("ShaderNodeNewGeometry")
+    wn = N.new("ShaderNodeTexWhiteNoise"); wn.noise_dimensions = "3D"
+    Lk.new(gi.outputs["Position"], wn.inputs["Vector"])
+    vn = N.new("ShaderNodeTexNoise"); vn.inputs["Scale"].default_value = 4.0; Lk.new(gi.outputs["Position"], vn.inputs["Vector"])
+    mxf = N.new("ShaderNodeMix"); mxf.data_type = "FLOAT"; mxf.inputs["Factor"].default_value = 0.5
+    Lk.new(vn.outputs["Fac"], mxf.inputs["A"]); Lk.new(wn.outputs["Value"], mxf.inputs["B"])
+    Lk.new(mxf.outputs["Result"], rp.inputs["Fac"])
+    Lk.new(rp.outputs["Color"], b.inputs["Base Color"])
+    tr = N.new("ShaderNodeBsdfTranslucent"); tr.inputs["Color"].default_value = (0.1, 0.2, 0.03, 1)
+    mx = N.new("ShaderNodeMixShader"); mx.inputs["Fac"].default_value = 0.25
+    out = N["Material Output"]
+    Lk.new(b.outputs["BSDF"], mx.inputs[1]); Lk.new(tr.outputs["BSDF"], mx.inputs[2]); Lk.new(mx.outputs["Shader"], out.inputs["Surface"])
+    try: m.blend_method = "HASHED"
+    except Exception: pass
+    return m
+
+
+LEAF_MAT = None
+
+
 def make_bush(name, seed):
-    """dense, round clipped evergreen (yews / junipers along the fronts in the reference photos)"""
-    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=4, radius=0.5)
+    """clipped evergreen shrub (yews / junipers / boxwood in the reference photos): a dark woody core hidden under
+    ~2,500 instanced leaf cards scattered over a lumpy shell, so the outline is broken and light shows through"""
+    global LEAF_MAT
+    if LEAF_MAT is None: LEAF_MAT = leaf_material()
+    # leaf card
+    me = bpy.data.meshes.new(name + "_leafm")
+    me.from_pydata([(-0.022, 0, 0), (0.022, 0, 0), (0.022, 0.06, 0), (-0.022, 0.06, 0)], [], [[0, 1, 2, 3]])
+    me.uv_layers.new(); uv = me.uv_layers[0].data
+    for i, co in enumerate(((0, 0), (1, 0), (1, 1), (0, 1))): uv[i].uv = co
+    leaf = bpy.data.objects.new(name + "_leaf", me); leaf.data.materials.append(LEAF_MAT)
+    # shell
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=3, radius=0.5)
     o = bpy.context.active_object; o.name = name
-    o.scale = (1.0, 1.0, 0.8); bpy.ops.object.transform_apply(scale=True)
-    tx = bpy.data.textures.new(name + "_n", "CLOUDS"); tx.noise_scale = 0.18; tx.noise_depth = 2
-    dm = o.modifiers.new("d", "DISPLACE"); dm.texture = tx; dm.strength = 0.28; dm.mid_level = 0.5
+    o.scale = (1.0, 0.95, 0.78); bpy.ops.object.transform_apply(scale=True)
+    tx = bpy.data.textures.new(name + "_n", "CLOUDS"); tx.noise_scale = 0.22; tx.noise_depth = 2
+    dm = o.modifiers.new("d", "DISPLACE"); dm.texture = tx; dm.strength = 0.22; dm.mid_level = 0.5
     bpy.ops.object.modifier_apply(modifier="d")
     for v in o.data.vertices:
-        if v.co.z < -0.25: v.co.z = -0.25 + (v.co.z + 0.25) * 0.2       # flat-ish bottom on the ground
-    for f in o.data.polygons: f.use_smooth = True
-    m = bpy.data.materials.new(name + "_leaf"); m.use_nodes = True; N = m.node_tree.nodes; Lk = m.node_tree.links
-    b = N["Principled BSDF"]; vo = N.new("ShaderNodeTexVoronoi"); vo.inputs["Scale"].default_value = 60
-    ramp = N.new("ShaderNodeValToRGB"); ramp.color_ramp.elements[0].color = (0.015, 0.05, 0.012, 1)
-    ramp.color_ramp.elements[1].color = (0.07, 0.17, 0.04, 1)
-    Lk.new(vo.outputs["Distance"], ramp.inputs["Fac"])
-    dn = N.new("ShaderNodeTexNoise"); dn.inputs["Scale"].default_value = 2.5; dn.inputs["Detail"].default_value = 4
-    dr = N.new("ShaderNodeMapRange"); dr.inputs["From Min"].default_value = 0.5; dr.inputs["From Max"].default_value = 0.62
-    Lk.new(dn.outputs["Fac"], dr.inputs["Value"])
-    dm_ = N.new("ShaderNodeMix"); dm_.data_type = "RGBA"; Lk.new(dr.outputs["Result"], dm_.inputs["Factor"])
-    Lk.new(ramp.outputs["Color"], dm_.inputs["A"]); dm_.inputs["B"].default_value = (0.16, 0.1, 0.04, 1)     # dead brown patches
-    Lk.new(dm_.outputs["Result"], b.inputs["Base Color"])
-    bm_ = N.new("ShaderNodeBump"); bm_.inputs["Strength"].default_value = 0.9
-    Lk.new(vo.outputs["Distance"], bm_.inputs["Height"]); Lk.new(bm_.outputs["Normal"], b.inputs["Normal"])
-    b.inputs["Roughness"].default_value = 0.75
-    o.data.materials.append(m)
+        if v.co.z < -0.25: v.co.z = -0.25 + (v.co.z + 0.25) * 0.2
+    core = bpy.data.materials.new(name + "_core"); core.use_nodes = True
+    core.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.012, 0.025, 0.008, 1)
+    o.data.materials.append(core)
+    ps = o.modifiers.new("leaves", "PARTICLE_SYSTEM").particle_system
+    ps.seed = seed; st = ps.settings
+    st.type = "HAIR"; st.count = 2600; st.hair_length = 0.05; st.emit_from = "FACE"; st.use_emit_random = True
+    st.render_type = "OBJECT"; st.instance_object = leaf; st.particle_size = 1.0; st.size_random = 0.6
+    st.use_rotations = True; st.rotation_mode = "NOR"; st.rotation_factor_random = 1.0; st.phase_factor_random = 2.0
+    st.use_rotation_instance = False
+    if hasattr(st, "use_advanced_hair"): st.use_advanced_hair = True
+    # bake the leaves into one real mesh (instancing a bush then costs nothing per copy)
+    coll("tmp").objects.link(leaf)
+    bpy.context.view_layer.update()
+    bpy.ops.object.select_all(action="DESELECT"); o.select_set(True); bpy.context.view_layer.objects.active = o
+    bpy.ops.object.duplicates_make_real()
+    leaves = [x for x in bpy.context.selected_objects if x is not o]
+    o.modifiers.remove(o.modifiers["leaves"])
+    for v in o.data.vertices: v.co *= 0.8           # the dark core sits inside the leaf layer, not over it
+    # hair instancing shrinks the cards (scale ~ hair settings); put every leaf back to real size about its root
+    k = 0.044 / max(1e-6, leaves[0].dimensions.x) if leaves else 1.0
+    for x in leaves:
+        x.scale = (x.scale[0] * k * rng.uniform(0.7, 1.3),) * 3
+    print("leaf objects", len(leaves))
+    bpy.ops.object.select_all(action="DESELECT")
+    for x in leaves: x.select_set(True)
+    o.select_set(True); bpy.context.view_layer.objects.active = o
+    bpy.ops.object.join()
+    bpy.data.objects.remove(leaf)
     o.location = (0, 0, 0.25)
     bpy.ops.object.transform_apply(location=True)
     c = bpy.data.collections.new("src_" + name)
     for uc in list(o.users_collection): uc.objects.unlink(o)
     c.objects.link(o)
+    print("bush", name, len(o.data.polygons), "faces")
     return c, 0.85
 
 
-shr = [make_bush("bush_a", 1), make_bush("bush_b", 2)]
+shr = [make_bush("bush_a", 1), make_bush("bush_b", 2), make_bush("bush_c", 3)]
 T = json.load(open(os.path.join(os.path.dirname(AREA), "..", "lidar", "trees.json")))["trees"] if os.path.exists(
     os.path.join(os.path.dirname(AREA), "..", "lidar", "trees.json")) else []
 nt = 0
@@ -862,7 +923,7 @@ for x, y, h, d in T:
     if Point(lx, ly).within(foot_u): continue
     instance(tree_c, lx, ly, LAWN, max(0.4, min(2.5, h / tree_h)), rng.uniform(0, 6.28)); nt += 1
 for x, y, s in SHRUBS:
-    c, hh = shr[rng.randrange(2)]
+    c, hh = shr[rng.randrange(len(shr))]
     instance(c, x, y, LAWN, s * rng.uniform(0.9, 1.4), rng.uniform(0, 6.28))
 print("trees", nt, "shrubs", len(SHRUBS))
 if DIRTY:

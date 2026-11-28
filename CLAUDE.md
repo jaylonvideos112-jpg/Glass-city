@@ -18,3 +18,5 @@
 7. Also drop a code snapshot `glass-city-YYYY-MM-DD-code.zip` into the owner's Google Drive "GLASS CITY / Game
    Backups" folder (Drive takes about 3 MB per upload from a session) and add a Change log row to "GLASS CITY —
    Master Archive" (the story canon doc) each session.
+8. **Art direction is photoreal and dirty** (owner, 2026-11-28: "This is the style I want the whole game"). The map is
+   built in Blender first, photo accurate, area by area (`tools/photoreal/`), then converted. The Bully look is retired.
